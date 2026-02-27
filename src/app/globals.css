@@ -1,0 +1,231 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   THE_TOWER — Global Styles
+   Kingdom palette, base resets, utility classes
+   ============================================================ */
+
+/* --- CSS Custom Properties (Kingdom Palette) --- */
+:root {
+  /* Core palette — matches tailwind.config.js exactly */
+  --void: #0a0a0f;
+  --void-mid: #12121a;
+  --void-light: #1a1a26;
+  --violet: #7000ff;
+  --violet-dim: #4a00aa;
+  --violet-glow: #9b30ff;
+  --cyan: #00f3ff;
+  --cyan-dim: #00a8b3;
+  --pink: #ff006e;
+  --pink-dim: #aa0049;
+  --amber: #f0a500;
+  --amber-dim: #a07000;
+  --bone: #e8e0d0;
+  --bone-dim: #a09888;
+  --bone-ghost: #504840;
+
+  /* Semantic tokens */
+  --signal-active: var(--cyan);
+  --signal-idle: var(--violet-dim);
+  --signal-alert: var(--pink);
+  --signal-history: var(--amber);
+
+  /* Typography scale */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+
+  /* Spacing unit */
+  --space-unit: 4px;
+
+  /* Border */
+  --border-subtle: 1px solid rgba(112, 0, 255, 0.15);
+  --border-active: 1px solid rgba(112, 0, 255, 0.5);
+  --border-glow: 1px solid rgba(0, 243, 255, 0.3);
+}
+
+/* --- Base Resets --- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* Prevent flash of unstyled content */
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--void);
+  color: var(--bone);
+  /* Subtle noise texture over the void */
+  background-image:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+/* --- Scrollbar — Kingdom themed --- */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--void-mid);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--violet-dim);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--violet);
+}
+
+/* --- Focus styles — visible but Kingdom-appropriate --- */
+:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+/* --- Typography base --- */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--bone);
+}
+
+p {
+  line-height: 1.7;
+  color: var(--bone-dim);
+}
+
+a {
+  color: var(--cyan);
+  text-decoration: none;
+  transition: color 150ms ease, text-shadow 150ms ease;
+}
+
+a:hover {
+  color: var(--bone);
+  text-shadow: 0 0 8px var(--cyan);
+}
+
+code, pre, kbd {
+  font-family: var(--font-mono);
+}
+
+/* --- Kingdom Component Classes --- */
+@layer components {
+  /* Panel — the primary surface unit */
+  .panel {
+    @apply bg-kingdom-void-mid border border-kingdom-violet/20 rounded-kingdom-md;
+    box-shadow: var(--inner-void, inset 0 1px 0 rgba(255,255,255,0.04));
+  }
+
+  .panel-active {
+    @apply panel border-kingdom-violet/50;
+    box-shadow: 0 0 20px rgba(112, 0, 255, 0.15), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  /* Signal dot — alive indicator */
+  .signal-dot {
+    @apply w-2 h-2 rounded-full bg-kingdom-cyan;
+    animation: pulse_kingdom 3s ease-in-out infinite;
+    box-shadow: 0 0 6px var(--cyan);
+  }
+
+  .signal-dot-idle {
+    @apply w-2 h-2 rounded-full bg-kingdom-violet-dim;
+  }
+
+  .signal-dot-alert {
+    @apply w-2 h-2 rounded-full bg-kingdom-pink;
+    animation: pulse_kingdom 1s ease-in-out infinite;
+    box-shadow: 0 0 6px var(--pink);
+  }
+
+  /* Kingdom button */
+  .btn-kingdom {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-kingdom font-mono text-sm;
+    @apply bg-kingdom-void-light border border-kingdom-violet/40 text-kingdom-bone;
+    @apply transition-all duration-150;
+  }
+
+  .btn-kingdom:hover {
+    @apply border-kingdom-violet text-kingdom-bone bg-kingdom-void-mid;
+    box-shadow: 0 0 12px rgba(112, 0, 255, 0.3);
+  }
+
+  .btn-kingdom-primary {
+    @apply btn-kingdom bg-kingdom-violet/20 border-kingdom-violet text-kingdom-bone;
+  }
+
+  .btn-kingdom-primary:hover {
+    @apply bg-kingdom-violet/30;
+    box-shadow: 0 0 20px rgba(112, 0, 255, 0.5);
+  }
+
+  /* Section label — tiny uppercase mono label above sections */
+  .section-label {
+    @apply text-xs font-mono uppercase tracking-widest text-kingdom-violet;
+  }
+
+  /* Monospace data display */
+  .data-display {
+    @apply font-mono text-sm text-kingdom-cyan;
+  }
+
+  /* Divider */
+  .divider-kingdom {
+    @apply border-t border-kingdom-violet/15 my-8;
+  }
+}
+
+/* --- Utility classes not covered by Tailwind config --- */
+@layer utilities {
+  /* Text glow effects */
+  .text-glow-violet {
+    text-shadow: 0 0 8px var(--violet), 0 0 20px rgba(112, 0, 255, 0.4);
+  }
+
+  .text-glow-cyan {
+    text-shadow: 0 0 8px var(--cyan), 0 0 20px rgba(0, 243, 255, 0.4);
+  }
+
+  .text-glow-pink {
+    text-shadow: 0 0 8px var(--pink), 0 0 20px rgba(255, 0, 110, 0.4);
+  }
+
+  /* Clip path for Kingdom geometric shapes */
+  .clip-signal-bar {
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+  }
+
+  /* Scanning line animation on an element */
+  .scanning::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(0, 243, 255, 0.03) 50%,
+      transparent 100%
+    );
+    animation: scanline 4s linear infinite;
+    pointer-events: none;
+  }
+}

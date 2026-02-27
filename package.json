@@ -1,0 +1,38 @@
+{
+  "name": "the-tower",
+  "version": "0.1.0",
+  "private": true,
+  "description": "THE_TOWER — the public face of the Sinner Kingdom. A glitch cathedral disguised as a website.",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.36.3",
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
+    "@tailwindcss/typography": "^0.5.15",
+    "@tryghost/content-api": "^1.11.20",
+    "framer-motion": "^11.15.0",
+    "lucide-react": "^0.469.0",
+    "next": "^16.1.6",
+    "partykit": "^0.0.109",
+    "partysocket": "^1.0.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "three": "^0.171.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/three": "^0.171.0",
+    "eslint": "^9",
+    "eslint-config-next": "^16.1.6",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5"
+  }
+}
