@@ -35,21 +35,11 @@ const nextConfig = {
     ]
   },
 
-  // Experimental features for performance
-  experimental: {
-    // Partial pre-rendering for hybrid static/dynamic pages
-    ppr: false,
-    // React compiler (opt-in when stable)
-    reactCompiler: false,
-  },
+  // Turbopack (default in Next.js 16) — empty config silences webpack conflict warning
+  turbopack: {},
 
-  // Webpack config for GLSL shaders (future use for Three.js)
-  webpack(config) {
-    config.module.rules.push({
-      test: /\.(glsl|vs|fs|vert|frag)$/,
-      use: ['raw-loader', 'glslify-loader'],
-    })
-    return config
+  experimental: {
+    ppr: false,
   },
 }
 
