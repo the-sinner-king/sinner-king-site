@@ -11,8 +11,9 @@
 ┌── 🜂 PHASE STATUS ────────────────────────────────────────────────────────────┐
 │                                                                               │
 │  Phase 0  Foundation + Scaffold        ◉ COMPLETE                            │
-│  Phase 1  Infrastructure + Deploy      ⟳ IN PROGRESS                         │
-│  Phase 2  Core Pages (content live)    ⬡ NEXT                                │
+│  Phase 1  Infrastructure + Deploy      ◉ COMPLETE — Vercel live, repo pushed  │
+│  Phase 1.5 Kingdom Map Prototype       ◉ COMPLETE — /kingdom-map LIVE         │
+│  Phase 2  Core Pages + Art             ⟳ WAITING on island sprites            │
 │  Phase 3  Blog Engine (Ghost wired)    ⬡                                     │
 │  Phase 4  Haunting System (NPCs)       ⬡                                     │
 │  Phase 5  Fish Tank (Three.js live)    ⬡                                     │
@@ -27,10 +28,11 @@
 
 ┌── ⛬ BLOCKERS — PHASE 1 ──────────────────────────────────────────────────────┐
 │                                                                               │
-│  ⬡ Vercel project create + GitHub push         ⊕ Claude (ready now)         │
-│  ⬡ GoDaddy DNS: CNAME @ → cname.vercel-dns.com ⊕ Brandon (2 clicks)        │
-│  ⬡ Ghost CMS: Docker Compose on VPS            ⊕ Claude                     │
-│  ⬡ Env vars set in Vercel dashboard             ⊕ Claude + Brandon           │
+│  ◉ Vercel project create + GitHub push         ⊕ DONE                        │
+│  ◉ /kingdom-map prototype LIVE (R3F, real data)⊕ DONE                        │
+│  ⬡ GoDaddy DNS: CNAME @ → cname.vercel-dns.com ⊕ Brandon (2 clicks)         │
+│  ⬡ Ghost CMS: Docker Compose on VPS            ⊕ Claude                      │
+│  ⬡ Island PNG sprites (6x)                     ⊕ Brandon + Aeris             │
 │                                                                               │
 └───────────────────────────────────────────────────────────────────────────────┘
 

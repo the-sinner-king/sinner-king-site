@@ -62,6 +62,8 @@ html {
   scroll-behavior: smooth;
   /* Prevent flash of unstyled content */
   color-scheme: dark;
+  /* Prevent overscroll bounce at tunnel boundaries */
+  overscroll-behavior: none;
 }
 
 body {

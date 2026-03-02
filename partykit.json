@@ -1,0 +1,5 @@
+{
+  "name": "kingdom-room",
+  "main": "party/kingdom-room.ts",
+  "compatibilityDate": "2024-01-01"
+}

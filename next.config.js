@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Transpile Three.js and related packages for App Router compatibility
-  transpilePackages: ['three'],
+  transpilePackages: ['three', '@react-three/fiber', '@react-three/drei'],
 
   // Image domains for Ghost CMS and kingdom assets
   images: {

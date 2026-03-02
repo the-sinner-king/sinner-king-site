@@ -37,7 +37,6 @@ export type TerritoryId =
   | 'the_throne'
   | 'the_scryer'
   | 'the_tower'
-  | 'the_hole'
   | 'core_lore'
 
 export interface TerritoryState {
@@ -92,11 +91,33 @@ export interface SignalStream {
   signals: RecentSignal[]
 }
 
+export interface ActiveEvent {
+  id: string
+  type: 'drone_swarm' | 'search_swarm' | 'audit' | 'debug' | 'deploy' | 'generic'
+  label: string                 // e.g. "Debug swarm → the_forge"
+  sourceTerritoryId: string     // e.g. "claude_house"
+  targetTerritoryId: string     // e.g. "the_forge" (empty for off_screen swarms)
+  direction?: 'to_territory' | 'off_screen'  // off_screen: fly out + return cyan
+  startedAt: number             // Unix ms
+  expiresAt: number             // Unix ms — events expire client-side too
+}
+
+export interface ActiveEvents {
+  lastUpdated: number
+  version: string
+  events: ActiveEvent[]
+}
+
 // --- File paths ---
 
 function getFeedsPath(): string {
   return process.env.SCRYER_FEEDS_PATH
-    ?? path.join(process.cwd(), '..', 'SCRYER_FEEDS')
+    ?? path.join(process.cwd(), '..', '..', '..', 'SCRYER_FEEDS')
+}
+
+function getKingdomLiveMapPath(): string {
+  return process.env.KINGDOM_LIVE_MAP_PATH
+    ?? path.join(process.cwd(), '..', '..', '..', 'KINGDOM_LIVE_MAP')
 }
 
 function getKingdomStatePath(): string {
@@ -107,9 +128,76 @@ function getSignalStreamPath(): string {
   return path.join(getFeedsPath(), 'signal_stream.json')
 }
 
+function getActiveEventsPath(): string {
+  return path.join(getFeedsPath(), 'active_events.json')
+}
+
+// --- Real-time Claude activity injection ---
+// Reads claude_house_activity.json directly, bypassing the 60s SCRYER lag.
+// This file is written only by Claude's House hooks (not global hooks shared with other sessions).
+
+interface ClaudeActivityFile {
+  status: 'working' | 'idle' | 'offline'
+  last_updated?: string   // ISO timestamp — used for stale detection
+}
+
+async function getClaudeActivity(): Promise<ClaudeActivityFile | null> {
+  const klm = getKingdomLiveMapPath()
+  const perCockpit = path.join(klm, 'claude_house_activity.json')
+  const global_    = path.join(klm, 'claude_activity.json')
+
+  // Try per-cockpit first (claude_house_activity.json); fall back to global.
+  // Prefer per-cockpit to prevent FORGE_CLAUDE / AExMUSE from cross-contaminating
+  // Claude's House status. No sync I/O — both paths use async readFile.
+  let raw: string
+  try {
+    raw = await readFile(perCockpit, 'utf-8')
+  } catch {
+    try {
+      raw = await readFile(global_, 'utf-8')
+    } catch {
+      return null
+    }
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as ClaudeActivityFile
+    if (!parsed.status) return null
+
+    // Stale guard: if "working" but file is older than 10 minutes, demote to idle
+    // (handles crash scenario where SessionEnd hook never fired)
+    if (parsed.status === 'working' && parsed.last_updated) {
+      const updatedTime = new Date(parsed.last_updated).getTime()
+      if (!isNaN(updatedTime) && Date.now() - updatedTime > 600_000) {
+        return { ...parsed, status: 'idle' }
+      }
+    }
+
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+// Map claude_activity status → territory status + activity level
+const CLAUDE_STATUS_MAP = {
+  working: { status: 'active' as const, activity: 90 },
+  idle:    { status: 'idle'   as const, activity: 60 },
+  offline: { status: 'offline' as const, activity: 10 },
+} as const
+
 // --- Cache ---
 // Simple in-process cache to avoid hammering disk on every request.
 // TTL is configurable via KINGDOM_STATE_CACHE_TTL (default 5000ms).
+// Parsed once at module load — env vars don't change at runtime.
+
+const CACHE_TTL_MS: number = process.env.KINGDOM_STATE_CACHE_TTL
+  ? parseInt(process.env.KINGDOM_STATE_CACHE_TTL, 10)
+  : 5000
+
+// Signal stream and active events use shorter TTLs — they're meant to be live.
+const SIGNAL_CACHE_TTL_MS: number = Math.min(CACHE_TTL_MS, 2000)
+const EVENTS_CACHE_TTL_MS: number = Math.min(CACHE_TTL_MS, 3000)
 
 interface CacheEntry<T> {
   data: T
@@ -117,11 +205,6 @@ interface CacheEntry<T> {
 }
 
 const cache = new Map<string, CacheEntry<unknown>>()
-
-function getCacheTTL(): number {
-  const raw = process.env.KINGDOM_STATE_CACHE_TTL
-  return raw ? parseInt(raw, 10) : 5000
-}
 
 function getCached<T>(key: string): T | null {
   const entry = cache.get(key) as CacheEntry<T> | undefined
@@ -136,7 +219,7 @@ function getCached<T>(key: string): T | null {
 function setCached<T>(key: string, data: T): void {
   cache.set(key, {
     data,
-    expiresAt: Date.now() + getCacheTTL(),
+    expiresAt: Date.now() + CACHE_TTL_MS,
   })
 }
 
@@ -205,6 +288,26 @@ function getMockSignalStream(): SignalStream {
   }
 }
 
+function getMockActiveEvents(): ActiveEvents {
+  const now = Date.now()
+  return {
+    lastUpdated: now,
+    version: '1.0',
+    events: [
+      {
+        id: 'mock-search-1',
+        type: 'search_swarm',
+        label: 'Web Search',
+        sourceTerritoryId: 'claude_house',
+        targetTerritoryId: '',
+        direction: 'off_screen',
+        startedAt: now - 5000,
+        expiresAt: now + 25000,
+      },
+    ],
+  }
+}
+
 // --- Validation ---
 // Light validation — if the file exists but is malformed, return null rather
 // than crash the page. SCRYER could be mid-write.
@@ -225,6 +328,12 @@ function isValidSignalStream(data: unknown): data is SignalStream {
     typeof d.lastUpdated === 'number' &&
     Array.isArray(d.signals)
   )
+}
+
+function isValidActiveEvents(data: unknown): data is ActiveEvents {
+  if (!data || typeof data !== 'object') return false
+  const d = data as Record<string, unknown>
+  return typeof d.lastUpdated === 'number' && Array.isArray(d.events)
 }
 
 // --- Public API ---
@@ -289,8 +398,7 @@ export async function getSignalStream(): Promise<SignalStream> {
     }
 
     // Only cache signal stream briefly — it's meant to be live
-    const ttl = Math.min(getCacheTTL(), 2000)
-    cache.set(cacheKey, { data: parsed, expiresAt: Date.now() + ttl })
+    cache.set(cacheKey, { data: parsed, expiresAt: Date.now() + SIGNAL_CACHE_TTL_MS })
     return parsed
   } catch {
     return { lastUpdated: Date.now(), version: '1.0', signals: [] }
@@ -298,19 +406,74 @@ export async function getSignalStream(): Promise<SignalStream> {
 }
 
 /**
+ * Returns the active events feed.
+ * Reads from SCRYER_FEEDS/active_events.json.
+ * Returns an empty events object if file doesn't exist.
+ */
+export async function getActiveEvents(): Promise<ActiveEvents> {
+  if (process.env.USE_MOCK_SCRYER_DATA === 'true') {
+    return getMockActiveEvents()
+  }
+
+  const cacheKey = 'active-events'
+  const cached = getCached<ActiveEvents>(cacheKey)
+  if (cached) return cached
+
+  try {
+    const filePath = getActiveEventsPath()
+    const raw = await readFile(filePath, 'utf-8')
+    const parsed = JSON.parse(raw)
+
+    if (!isValidActiveEvents(parsed)) {
+      return { lastUpdated: Date.now(), version: '1.0', events: [] }
+    }
+
+    // Keep active events fresh — slightly longer TTL than signal stream
+    cache.set(cacheKey, { data: parsed, expiresAt: Date.now() + EVENTS_CACHE_TTL_MS })
+    return parsed
+  } catch {
+    return { lastUpdated: Date.now(), version: '1.0', events: [] }
+  }
+}
+
+/**
  * Returns a combined Kingdom data payload.
  * Convenience wrapper for API routes.
+ *
+ * Injects real-time Claude activity into claude_house territory,
+ * bypassing the 60s SCRYER polling lag. Max lag becomes 5s (API poll).
  */
 export async function getKingdomPayload() {
-  const [state, stream] = await Promise.all([
+  const [state, stream, activeEvents, claudeActivity] = await Promise.all([
     getKingdomState(),
     getSignalStream(),
+    getActiveEvents(),
+    getClaudeActivity(),
   ])
 
+  // Override claude_house territory with real-time hook data.
+  // IMPORTANT: never mutate the cached state object — build a new one.
+  let patchedState = state
+  if (state && claudeActivity) {
+    const override = CLAUDE_STATUS_MAP[claudeActivity.status]
+    if (override) {
+      const idx = state.territories.findIndex((t) => t.id === 'claude_house')
+      if (idx !== -1) {
+        patchedState = {
+          ...state,
+          claudeActive: claudeActivity.status !== 'offline',
+          territories: state.territories.map((t, i) =>
+            i === idx ? { ...t, status: override.status, activity: override.activity } : t
+          ),
+        }
+      }
+    }
+  }
+
   return {
-    state,
+    state: patchedState,
     stream,
+    activeEvents,
     timestamp: Date.now(),
-    feedsPath: getFeedsPath(),
   }
 }

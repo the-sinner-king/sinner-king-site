@@ -22,7 +22,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getKingdomPayload, getKingdomState, getSignalStream } from '@/lib/kingdom-state'
+import { getKingdomPayload, getKingdomState, getSignalStream, getActiveEvents } from '@/lib/kingdom-state'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -43,6 +43,10 @@ export async function GET(request: NextRequest) {
       const stream = await getSignalStream()
       scryerStatus = stream.signals.length > 0 ? 'healthy' : 'degraded'
       data = { stream, timestamp: Date.now() }
+    } else if (type === 'events') {
+      const events = await getActiveEvents()
+      scryerStatus = 'healthy'
+      data = events
     } else {
       const payload = await getKingdomPayload()
       scryerStatus = payload.state ? 'healthy' : 'offline'
