@@ -22,6 +22,7 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import * as THREE from 'three'
 import { useKingdomStore, usePartyKitSync } from '@/lib/kingdom-store'
 import type { AgentState } from '@/lib/kingdom-agents'
+import { TERRITORY_TO_AGENT } from '@/lib/kingdom-agents'
 import { DroneSwarms } from './DroneSwarm'
 import { SignalPulses } from './SignalPulse'
 import { TimeStream } from './TimeStream'
@@ -814,7 +815,7 @@ function TerritoryDetailPanel() {
       <div style={{ height: 1, background: `${layout.color}20`, margin: '12px 0' }} />
 
       {liveData && (() => {
-        const bState = deriveBuildingState(useKingdomStore.getState().getAgentState(selectedId!))
+        const bState = deriveBuildingState(useKingdomStore.getState().getAgentState(selectedId ?? ''))
         const bCfg = BUILDING_STATE_CONFIG[bState]
         return (
           <div style={{ fontSize: 11, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -968,7 +969,9 @@ function DebugPanel() {
   const setDebugOverride = useKingdomStore((s) => s.setDebugOverride)
   const territories = useKingdomStore((s) => s.territories)
   const getActivity = useKingdomStore((s) => s.getActivity)
-  const getAgentState = useKingdomStore((s) => s.getAgentState)
+  // Subscribe to agentStates directly (not the getter function ref) so DebugPanel re-renders
+  // when agent states update. Derive building state inline from the raw data.
+  const agentStates = useKingdomStore((s) => s.agentStates)
 
   // Only render when ?debug=1 is in the URL
   const [show, setShow] = React.useState(false)
@@ -1006,7 +1009,9 @@ function DebugPanel() {
         if (!layout) return null
         const hasOverride = id in debugOverrides
         const currentActivity = getActivity(id)
-        const bs = deriveBuildingState(getAgentState(id))
+        const agentKey = TERRITORY_TO_AGENT[id]
+        const agentStateVal: AgentState = agentKey ? (agentStates[agentKey]?.state ?? 'offline') : 'online'
+        const bs = deriveBuildingState(agentStateVal)
         const cfg = BUILDING_STATE_CONFIG[bs]
 
         const cycleNext = () => {

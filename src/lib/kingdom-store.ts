@@ -156,9 +156,10 @@ export const useKingdomStore = create<KingdomStore>((set, get) => ({
 
   hydrateMood: (mood: MoodState) => set({ mood }),
 
-  // Also sets isLoaded — when agent states arrive from KingdomLiveContext the Kingdom is live
+  // Merges (not replaces) agent states — transient partial responses don't blank absent agents.
+  // Also sets isLoaded — when agent states arrive from KingdomLiveContext the Kingdom is live.
   hydrateAgentStates: (agents: Record<string, AgentStatus>) =>
-    set({ agentStates: agents, isLoaded: true }),
+    set({ agentStates: { ...get().agentStates, ...agents }, isLoaded: true }),
 
   getMood: () => get().mood,
 
