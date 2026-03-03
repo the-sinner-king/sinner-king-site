@@ -1,0 +1,40 @@
+{
+  "flavor": "CODING",
+  "flavor_locked_at": "2026-03-03T09:50:00Z",
+  "operation": "Wire live data to production site — raise emissive baseline, push pipeline, PartyKit fallback in KingdomLiveContext",
+  "started_at": "2026-03-03T09:50:00Z",
+  "promise": "",
+  "blocker": null,
+
+  "architectural_plaque": "Push not pull. Brandon's machine POSTs to PartyKit every 30s. PartyKit stores lastPayload and serves it to new connections. KingdomLiveContext tries localhost:2701 first (local dev), falls back to /api/partykit-snapshot (production). One push script, one endpoint, one fallback — no tunnels, no external services.",
+  "prd_reference": "KINGDOM_MAP/PHASE_53_PLAN.md (partial overlap — this build is pre-5.3 data foundation)",
+
+  "learnings": [],
+  "agent_log": [],
+  "steps_completed": [],
+  "mistakes": [],
+
+  "active_work": "Story 1: Raise stable emissive baseline",
+  "priorities": [
+    "Story 1: stable emissive 0.13 → 0.45 (instant visual fix)",
+    "Story 2: Pull KINGDOM_PUSH_SECRET + create kingdom-live-push.sh",
+    "Story 3: Add /api/partykit-snapshot endpoint (reads PartyKit stored payload)",
+    "Story 4: KingdomLiveContext fallback — check /api/partykit-snapshot when API fails",
+    "Story 5: TypeScript gate + commit + push + smoke test"
+  ],
+  "swarm": null,
+
+  "acceptance_criteria_status": {
+    "stable_emissive_visible": "pending",
+    "push_script_created": "pending",
+    "push_script_sends_livedata": "pending",
+    "partykit_snapshot_endpoint": "pending",
+    "hud_reads_partykit_fallback": "pending",
+    "typescript_clean": "pending",
+    "live_site_shows_hud": "pending"
+  },
+
+  "test_status": "UNKNOWN",
+  "ghost_nodes": [],
+  "art_gate_result": null
+}

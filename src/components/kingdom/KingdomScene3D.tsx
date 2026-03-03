@@ -65,14 +65,15 @@ const BUILDING_STATE_CONFIG: Record<BuildingState, BuildingStateConfig> = {
     stateLabelColor:    '#201810',
   },
   stable: {
-    // Barely-perceptible slow pulse — the territory is present, not dead.
-    // 0.6 rad/s ≈ 0.10 Hz (~10s cycle) — tuned by eye; amplitude nearly invisible.
-    emissiveBase:       0.13,
-    breatheAmplitude:   0.025,
+    // Visible resting glow — territory is present and alive at rest.
+    // Raised from 0.13 → 0.45 so the scene reads as a living kingdom, not a void,
+    // even when no agent activity data is available (e.g. production with no local API).
+    emissiveBase:       0.45,
+    breatheAmplitude:   0.06,
     breatheFreq:        0.6,
-    ringOpacityBase:    0.15,
-    ringOpacityAmplitude: 0.015,
-    lightIntensityMul:  0.30,
+    ringOpacityBase:    0.28,
+    ringOpacityAmplitude: 0.04,
+    lightIntensityMul:  0.50,
     stateLabel:         'STABLE',
     stateLabelColor:    '#706050',
   },

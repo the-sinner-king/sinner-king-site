@@ -5,9 +5,14 @@
  *
  * Shared data provider for all Kingdom Map HUD components.
  *
- * Single 15s interval fires Promise.allSettled against:
+ * Primary path (local dev / localhost):
  *   /api/local/kingdom/live   → tokens, mood, health, current_activity
  *   /api/local/agents/status  → agents dict, aexgo_running
+ *
+ * Fallback path (Vercel / Super API offline):
+ *   /api/partykit-snapshot    → reads liveData from PartyKit room storage
+ *   kingdom-live-push.sh on Brandon's machine pushes fresh data every 30s.
+ *   Fallback status = 'ok' if < 45s old, 'stale' if older.
  *
  * Atomic setState — one update per cycle, both payloads together.
  * Never clears data on error — sets status: 'stale' after 45s without success.
@@ -121,6 +126,48 @@ const STALE_THRESHOLD_MS = 45_000
 const EMPTY_TOKEN_WINDOW: TokenWindow    = { tokens: 0, cost_usd: 0 }
 const EMPTY_SESSION_WINDOW: SessionWindow = { tokens: 0, cost_usd: 0, session_id: '' }
 
+// Shape of liveData stored in PartyKit by kingdom-live-push.sh
+interface PartyKitLiveData {
+  kingdom_live?:  KingdomLiveApiResponse | null
+  agents_status?: AgentsStatusApiResponse | null
+  pushed_at?:     number
+}
+
+interface PartyKitSnapshotResponse {
+  ok:       boolean
+  liveData: PartyKitLiveData
+  cached_at?: number
+}
+
+// Build merged KingdomLiveData from API responses + optional previous state
+function buildMerged(
+  live: KingdomLiveApiResponse,
+  agentsPayload: AgentsStatusApiResponse,
+  prev: KingdomLiveData | null
+): KingdomLiveData {
+  return {
+    tokens: {
+      today:          live.tokens?.today          ?? prev?.tokens?.today          ?? EMPTY_TOKEN_WINDOW,
+      week:           live.tokens?.week           ?? prev?.tokens?.week           ?? EMPTY_TOKEN_WINDOW,
+      this_session:   live.tokens?.this_session   ?? prev?.tokens?.this_session   ?? EMPTY_SESSION_WINDOW,
+      intensity:      live.tokens?.intensity      ?? prev?.tokens?.intensity      ?? 'quiet',
+      tokens_per_min: live.tokens?.tokens_per_min ?? prev?.tokens?.tokens_per_min ?? 0,
+    },
+    mood: {
+      voltage:         live.mood?.voltage         ?? prev?.mood?.voltage         ?? null,
+      state:           live.mood?.state           ?? prev?.mood?.state           ?? null,
+      synesthesia_hex: live.mood?.synesthesia_hex ?? prev?.mood?.synesthesia_hex ?? null,
+      texture:         live.mood?.texture         ?? prev?.mood?.texture         ?? null,
+      drive:           live.mood?.drive           ?? prev?.mood?.drive           ?? null,
+    },
+    health:           live.health           ?? prev?.health           ?? 'unknown',
+    current_activity: live.current_activity ?? prev?.current_activity ?? null,
+    brandon_present:  live.brandon_present  ?? prev?.brandon_present  ?? false,
+    agents:           agentsPayload.agents   ?? prev?.agents           ?? {},
+    aexgo_running:    agentsPayload.aexgo_running ?? prev?.aexgo_running ?? false,
+  }
+}
+
 export function KingdomLiveProvider({ children }: { children: React.ReactNode }) {
   const [ctx, setCtx] = useState<KingdomLiveCtx>({
     data:          null,
@@ -136,6 +183,34 @@ export function KingdomLiveProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     let cancelled = false
 
+    async function tryPartyKitFallback(): Promise<boolean> {
+      // Returns true if fallback succeeded and state was updated
+      try {
+        const res = await fetch('/api/partykit-snapshot', { cache: 'no-store' })
+        if (!res.ok || res.status === 204) return false
+
+        const snap = await res.json() as PartyKitSnapshotResponse
+        if (!snap.ok || !snap.liveData) return false
+
+        const { kingdom_live, agents_status, pushed_at } = snap.liveData
+        if (!kingdom_live && !agents_status) return false
+
+        const now    = Date.now()
+        const age    = pushed_at ? now - pushed_at : STALE_THRESHOLD_MS + 1
+        const status: KingdomLiveCtx['status'] = age > STALE_THRESHOLD_MS ? 'stale' : 'ok'
+
+        const prev    = ctxRef.current.data
+        const merged  = buildMerged(kingdom_live ?? {}, agents_status ?? {}, prev)
+
+        if (!cancelled) {
+          setCtx({ data: merged, status, lastSuccessAt: now - age, age_ms: age })
+        }
+        return true
+      } catch {
+        return false
+      }
+    }
+
     async function fetchAll() {
       if (cancelled) return
 
@@ -147,12 +222,41 @@ export function KingdomLiveProvider({ children }: { children: React.ReactNode })
 
         if (cancelled) return
 
-        const now      = Date.now()
-        const hasLive  = liveRes.status === 'fulfilled' && liveRes.value.ok
+        const now       = Date.now()
+        const hasLive   = liveRes.status === 'fulfilled' && liveRes.value.ok
         const hasAgents = agentsRes.status === 'fulfilled' && agentsRes.value.ok
 
         if (!hasLive && !hasAgents) {
-          // Both failed — update stale status only, preserve last data
+          // Both failed — try PartyKit snapshot before going stale
+          const fallbackOk = await tryPartyKitFallback()
+          if (!fallbackOk && !cancelled) {
+            setCtx((p) => ({
+              ...p,
+              status: p.lastSuccessAt > 0
+                ? (now - p.lastSuccessAt > STALE_THRESHOLD_MS ? 'stale' : 'ok')
+                : 'error',
+              age_ms: p.lastSuccessAt > 0 ? now - p.lastSuccessAt : 0,
+            }))
+          }
+          return
+        }
+
+        const live: KingdomLiveApiResponse =
+          hasLive ? (await liveRes.value.json() as KingdomLiveApiResponse) : {}
+
+        const agentsPayload: AgentsStatusApiResponse =
+          hasAgents ? (await agentsRes.value.json() as AgentsStatusApiResponse) : {}
+
+        const merged = buildMerged(live, agentsPayload, ctxRef.current.data)
+
+        setCtx({ data: merged, status: 'ok', lastSuccessAt: now, age_ms: 0 })
+
+      } catch {
+        if (cancelled) return
+        // Exception path — also try PartyKit fallback
+        const fallbackOk = await tryPartyKitFallback()
+        if (!fallbackOk && !cancelled) {
+          const now = Date.now()
           setCtx((p) => ({
             ...p,
             status: p.lastSuccessAt > 0
@@ -160,58 +264,7 @@ export function KingdomLiveProvider({ children }: { children: React.ReactNode })
               : 'error',
             age_ms: p.lastSuccessAt > 0 ? now - p.lastSuccessAt : 0,
           }))
-          return
         }
-
-        // Parse what we have, ignore what we don't
-        const live: KingdomLiveApiResponse =
-          hasLive ? (await liveRes.value.json() as KingdomLiveApiResponse) : {}
-
-        const agentsPayload: AgentsStatusApiResponse =
-          hasAgents ? (await agentsRes.value.json() as AgentsStatusApiResponse) : {}
-
-        const prev = ctxRef.current.data
-
-        // Atomic merge — previous data fills gaps when one endpoint fails
-        const merged: KingdomLiveData = {
-          tokens: {
-            today:          live.tokens?.today          ?? prev?.tokens?.today          ?? EMPTY_TOKEN_WINDOW,
-            week:           live.tokens?.week           ?? prev?.tokens?.week           ?? EMPTY_TOKEN_WINDOW,
-            this_session:   live.tokens?.this_session   ?? prev?.tokens?.this_session   ?? EMPTY_SESSION_WINDOW,
-            intensity:      live.tokens?.intensity      ?? prev?.tokens?.intensity      ?? 'quiet',
-            tokens_per_min: live.tokens?.tokens_per_min ?? prev?.tokens?.tokens_per_min ?? 0,
-          },
-          mood: {
-            voltage:         live.mood?.voltage         ?? prev?.mood?.voltage         ?? null,
-            state:           live.mood?.state           ?? prev?.mood?.state           ?? null,
-            synesthesia_hex: live.mood?.synesthesia_hex ?? prev?.mood?.synesthesia_hex ?? null,
-            texture:         live.mood?.texture         ?? prev?.mood?.texture         ?? null,
-            drive:           live.mood?.drive           ?? prev?.mood?.drive           ?? null,
-          },
-          health:           live.health           ?? prev?.health           ?? 'unknown',
-          current_activity: live.current_activity ?? prev?.current_activity ?? null,
-          brandon_present:  live.brandon_present  ?? prev?.brandon_present  ?? false,
-          agents:           agentsPayload.agents   ?? prev?.agents           ?? {},
-          aexgo_running:    agentsPayload.aexgo_running ?? prev?.aexgo_running ?? false,
-        }
-
-        setCtx({
-          data:          merged,
-          status:        'ok',
-          lastSuccessAt: now,
-          age_ms:        0,
-        })
-
-      } catch {
-        if (cancelled) return
-        const now = Date.now()
-        setCtx((p) => ({
-          ...p,
-          status: p.lastSuccessAt > 0
-            ? (now - p.lastSuccessAt > STALE_THRESHOLD_MS ? 'stale' : 'ok')
-            : 'error',
-          age_ms: p.lastSuccessAt > 0 ? now - p.lastSuccessAt : 0,
-        }))
       }
     }
 
