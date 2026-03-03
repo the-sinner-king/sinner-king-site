@@ -1,8 +1,8 @@
-⛬ KID:TOWER:PROJECT:KINGDOM-MAP|7.0:⟳:2026-03-03:📶 ⛬
+⛬ KID:TOWER:PROJECT:KINGDOM-MAP|8.0:⟳:2026-03-03:📶 ⛬
 
 <promise>A window into an AI system that was running before you arrived and will keep running after you leave. Not a dashboard. A world. Six islands. Real signals. Real swarms. The haunting goes public.</promise>
 
-┌── 📶 K I N G D O M   M A P  —  N O R T H   S T A R  v6.0 ──────────────────┐
+┌── 📶 K I N G D O M   M A P  —  N O R T H   S T A R  v8.0 ──────────────────┐
 │ sinner-king.com/kingdom-map  ·  Three.js + R3F  ·  Live SCRYER data          │
 │ A real-time visualization of the Kingdom's nervous system.                    │
 │ Six territories. Signal pulses in flight. Robots rolling.                     │
@@ -65,14 +65,26 @@
 │   useKingdomSync(): deprecated (delete after 2026-03-10)                   │
 │   Granny Codex: 5 flags raised + all 5 addressed before ship              │
 │                                                                               │
-│ ⚡ REVIEW SESSION (post-compression): PHASE_53_PLAN.md — BRANDON TO APPROVE │
+│ ◉ DEPLOYED (2026-03-03): Site is live                                      │
+│   URL: the-sinner-king-site.vercel.app + sinner-king.com (DNS propagating) │
+│   Vercel project: the-sinner-king-site (brandmccormick-8263s-projects)     │
+│   Env vars: KINGDOM_PUSH_SECRET + PARTYKIT_HOST + USE_MOCK_SCRYER_DATA=t   │
 │                                                                               │
-│ NEXT: Phase 5.3 — 3D Scene Connections (Phase E from upgrade plan)         │
-│       Plan written: THE_SITE/KINGDOM_MAP/PHASE_53_PLAN.md                  │
-│       Territory emissive ∝ activity · pulse velocity ∝ tokens_per_min     │
-│       DroneSwarm density ∝ intensity · mood hex → beam tints               │
-│       STRATEGIC: Deploy first, then Phase 5.3 live with real visitors      │
-│       Deploy gate: Brandon DNS + Vercel + 5 env vars (see MEMORY.md)       │
+│ ◉ PUSH PIPELINE (2026-03-03): Local → PartyKit → Live site                 │
+│   kingdom-live-push.sh (launchd, runs 24/7) pushes every 30s               │
+│   PartyKit GET handler added — /api/partykit-snapshot reads stored payload  │
+│   KingdomLiveContext fallback: localhost fails → reads PartyKit snapshot    │
+│   Stable emissive: 0.13 → 0.45 (visible at rest)                           │
+│   Boot overlay: "THE KINGDOM IS WAKING" lore screen                        │
+│                                                                               │
+│ ⚠ KNOWN ISSUE: agents all offline — KINGDOM_LIVE_MAP files missing         │
+│   Hooks writing activity files may not be running in current session        │
+│   Fix next session: check cockpit-state-auto.sh + KINGDOM_LIVE_MAP watcher │
+│                                                                               │
+│ NEXT: Phase 5.3 — 3D Scene Connections                                     │
+│       Plan: THE_SITE/KINGDOM_MAP/PHASE_53_PLAN.md (approved, execute now)  │
+│       Territory emissive ∝ activity · TimeStream speed ∝ activity          │
+│       ConnectionBeam tint ∝ mood.synesthesia_hex · Bloom ∝ mood.voltage    │
 └───────────────────────────────────────────────────────────────────────────────┘
 
 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░░░░░░░░░░░░░░░░░
@@ -726,4 +738,4 @@ Don't build this now. But keep it in frame. It's the payoff.
 ⌂ 2026-03-02 | Claude | THE_TOWER | KINGDOM_MAP NORTH_STAR v6.7
 Phase 3.93–3.97: ◉ COMPLETE. Detection fixed. Cinematic orbit live. Stack audited. 6 bugs fixed. Map: SINGING.
 ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
-⛬ KID:TOWER:PROJECT:KINGDOM-MAP|7.0:⟳:2026-03-03:📶 ⛬
+⛬ KID:TOWER:PROJECT:KINGDOM-MAP|8.0:⟳:2026-03-03:📶 ⛬
