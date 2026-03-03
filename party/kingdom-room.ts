@@ -12,13 +12,20 @@ export default class KingdomRoom implements Party.Server {
   }
 
   async onRequest(req: Party.Request): Promise<Response> {
-    if (req.method !== 'POST') {
-      return new Response('Method not allowed', { status: 405 })
-    }
-
     const secret = req.headers.get('x-kingdom-secret')
     if (PUSH_SECRET && secret !== PUSH_SECRET) {
       return new Response('Unauthorized', { status: 401 })
+    }
+
+    // GET — return stored payload for /api/partykit-snapshot server-side reads
+    if (req.method === 'GET') {
+      const stored = await this.room.storage.get<string>('lastPayload')
+      if (!stored) return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } })
+      return new Response(stored, { status: 200, headers: { 'Content-Type': 'application/json' } })
+    }
+
+    if (req.method !== 'POST') {
+      return new Response('Method not allowed', { status: 405 })
     }
 
     const payload = await req.text()
