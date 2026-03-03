@@ -25,7 +25,7 @@
  */
 
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
-import type { AgentStatus } from './kingdom-agents'
+import type { AgentStatus, MoodState } from './kingdom-agents'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -49,13 +49,7 @@ export interface KingdomLiveData {
     intensity:      'high' | 'medium' | 'low' | 'quiet'
     tokens_per_min: number
   }
-  mood: {
-    voltage:         number | null
-    state:           string | null
-    synesthesia_hex: string | null
-    texture:         string | null
-    drive:           string | null
-  }
+  mood: MoodState
   health:           string
   current_activity: string | null
   brandon_present:  boolean

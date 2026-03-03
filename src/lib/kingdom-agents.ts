@@ -21,6 +21,16 @@ export type AgentKey = typeof AGENT_REGISTRY[number]['key']
 
 // Maps territory IDs → agent keys for the 4 Claude-inhabited territories.
 // Territories without agents (core_lore, the_scryer) are absent — callers default to 'online'.
+// Shared mood shape — both kingdom-store and kingdom-live-context use this type.
+// Defined here (not in either consumer) so they stay in sync and TypeScript catches drift.
+export interface MoodState {
+  voltage:         number | null
+  state:           string | null
+  synesthesia_hex: string | null
+  texture:         string | null
+  drive:           string | null
+}
+
 export const TERRITORY_TO_AGENT: Partial<Record<string, AgentKey>> = {
   the_forge:    'forge_claude',
   the_tower:    'tower_claude',

@@ -22,7 +22,7 @@ import { useEffect, useRef } from 'react'
 import { create } from 'zustand'
 import PartySocket from 'partysocket'
 import type { KingdomState, TerritoryState } from './kingdom-state'
-import type { AgentStatus, AgentState } from './kingdom-agents'
+import type { AgentStatus, AgentState, MoodState } from './kingdom-agents'
 import { TERRITORY_TO_AGENT } from './kingdom-agents'
 
 // Signal TTL — single source of truth, applied at receive time (not creation time)
@@ -50,15 +50,6 @@ export interface DroneSwarm {
 }
 
 // --- Store ---
-
-// Mood shape — inlined to avoid cross-import cycle with kingdom-live-context
-interface MoodState {
-  voltage:         number | null
-  state:           string | null
-  synesthesia_hex: string | null
-  texture:         string | null
-  drive:           string | null
-}
 
 // Debug overrides — client-side only, never touch SCRYER
 export interface DebugOverride {
