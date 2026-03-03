@@ -19,6 +19,15 @@ export const AGENT_REGISTRY = [
 
 export type AgentKey = typeof AGENT_REGISTRY[number]['key']
 
+// Maps territory IDs → agent keys for the 4 Claude-inhabited territories.
+// Territories without agents (core_lore, the_scryer) are absent — callers default to 'online'.
+export const TERRITORY_TO_AGENT: Partial<Record<string, AgentKey>> = {
+  the_forge:    'forge_claude',
+  the_tower:    'tower_claude',
+  claude_house: 'claude_house',
+  the_throne:   'throne_claude',
+}
+
 // ---------------------------------------------------------------------------
 // Agent status — mirrors the 9-state model from token_api.py
 // ---------------------------------------------------------------------------

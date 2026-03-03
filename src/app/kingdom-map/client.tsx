@@ -29,7 +29,8 @@ import { TokenHUD } from '@/components/kingdom/TokenHUD'
 import { PresenceStrip, ClaudeStatusBadge } from '@/components/kingdom/PresenceHUD'
 import { HeraldTicker } from '@/components/kingdom/HeraldTicker'
 import { AgentPanel } from '@/components/kingdom/AgentPanel'
-import { KingdomLiveProvider } from '@/lib/kingdom-live-context'
+import { KingdomLiveProvider, useKingdomLive } from '@/lib/kingdom-live-context'
+import { useKingdomStore } from '@/lib/kingdom-store'
 
 // ---------------------------------------------------------------------------
 // WebGL availability check (runs synchronously on client mount)
@@ -175,6 +176,27 @@ const KingdomScene3D = dynamic(
 )
 
 // ---------------------------------------------------------------------------
+// KingdomLiveSync — bridges KingdomLiveContext → KingdomStore
+//
+// Pure side-effect component. Must render inside <KingdomLiveProvider>.
+// Fires on every 15s context update and hydrates the 3D scene's Zustand store
+// with fresh agent states + mood. This is what makes buildings glow.
+// ---------------------------------------------------------------------------
+
+function KingdomLiveSync() {
+  const { data } = useKingdomLive()
+
+  useEffect(() => {
+    if (!data) return
+    const store = useKingdomStore.getState()
+    store.hydrateMood(data.mood)
+    store.hydrateAgentStates(data.agents)
+  }, [data])
+
+  return null
+}
+
+// ---------------------------------------------------------------------------
 // Export — gates on WebGL before mounting Canvas
 // ---------------------------------------------------------------------------
 
@@ -214,6 +236,7 @@ export function KingdomMapClient() {
   return (
     <KingdomErrorBoundary>
       <KingdomLiveProvider>
+        <KingdomLiveSync />
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
           <KingdomScene3D className="w-full h-full" />
           {/* Right-side HUD stack — flex column so height changes never overlap */}

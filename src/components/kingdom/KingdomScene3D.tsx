@@ -21,6 +21,7 @@ import { OrbitControls, Html } from '@react-three/drei'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import * as THREE from 'three'
 import { useKingdomStore, usePartyKitSync } from '@/lib/kingdom-store'
+import type { AgentState } from '@/lib/kingdom-agents'
 import { DroneSwarms } from './DroneSwarm'
 import { SignalPulses } from './SignalPulse'
 import { TimeStream } from './TimeStream'
@@ -36,10 +37,14 @@ import type { TerritoryLayout } from '@/lib/kingdom-layout'
 
 type BuildingState = 'offline' | 'stable' | 'working'
 
-function deriveBuildingState(status: string): BuildingState {
-  if (status === 'offline' || status === 'unknown') return 'offline'
-  if (status === 'idle') return 'stable'
-  return 'working'  // status === 'active'
+// Maps 9-state agent model → 3-state building visual.
+// 'online' = territory is alive but idle → stable glow.
+// Any active state = running/writing/etc → hot pulsing.
+// Territories without agents (core_lore, the_scryer) return 'online' from getAgentState().
+function deriveBuildingState(agentState: AgentState): BuildingState {
+  if (agentState === 'offline') return 'offline'
+  if (agentState === 'online') return 'stable'
+  return 'working'  // thinking | reading | working | writing | running | searching | swarming
 }
 
 interface BuildingStateConfig {
@@ -187,8 +192,8 @@ function TerritoryNode({ territory }: TerritoryNodeProps) {
 
     if (!meshRef.current) return
 
-    const status        = useKingdomStore.getState().getStatus(territory.id)
-    const buildingState = deriveBuildingState(status)
+    const agentState    = useKingdomStore.getState().getAgentState(territory.id)
+    const buildingState = deriveBuildingState(agentState)
     const cfg           = BUILDING_STATE_CONFIG[buildingState]
 
     // Breathing pulse — modifies shared material (all sub-meshes update)
@@ -809,7 +814,7 @@ function TerritoryDetailPanel() {
       <div style={{ height: 1, background: `${layout.color}20`, margin: '12px 0' }} />
 
       {liveData && (() => {
-        const bState = deriveBuildingState(liveData.status)
+        const bState = deriveBuildingState(useKingdomStore.getState().getAgentState(selectedId!))
         const bCfg = BUILDING_STATE_CONFIG[bState]
         return (
           <div style={{ fontSize: 11, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -962,8 +967,8 @@ function DebugPanel() {
   const debugOverrides = useKingdomStore((s) => s.debugOverrides)
   const setDebugOverride = useKingdomStore((s) => s.setDebugOverride)
   const territories = useKingdomStore((s) => s.territories)
-  const getStatus = useKingdomStore((s) => s.getStatus)
   const getActivity = useKingdomStore((s) => s.getActivity)
+  const getAgentState = useKingdomStore((s) => s.getAgentState)
 
   // Only render when ?debug=1 is in the URL
   const [show, setShow] = React.useState(false)
@@ -1000,9 +1005,8 @@ function DebugPanel() {
         const layout = TERRITORY_MAP[id]
         if (!layout) return null
         const hasOverride = id in debugOverrides
-        const currentStatus = getStatus(id)
         const currentActivity = getActivity(id)
-        const bs = deriveBuildingState(currentStatus)
+        const bs = deriveBuildingState(getAgentState(id))
         const cfg = BUILDING_STATE_CONFIG[bs]
 
         const cycleNext = () => {

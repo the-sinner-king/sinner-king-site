@@ -98,6 +98,7 @@ interface KingdomLiveApiResponse {
     this_session?:   SessionWindow
     intensity?:      'high' | 'medium' | 'low' | 'quiet'
     tokens_per_min?: number
+    rate_per_min?:   number  // alias used by /api/kingdom/live (flat shape)
   }
   mood?: {
     voltage?:         number | null
@@ -116,6 +117,12 @@ interface AgentsStatusApiResponse {
   aexgo_running?: boolean
 }
 
+interface TokensLiveApiResponse {
+  today?:        { tokens: number; cost_usd: number }
+  week?:         { tokens: number; cost_usd: number }
+  this_session?: { tokens: number; cost_usd: number; session_id: string }
+}
+
 // ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
@@ -130,6 +137,7 @@ const EMPTY_SESSION_WINDOW: SessionWindow = { tokens: 0, cost_usd: 0, session_id
 interface PartyKitLiveData {
   kingdom_live?:  KingdomLiveApiResponse | null
   agents_status?: AgentsStatusApiResponse | null
+  tokens_live?:   TokensLiveApiResponse | null
   pushed_at?:     number
 }
 
@@ -143,15 +151,19 @@ interface PartyKitSnapshotResponse {
 function buildMerged(
   live: KingdomLiveApiResponse,
   agentsPayload: AgentsStatusApiResponse,
+  tokensPayload: TokensLiveApiResponse,
   prev: KingdomLiveData | null
 ): KingdomLiveData {
   return {
     tokens: {
-      today:          live.tokens?.today          ?? prev?.tokens?.today          ?? EMPTY_TOKEN_WINDOW,
-      week:           live.tokens?.week           ?? prev?.tokens?.week           ?? EMPTY_TOKEN_WINDOW,
-      this_session:   live.tokens?.this_session   ?? prev?.tokens?.this_session   ?? EMPTY_SESSION_WINDOW,
+      // today/week/this_session come from /api/tokens/live (tokensPayload) — the flat
+      // /api/kingdom/live shape doesn't include these windows, only intensity + rate.
+      today:          tokensPayload.today        ?? prev?.tokens?.today        ?? EMPTY_TOKEN_WINDOW,
+      week:           tokensPayload.week         ?? prev?.tokens?.week         ?? EMPTY_TOKEN_WINDOW,
+      this_session:   tokensPayload.this_session ?? prev?.tokens?.this_session ?? EMPTY_SESSION_WINDOW,
       intensity:      live.tokens?.intensity      ?? prev?.tokens?.intensity      ?? 'quiet',
-      tokens_per_min: live.tokens?.tokens_per_min ?? prev?.tokens?.tokens_per_min ?? 0,
+      // rate_per_min is the flat alias used by /api/kingdom/live; tokens_per_min is the legacy key
+      tokens_per_min: live.tokens?.tokens_per_min ?? live.tokens?.rate_per_min ?? prev?.tokens?.tokens_per_min ?? 0,
     },
     mood: {
       voltage:         live.mood?.voltage         ?? prev?.mood?.voltage         ?? null,
@@ -193,7 +205,7 @@ export function KingdomLiveProvider({ children }: { children: React.ReactNode })
         const snap = await res.json() as PartyKitSnapshotResponse
         if (!snap.ok || !snap.liveData) return false
 
-        const { kingdom_live, agents_status, pushed_at } = snap.liveData
+        const { kingdom_live, agents_status, tokens_live, pushed_at } = snap.liveData
         if (!kingdom_live && !agents_status) return false
 
         const now    = Date.now()
@@ -201,7 +213,7 @@ export function KingdomLiveProvider({ children }: { children: React.ReactNode })
         const status: KingdomLiveCtx['status'] = age > STALE_THRESHOLD_MS ? 'stale' : 'ok'
 
         const prev    = ctxRef.current.data
-        const merged  = buildMerged(kingdom_live ?? {}, agents_status ?? {}, prev)
+        const merged  = buildMerged(kingdom_live ?? {}, agents_status ?? {}, tokens_live ?? {}, prev)
 
         if (!cancelled) {
           setCtx({ data: merged, status, lastSuccessAt: now - age, age_ms: age })
@@ -216,9 +228,10 @@ export function KingdomLiveProvider({ children }: { children: React.ReactNode })
       if (cancelled) return
 
       try {
-        const [liveRes, agentsRes] = await Promise.allSettled([
+        const [liveRes, agentsRes, tokensRes] = await Promise.allSettled([
           fetch('/api/local/kingdom/live',  { cache: 'no-store' }),
           fetch('/api/local/agents/status', { cache: 'no-store' }),
+          fetch('/api/local/tokens/live',   { cache: 'no-store' }),
         ])
 
         if (cancelled) return
@@ -248,7 +261,11 @@ export function KingdomLiveProvider({ children }: { children: React.ReactNode })
         const agentsPayload: AgentsStatusApiResponse =
           hasAgents ? (await agentsRes.value.json() as AgentsStatusApiResponse) : {}
 
-        const merged = buildMerged(live, agentsPayload, ctxRef.current.data)
+        const hasTokens = tokensRes.status === 'fulfilled' && tokensRes.value.ok
+        const tokensPayload: TokensLiveApiResponse =
+          hasTokens ? (await tokensRes.value.json() as TokensLiveApiResponse) : {}
+
+        const merged = buildMerged(live, agentsPayload, tokensPayload, ctxRef.current.data)
 
         setCtx({ data: merged, status: 'ok', lastSuccessAt: now, age_ms: 0 })
 

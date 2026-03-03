@@ -22,6 +22,8 @@ import { useEffect, useRef } from 'react'
 import { create } from 'zustand'
 import PartySocket from 'partysocket'
 import type { KingdomState, TerritoryState } from './kingdom-state'
+import type { AgentStatus, AgentState } from './kingdom-agents'
+import { TERRITORY_TO_AGENT } from './kingdom-agents'
 
 // Signal TTL — single source of truth, applied at receive time (not creation time)
 const SIGNAL_TTL_MS = 5000
@@ -48,6 +50,15 @@ export interface DroneSwarm {
 }
 
 // --- Store ---
+
+// Mood shape — inlined to avoid cross-import cycle with kingdom-live-context
+interface MoodState {
+  voltage:         number | null
+  state:           string | null
+  synesthesia_hex: string | null
+  texture:         string | null
+  drive:           string | null
+}
 
 // Debug overrides — client-side only, never touch SCRYER
 export interface DebugOverride {
@@ -76,9 +87,15 @@ interface KingdomStore {
   // Debug overrides (test building states without waiting on SCRYER)
   debugOverrides: Record<string, DebugOverride>
 
+  // Live agent states from KingdomLiveContext (via KingdomLiveSync bridge)
+  agentStates: Record<string, AgentStatus>
+  mood: MoodState | null
+
   // Actions
   hydrate: (state: KingdomState) => void
   hydrateSignals: (stream: { signals: Array<{id: string, type: string, territory?: string, timestamp: number}> }) => void
+  hydrateMood: (mood: MoodState) => void
+  hydrateAgentStates: (agents: Record<string, AgentStatus>) => void
   selectTerritory: (id: string | null) => void
   pushSignalEvent: (event: Omit<SignalEvent, 'expiresAt'>) => void
   pushDroneSwarm: (swarm: Omit<DroneSwarm, 'expiresAt'>) => void
@@ -87,6 +104,9 @@ interface KingdomStore {
   // Derived helpers (stable refs — safe to use in useFrame)
   getActivity: (id: string) => number
   getStatus: (id: string) => 'active' | 'idle' | 'offline' | 'unknown'
+  getMood: () => MoodState | null
+  getAgentActivity: (territoryId: string) => number
+  getAgentState: (territoryId: string) => AgentState
 }
 
 export const useKingdomStore = create<KingdomStore>((set, get) => ({
@@ -104,6 +124,9 @@ export const useKingdomStore = create<KingdomStore>((set, get) => ({
   recentSignalEvents: [],
   activeDroneSwarms: [],
   debugOverrides: {},
+
+  agentStates: {},
+  mood: null,
 
   hydrate: (state: KingdomState) =>
     set({
@@ -129,6 +152,27 @@ export const useKingdomStore = create<KingdomStore>((set, get) => ({
       overrides[id] = override
     }
     set({ debugOverrides: overrides })
+  },
+
+  hydrateMood: (mood: MoodState) => set({ mood }),
+
+  // Also sets isLoaded — when agent states arrive from KingdomLiveContext the Kingdom is live
+  hydrateAgentStates: (agents: Record<string, AgentStatus>) =>
+    set({ agentStates: agents, isLoaded: true }),
+
+  getMood: () => get().mood,
+
+  getAgentActivity: (territoryId: string) => {
+    const agentKey = TERRITORY_TO_AGENT[territoryId]
+    if (!agentKey) return 0
+    return get().agentStates[agentKey]?.activity ?? 0
+  },
+
+  getAgentState: (territoryId: string): AgentState => {
+    const agentKey = TERRITORY_TO_AGENT[territoryId]
+    // Territories without agents (core_lore, the_scryer) — default to 'online' so they glow steady
+    if (!agentKey) return 'online'
+    return get().agentStates[agentKey]?.state ?? 'offline'
   },
 
   hydrateSignals: (stream: { signals: Array<{id: string, type: string, territory?: string, timestamp: number}> }) => {
