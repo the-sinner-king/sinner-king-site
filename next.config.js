@@ -37,10 +37,6 @@ const nextConfig = {
 
   // Turbopack (default in Next.js 16) — empty config silences webpack conflict warning
   turbopack: {},
-
-  experimental: {
-    ppr: false,
-  },
 }
 
 module.exports = nextConfig

@@ -197,8 +197,9 @@ export const useKingdomStore = create<KingdomStore>((set, get) => ({
 }))
 
 // --- Polling hook ---
-// Call this once at the top of the scene component.
-
+// @deprecated — replaced by useKingdomLive() in kingdom-live-context.tsx
+// Kept as debug fallback. Verify useKingdomLive() stable for 2+ sessions before removing.
+// TODO: remove after 2026-03-10
 export function useKingdomSync(pollInterval = 5000) {
   const hydrate = useKingdomStore((s) => s.hydrate)
   const hydrateSignals = useKingdomStore((s) => s.hydrateSignals)
@@ -344,7 +345,16 @@ export function usePartyKitSync(fallbackInterval = 30_000) {
     }
 
     // --- WebSocket ---
-    const ws = new PartySocket({ host, room: 'main' })
+    const room = process.env.NEXT_PUBLIC_PARTYKIT_ROOM ?? 'main'
+    const ws = new PartySocket({
+      host,
+      room,
+      // Issue #929: without reconnect delays, low-latency (<50ms) connections can
+      // open multiple concurrent sockets before the first handshake completes.
+      minReconnectionDelay: 1000,
+      maxReconnectionDelay: 10000,
+      reconnectionDelayGrowFactor: 1.5,
+    })
 
     // If WS hasn't opened after 3s, activate fallback until it does
     connectTimeout = setTimeout(() => {

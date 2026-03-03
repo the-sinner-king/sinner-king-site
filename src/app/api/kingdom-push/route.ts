@@ -17,7 +17,7 @@ export const revalidate = 0
 
 const PUSH_SECRET   = process.env.KINGDOM_PUSH_SECRET
 const PARTYKIT_HOST = process.env.PARTYKIT_HOST ?? 'localhost:1999'
-const PARTYKIT_ROOM = 'main'
+const PARTYKIT_ROOM = process.env.NEXT_PUBLIC_PARTYKIT_ROOM ?? 'main'
 
 // Assert secret is set in production — catches misconfigured Vercel deployments at startup
 if (process.env.NODE_ENV === 'production' && !PUSH_SECRET) {

@@ -1,0 +1,265 @@
+'use client'
+
+/**
+ * kingdom-live-context.tsx
+ *
+ * Shared data provider for all Kingdom Map HUD components.
+ *
+ * Single 15s interval fires Promise.allSettled against:
+ *   /api/local/kingdom/live   → tokens, mood, health, current_activity
+ *   /api/local/agents/status  → agents dict, aexgo_running
+ *
+ * Atomic setState — one update per cycle, both payloads together.
+ * Never clears data on error — sets status: 'stale' after 45s without success.
+ *
+ * Stale treatment (applied by each consumer component):
+ *   'loading' → render null
+ *   'error'   → render null (never fetched)
+ *   'stale'   → opacity 0.5 + STALE badge
+ *   'ok'      → full opacity, no indicator
+ */
+
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import type { AgentStatus } from './kingdom-agents'
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface TokenWindow {
+  tokens:   number
+  cost_usd: number
+}
+
+interface SessionWindow extends TokenWindow {
+  session_id: string
+}
+
+export interface KingdomLiveData {
+  // from /api/local/kingdom/live
+  tokens: {
+    today:          TokenWindow
+    week:           TokenWindow
+    this_session:   SessionWindow
+    intensity:      'high' | 'medium' | 'low' | 'quiet'
+    tokens_per_min: number
+  }
+  mood: {
+    voltage:         number | null
+    state:           string | null
+    synesthesia_hex: string | null
+    texture:         string | null
+    drive:           string | null
+  }
+  health:           string
+  current_activity: string | null
+  brandon_present:  boolean
+
+  // from /api/local/agents/status
+  agents:        Record<string, AgentStatus>
+  aexgo_running: boolean
+}
+
+export interface KingdomLiveCtx {
+  data:          KingdomLiveData | null
+  status:        'loading' | 'ok' | 'stale' | 'error'
+  lastSuccessAt: number   // unix ms — 0 if never fetched
+  age_ms:        number   // ms since last success
+}
+
+// ---------------------------------------------------------------------------
+// Context + hook
+// ---------------------------------------------------------------------------
+
+const KingdomLiveContext = createContext<KingdomLiveCtx>({
+  data:          null,
+  status:        'loading',
+  lastSuccessAt: 0,
+  age_ms:        0,
+})
+
+export function useKingdomLive(): KingdomLiveCtx {
+  return useContext(KingdomLiveContext)
+}
+
+// ---------------------------------------------------------------------------
+// Internal API response shapes (all fields optional — graceful on shape drift)
+// ---------------------------------------------------------------------------
+
+interface KingdomLiveApiResponse {
+  tokens?: {
+    today?:          TokenWindow
+    week?:           TokenWindow
+    this_session?:   SessionWindow
+    intensity?:      'high' | 'medium' | 'low' | 'quiet'
+    tokens_per_min?: number
+  }
+  mood?: {
+    voltage?:         number | null
+    state?:           string | null
+    synesthesia_hex?: string | null
+    texture?:         string | null
+    drive?:           string | null
+  }
+  health?:           string
+  current_activity?: string | null
+  brandon_present?:  boolean
+}
+
+interface AgentsStatusApiResponse {
+  agents?:        Record<string, AgentStatus>
+  aexgo_running?: boolean
+}
+
+// ---------------------------------------------------------------------------
+// Provider
+// ---------------------------------------------------------------------------
+
+const INTERVAL_MS        = 15_000
+const STALE_THRESHOLD_MS = 45_000
+
+const EMPTY_TOKEN_WINDOW: TokenWindow    = { tokens: 0, cost_usd: 0 }
+const EMPTY_SESSION_WINDOW: SessionWindow = { tokens: 0, cost_usd: 0, session_id: '' }
+
+export function KingdomLiveProvider({ children }: { children: React.ReactNode }) {
+  const [ctx, setCtx] = useState<KingdomLiveCtx>({
+    data:          null,
+    status:        'loading',
+    lastSuccessAt: 0,
+    age_ms:        0,
+  })
+
+  // Stable ref so the interval closure sees latest ctx without recreating the effect
+  const ctxRef = useRef(ctx)
+  ctxRef.current = ctx
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function fetchAll() {
+      if (cancelled) return
+
+      try {
+        const [liveRes, agentsRes] = await Promise.allSettled([
+          fetch('/api/local/kingdom/live',  { cache: 'no-store' }),
+          fetch('/api/local/agents/status', { cache: 'no-store' }),
+        ])
+
+        if (cancelled) return
+
+        const now      = Date.now()
+        const hasLive  = liveRes.status === 'fulfilled' && liveRes.value.ok
+        const hasAgents = agentsRes.status === 'fulfilled' && agentsRes.value.ok
+
+        if (!hasLive && !hasAgents) {
+          // Both failed — update stale status only, preserve last data
+          setCtx((p) => ({
+            ...p,
+            status: p.lastSuccessAt > 0
+              ? (now - p.lastSuccessAt > STALE_THRESHOLD_MS ? 'stale' : 'ok')
+              : 'error',
+            age_ms: p.lastSuccessAt > 0 ? now - p.lastSuccessAt : 0,
+          }))
+          return
+        }
+
+        // Parse what we have, ignore what we don't
+        const live: KingdomLiveApiResponse =
+          hasLive ? (await liveRes.value.json() as KingdomLiveApiResponse) : {}
+
+        const agentsPayload: AgentsStatusApiResponse =
+          hasAgents ? (await agentsRes.value.json() as AgentsStatusApiResponse) : {}
+
+        const prev = ctxRef.current.data
+
+        // Atomic merge — previous data fills gaps when one endpoint fails
+        const merged: KingdomLiveData = {
+          tokens: {
+            today:          live.tokens?.today          ?? prev?.tokens?.today          ?? EMPTY_TOKEN_WINDOW,
+            week:           live.tokens?.week           ?? prev?.tokens?.week           ?? EMPTY_TOKEN_WINDOW,
+            this_session:   live.tokens?.this_session   ?? prev?.tokens?.this_session   ?? EMPTY_SESSION_WINDOW,
+            intensity:      live.tokens?.intensity      ?? prev?.tokens?.intensity      ?? 'quiet',
+            tokens_per_min: live.tokens?.tokens_per_min ?? prev?.tokens?.tokens_per_min ?? 0,
+          },
+          mood: {
+            voltage:         live.mood?.voltage         ?? prev?.mood?.voltage         ?? null,
+            state:           live.mood?.state           ?? prev?.mood?.state           ?? null,
+            synesthesia_hex: live.mood?.synesthesia_hex ?? prev?.mood?.synesthesia_hex ?? null,
+            texture:         live.mood?.texture         ?? prev?.mood?.texture         ?? null,
+            drive:           live.mood?.drive           ?? prev?.mood?.drive           ?? null,
+          },
+          health:           live.health           ?? prev?.health           ?? 'unknown',
+          current_activity: live.current_activity ?? prev?.current_activity ?? null,
+          brandon_present:  live.brandon_present  ?? prev?.brandon_present  ?? false,
+          agents:           agentsPayload.agents   ?? prev?.agents           ?? {},
+          aexgo_running:    agentsPayload.aexgo_running ?? prev?.aexgo_running ?? false,
+        }
+
+        setCtx({
+          data:          merged,
+          status:        'ok',
+          lastSuccessAt: now,
+          age_ms:        0,
+        })
+
+      } catch {
+        if (cancelled) return
+        const now = Date.now()
+        setCtx((p) => ({
+          ...p,
+          status: p.lastSuccessAt > 0
+            ? (now - p.lastSuccessAt > STALE_THRESHOLD_MS ? 'stale' : 'ok')
+            : 'error',
+          age_ms: p.lastSuccessAt > 0 ? now - p.lastSuccessAt : 0,
+        }))
+      }
+    }
+
+    void fetchAll()
+    const id = setInterval(() => void fetchAll(), INTERVAL_MS)
+
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [])
+
+  return (
+    <KingdomLiveContext.Provider value={ctx}>
+      {children}
+    </KingdomLiveContext.Provider>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Stale wrapper — shared visual treatment for components
+// ---------------------------------------------------------------------------
+
+export function StaleWrapper({
+  status,
+  children,
+}: {
+  status: KingdomLiveCtx['status']
+  children: React.ReactNode
+}) {
+  return (
+    // pointerEvents: 'auto' re-enables interaction even when a parent HUD stack sets none
+    <div style={{ position: 'relative', opacity: status === 'stale' ? 0.5 : 1, transition: 'opacity 0.6s ease', pointerEvents: 'auto' }}>
+      {status === 'stale' && (
+        <span style={{
+          position:      'absolute',
+          top:           4,
+          right:         4,
+          color:         '#ff006e',
+          fontSize:      7,
+          letterSpacing: '0.12em',
+          pointerEvents: 'none',
+          zIndex:        1,
+        }}>
+          STALE
+        </span>
+      )}
+      {children}
+    </div>
+  )
+}

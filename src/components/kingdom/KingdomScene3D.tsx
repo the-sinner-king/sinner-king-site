@@ -18,6 +18,7 @@
 import React, { useRef, useMemo, useCallback, useEffect } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Html } from '@react-three/drei'
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import * as THREE from 'three'
 import { useKingdomStore, usePartyKitSync } from '@/lib/kingdom-store'
 import { DroneSwarms } from './DroneSwarm'
@@ -472,14 +473,125 @@ function KingdomGround() {
 }
 
 // ---------------------------------------------------------------------------
-// WASD CAMERA PAN
+// WASD CAMERA PAN  +  CINEMATIC ORBIT
 // ---------------------------------------------------------------------------
 // Pans both the camera and OrbitControls target together so orbit pivot follows.
 // Forward/back = along the XZ-projected camera direction.
 // Left/right = along camera's right vector.
 
 interface WASDProps {
-  orbitRef: React.RefObject<{ target: THREE.Vector3; update: () => void } | null>
+  orbitRef: React.RefObject<OrbitControlsImpl | null>
+}
+
+// Kingdom center — cinematic always orbits this point.
+// Module-level const: zero allocations in render/frame loops.
+const CINEMATIC_TARGET = new THREE.Vector3(0, 0.5, 0)
+
+// ---------------------------------------------------------------------------
+// CINEMATIC ORBIT
+// ---------------------------------------------------------------------------
+// Slowly orbits the camera around the Kingdom on a non-planar path.
+// The camera gently rises and falls while circling so the view is never flat.
+//
+// Lifecycle:
+//   Load → 8s idle → cinematic engages (OrbitControls disabled)
+//   User touches (pointer / wheel / key) → hands control back → 8s idle → repeats
+//
+// Path math (spherical coords, Y-up):
+//   theta = continuously incrementing azimuth  → horizontal orbit
+//   phi   = PHI_BASE + sin(t * VERT_FREQ) * VERT_AMP  → gentle up/down wave
+//   radius = preserved from wherever user left it (clamp 14–35)
+//
+//   PHI_BASE=0.85rad → camera sits ~41° above horizon
+//   VERT_AMP=0.20rad → ±~11° elevation swing
+//   So camera Y oscillates between ~11 and ~17.5 over ~3.5-min cycles
+//   while theta completes a full revolution every ~2.6 minutes.
+//   The two periods are incommensurate: no orbit ever looks the same.
+// ---------------------------------------------------------------------------
+
+function CinematicOrbit({ orbitRef }: WASDProps) {
+  const { camera } = useThree()
+
+  // All per-frame mutable state in a single ref — no re-renders, no closures.
+  const cs = useRef({
+    theta:           0,
+    radius:          22,
+    active:          false,
+    lastInteraction: Date.now(),   // start paused; cinematic kicks in after 8s of stillness
+  })
+
+  // Scratch objects — allocated once, reused every frame (no garbage)
+  const _offset    = useMemo(() => new THREE.Vector3(),  [])
+  const _spherical = useMemo(() => new THREE.Spherical(), [])
+
+  // Seed theta/radius from the camera's actual starting position
+  useEffect(() => {
+    _offset.subVectors(camera.position, CINEMATIC_TARGET)
+    _spherical.setFromVector3(_offset)
+    cs.current.theta  = _spherical.theta
+    cs.current.radius = _spherical.radius
+  }, [camera, _offset, _spherical])
+
+  // Any user touch → pause cinematic, re-enable OrbitControls
+  useEffect(() => {
+    const onInteract = () => {
+      cs.current.lastInteraction = Date.now()
+      if (cs.current.active) {
+        cs.current.active = false
+        if (orbitRef.current) {
+          orbitRef.current.target.copy(CINEMATIC_TARGET)
+          orbitRef.current.enabled = true
+          orbitRef.current.update()
+        }
+      }
+    }
+    window.addEventListener('pointerdown', onInteract)
+    window.addEventListener('wheel',       onInteract, { passive: true })
+    window.addEventListener('keydown',     onInteract)
+    return () => {
+      window.removeEventListener('pointerdown', onInteract)
+      window.removeEventListener('wheel',       onInteract)
+      window.removeEventListener('keydown',     onInteract)
+    }
+  }, [orbitRef])
+
+  const IDLE_MS    = 20000  // ms of stillness before cinematic engages (20s — safe for demo setup)
+  const ORBIT_SPD  = 0.040  // rad/s horizontal — full lap in ~157s (~2.6 min)
+  const VERT_FREQ  = 0.027  // rad/s vertical wave — full cycle ~233s (~3.9 min)
+  const VERT_AMP   = 0.20   // ± radians of elevation swing (≈ ±11°)
+  const PHI_BASE   = 0.85   // polar angle base — ~41° above horizon
+
+  useFrame(({ clock }, delta) => {
+    if (Date.now() - cs.current.lastInteraction < IDLE_MS) return
+
+    // Engage — read camera's current spherical coords so first frame has zero jump
+    if (!cs.current.active) {
+      _offset.subVectors(camera.position, CINEMATIC_TARGET)
+      _spherical.setFromVector3(_offset)
+      cs.current.theta  = _spherical.theta
+      cs.current.radius = Math.max(14, Math.min(35, _spherical.radius))
+      cs.current.active = true
+      if (orbitRef.current) orbitRef.current.enabled = false
+    }
+
+    // Advance azimuth
+    cs.current.theta += ORBIT_SPD * delta
+
+    // Compute elevation with vertical sinusoidal wave
+    const phi    = PHI_BASE + Math.sin(clock.elapsedTime * VERT_FREQ) * VERT_AMP
+    const sinPhi = Math.sin(phi)
+    const cosPhi = Math.cos(phi)
+    const r      = cs.current.radius
+
+    camera.position.set(
+      CINEMATIC_TARGET.x + r * sinPhi * Math.cos(cs.current.theta),
+      CINEMATIC_TARGET.y + r * cosPhi,
+      CINEMATIC_TARGET.z + r * sinPhi * Math.sin(cs.current.theta),
+    )
+    camera.lookAt(CINEMATIC_TARGET)
+  })
+
+  return null
 }
 
 function WASDControls({ orbitRef }: WASDProps) {
@@ -510,6 +622,8 @@ function WASDControls({ orbitRef }: WASDProps) {
 
   useFrame((_state, delta) => {
     if (!orbitRef.current) return
+    // Cinematic orbit disables OrbitControls — don't fight it with WASD
+    if (!orbitRef.current.enabled) return
     const k = keys.current
 
     // ── Q/E horizontal orbit ────────────────────────────────────────────────
@@ -571,7 +685,7 @@ function WASDControls({ orbitRef }: WASDProps) {
 
 function SceneContents() {
   usePartyKitSync()
-  const orbitRef = useRef<{ target: THREE.Vector3; update: () => void } | null>(null)
+  const orbitRef = useRef<OrbitControlsImpl | null>(null)
 
   // Set OrbitControls initial target imperatively — never via JSX prop.
   // A JSX `target={[...]}` prop creates a new array on every render of SceneContents
@@ -612,12 +726,15 @@ function SceneContents() {
         <TerritoryNode key={t.id} territory={t} />
       ))}
 
+      {/* Cinematic auto-orbit — engages after 8s idle, yields to any user input */}
+      <CinematicOrbit orbitRef={orbitRef} />
+
       {/* WASD pan */}
       <WASDControls orbitRef={orbitRef} />
 
       {/* Camera controls — allow user to orbit/zoom */}
       <OrbitControls
-        ref={orbitRef as React.RefObject<never>}
+        ref={orbitRef}
         enablePan={true}
         enableZoom={true}
         enableRotate={true}

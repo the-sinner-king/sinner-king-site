@@ -1,4 +1,4 @@
-⛬ KID:TOWER:PROJECT:KINGDOM-MAP|6.0:⟳:2026-03-01:📶 ⛬
+⛬ KID:TOWER:PROJECT:KINGDOM-MAP|7.0:⟳:2026-03-03:📶 ⛬
 
 <promise>A window into an AI system that was running before you arrived and will keep running after you leave. Not a dashboard. A world. Six islands. Real signals. Real swarms. The haunting goes public.</promise>
 
@@ -37,8 +37,42 @@
 │   and Aeris will operate here. Territory state = activity in THE_TOWER,    │
 │   not just website status. Will redesign this mapping in a future session.  │
 │                                                                               │
-│ NEXT: Phase 4 (PNG sprites — waiting on art)                                │
-│       Phase 5: Glassmorphism HUD upgrade (blueprint locked, not built)      │
+│ ◉ BUILT (2026-03-03): Super API — token_api.py (Flask, port 2701)          │
+│   13 endpoints: tokens/{live,chart,hourly,lifetime,rate},                  │
+│   mood/{current,history}, kingdom/{activity,missions,live},                │
+│   agents/status, pings, system/health                                      │
+│   THE_SITE proxy: /api/local/[...path] → localhost:2701 (5s timeout)       │
+│   Agent state model: 9 states (offline→swarming), activity 0–100           │
+│   Hook files: KINGDOM_LIVE_MAP/<agent>_activity.json (all 4 agents)        │
+│                                                                               │
+│ ◉ COMPLETE (2026-03-03): Phase 5.1 — Live Presence HUD                     │
+│   TokenHUD: session/today/week + mood ring (top-right flex stack)           │
+│   PresenceStrip: Claude · Aeris · Brandon presence dots                    │
+│   ClaudeStatusBadge: 4-state OFF/ON/WORKING/SWARM                          │
+│   HeraldTicker: built, currently commented out — revisit later             │
+│   Hydration bug fixed: useState → useEffect for checkWebGL()               │
+│   PostToolUse hook wired: tower_claude reports tool name to agents/status  │
+│                                                                               │
+│ ◉ COMPLETE (2026-03-03): Phase 5.2 — HUD Architecture Upgrade             │
+│   kingdom-agents.ts: AGENT_REGISTRY + getAgent() + STATE_COLORS + PULSE_MS │
+│   kingdom-live-context.tsx: single 15s interval, Promise.allSettled,       │
+│     atomic setState, lastSuccessAt + 45s stale threshold, StaleWrapper     │
+│   TokenHUD: intensity border (pulsing dashed at high) + RATE row           │
+│   PresenceHUD: 9-state badge, tool codes, CLAUDE N/4 count dot             │
+│   HeraldTicker: context-driven (no independent fetch), re-enabled          │
+│   AgentPanel: new — all 4 agents, tool badges, activity glow               │
+│   client.tsx: KingdomLiveProvider wraps HUD stack                          │
+│   useKingdomSync(): deprecated (delete after 2026-03-10)                   │
+│   Granny Codex: 5 flags raised + all 5 addressed before ship              │
+│                                                                               │
+│ ⚡ REVIEW SESSION (post-compression): PHASE_53_PLAN.md — BRANDON TO APPROVE │
+│                                                                               │
+│ NEXT: Phase 5.3 — 3D Scene Connections (Phase E from upgrade plan)         │
+│       Plan written: THE_SITE/KINGDOM_MAP/PHASE_53_PLAN.md                  │
+│       Territory emissive ∝ activity · pulse velocity ∝ tokens_per_min     │
+│       DroneSwarm density ∝ intensity · mood hex → beam tints               │
+│       STRATEGIC: Deploy first, then Phase 5.3 live with real visitors      │
+│       Deploy gate: Brandon DNS + Vercel + 5 env vars (see MEMORY.md)       │
 └───────────────────────────────────────────────────────────────────────────────┘
 
 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░░░░░░░░░░░░░░░░░
@@ -312,6 +346,24 @@ Every phase, every fix, every frame: toward that moment.
 │            └─ SCRYER v2.0: reads all 5 cockpit files, live territory status │
 │            └─ Pulse: breatheFreq 1.4→2.8 Hz, emissiveBase 0.85→1.4        │
 │               EMISSIVE_LERP_BASE 0.95→0.92 — painfully obvious WORKING     │
+│  Phase 3.93 Reliable Territory Detection                    ◉ COMPLETE        │
+│            └─ 6-file build. Soulforge CODING. All 11 acceptance criteria ✓   │
+│            └─ cockpit-state-auto.sh — session-aware router, zero bleed:      │
+│               Primary: $ZELLIJ_SESSION_NAME. Fallback: $CLAUDE_PROJECT_DIR   │
+│               Unknown sessions → exit 0 silently. Architecturally can't bleed│
+│               Handles ALL 5 hook events (was: only PostToolUse, 5 events bled)│
+│            └─ Global settings.json — all 5 hooks route through auto router   │
+│               Zero hardcoded cockpit IDs. Soulforge/briefing hooks preserved.│
+│            └─ THE_TOWER settings.json — swarm-watcher preserved, state removed│
+│            └─ THE_FORGE settings.json — PostToolUse removed, Stop intact     │
+│            └─ cockpit-state.sh — log append race fixed (Python fcntl flock)  │
+│            └─ scryer-tower-feed.sh — 5 targeted edits:                       │
+│               _scryer_pull_claude: pgrep -f '.local/share/claude' + lsof CWD │
+│               _reconcile_claude: <120s trust hook, >=120s SCRYER pull wins   │
+│               idle→offline demotion REMOVED (idle = running-but-waiting)     │
+│               Gemini: pgrep -f /opt/homebrew/bin/gemini, 2-state offline/idle│
+│               Alerting: .prev_status/ + ntfy + terminal-notifier on →offline  │
+│                                                                                │
 │  Phase 3.10 Opus Audit — 3 Critical + 8 High fixes         ◉ COMPLETE        │
 │            └─ C1: SignalPulse batch stagger — idx*0.15s offset, no more blob │
 │            └─ C2: SignalPulse stable slot map — pulse teleport eliminated    │
@@ -342,6 +394,49 @@ Every phase, every fix, every frame: toward that moment.
 │            └─ SwarmLauncher.tsx: 5 buttons (bigger padding, minWidth 200)  │
 │               SEARCH | FORGE | THRONE SYNC | SCRYER SCAN | TOWER BUILD     │
 │               purple / amber / pink / cyan / violet                         │
+│  Phase 3.94 Cinematic Orbit                                ◉ COMPLETE        │
+│            └─ CinematicOrbit component — slow non-planar spiral around Kingdom│
+│               Engages after 8s idle. Any input (pointer/wheel/key) → yields. │
+│               PHI_BASE=0.85, VERT_AMP=0.20 rad → camera Y oscillates 11–17.5 │
+│               ORBIT_SPD=0.04 rad/s (~2.6 min/lap). VERT_FREQ=0.027 (~3.9 min)│
+│               Incommensurate periods: no orbit arc repeats.                   │
+│               Preserves user zoom. OrbitHandle interface for type safety.     │
+│                                                                                │
+│  Phase 3.95 Stack Audit + Granny Codex Review              ◉ COMPLETE        │
+│            └─ Soulforge RESEARCH. 32 flags across 7 files + 7 packages.       │
+│            └─ DEMO-CRITICAL fixed:                                             │
+│               FLAG 28: WASD fought CinematicOrbit on exit → guard added       │
+│               FLAG 30: IDLE_MS 8s→20s — safe window for demo setup            │
+│               FLAG 15: SignalPulse spheres (6,6)→(8,8) — smoother in recording│
+│            └─ PRE-DEPLOY queue (not blockers):                                 │
+│               ◉ React 19.0→19.2 — RESOLVED: npm resolved to 19.2.4           │
+│               ◉ async params codemod — RESOLVED: already correct everywhere  │
+│               ◉ ConnectionBeam getActivity — RESOLVED: already getState()    │
+│               ⬡ PartyKit room name → NEXT_PUBLIC_PARTYKIT_ROOM env var        │
+│            └─ Demo recording: READY. Brandon to record.                        │
+│                                                                                │
+│  Phase 3.96 Community Stack Recon — 4-Drone Swarm         ◉ COMPLETE        │
+│            └─ Soulforge RESEARCH. Hunted developer-reported breakages.        │
+│            └─ CLOSED SCARES (verified clean via node_modules):                │
+│               CVE-2025-55182 React2Shell RCE — React 19.2.4 installed, PATCHED│
+│               R3F reconciler break — R3F 9.5.0 has bundled reconciler fix     │
+│               drei tunnel-rat dual React — React is deduped, no duplicate     │
+│               three.js r172-r175 shadow breakage — pinned to exactly r171     │
+│               ContextBridge removed, Zustand v4 shallow pattern — not used    │
+│                                                                                │
+│  Phase 3.97 Debug Session — 6 confirmed bugs fixed       ◉ COMPLETE        │
+│            └─ Soulforge DEBUG. All 6 issues from 3.96 recon resolved.         │
+│            └─ OrbitControls ref: `OrbitControlsImpl` from three-stdlib        │
+│               `as RefObject<never>` cast GONE. OrbitHandle dead interface gone.│
+│            └─ `"lint": "eslint src/"` — next lint removed in Next.js 16      │
+│            └─ party/kingdom-room.ts: CLEAN — room.storage is durable,        │
+│               not in-memory class state. Hibernation risk was false positive. │
+│            └─ `experimental.ppr: false` removed from next.config.js          │
+│            └─ PartySocket: minReconnectionDelay:1000 added (Issue #929)       │
+│            └─ PARTYKIT_ROOM: env var in kingdom-store.ts + kingdom-push/route │
+│            └─ TypeScript: 0 errors                                             │
+│            └─ INFRA TODO: Confirm partykit.app alive before `partykit deploy` │
+│                                                                                │
 │  Phase 4   PNG sprite swap (island art replaces shapes)    ⬡ WAITING on art │
 │            └─ isometric bots rolling on terrain (that mood board!)           │
 │            └─ BLUEPRINT LOCKED (Sessions 135+148 R1+R2 research):           │
@@ -628,7 +723,7 @@ Don't build this now. But keep it in frame. It's the payoff.
 
 
 ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-⌂ 2026-03-01 | Claude | THE_TOWER | KINGDOM_MAP NORTH_STAR v6.0
-Phase 4.5: PartyKit WS push + 30s fallback. Phase 4.6: real swarm hooks wired.
+⌂ 2026-03-02 | Claude | THE_TOWER | KINGDOM_MAP NORTH_STAR v6.7
+Phase 3.93–3.97: ◉ COMPLETE. Detection fixed. Cinematic orbit live. Stack audited. 6 bugs fixed. Map: SINGING.
 ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
-⛬ KID:TOWER:PROJECT:KINGDOM-MAP|6.0:⟳:2026-03-01:📶 ⛬
+⛬ KID:TOWER:PROJECT:KINGDOM-MAP|7.0:⟳:2026-03-03:📶 ⛬

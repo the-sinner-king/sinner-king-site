@@ -92,7 +92,7 @@ export function SignalPulses() {
   // geometry is local so cleanup can always dispose it without useMemo staleness.
   useEffect(() => {
     if (!groupRef.current) return
-    const geom = new THREE.SphereGeometry(0.15, 6, 6)
+    const geom = new THREE.SphereGeometry(0.15, 8, 8)
     for (let i = 0; i < POOL_SIZE; i++) {
       const mat = new THREE.MeshBasicMaterial({
         color:     '#7000ff',

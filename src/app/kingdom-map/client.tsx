@@ -20,11 +20,16 @@
  *           GL_VENDOR=Disabled means Chrome GPU process is sandboxed/disabled — not code.
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { ProductionQueueHUD } from '@/components/kingdom/ProductionQueueHUD'
 import { SwarmLauncher } from '@/components/kingdom/SwarmLauncher'
 import { KingdomErrorBoundary } from '@/components/kingdom/KingdomErrorBoundary'
+import { TokenHUD } from '@/components/kingdom/TokenHUD'
+import { PresenceStrip, ClaudeStatusBadge } from '@/components/kingdom/PresenceHUD'
+import { HeraldTicker } from '@/components/kingdom/HeraldTicker'
+import { AgentPanel } from '@/components/kingdom/AgentPanel'
+import { KingdomLiveProvider } from '@/lib/kingdom-live-context'
 
 // ---------------------------------------------------------------------------
 // WebGL availability check (runs synchronously on client mount)
@@ -207,21 +212,49 @@ const KingdomScene3D = dynamic(
 // ---------------------------------------------------------------------------
 
 export function KingdomMapClient() {
-  // useState lazy initializer runs synchronously on first client render —
-  // before any Canvas mounts, so R3F never attempts a doomed context creation.
-  const [webglAvailable] = useState(() => checkWebGL())
+  // 🏛️ ARCHAEOLOGICAL RECORD // SSR-Safe WebGL Pre-Flight Gate
+  // 🗓️ 2026-03-03 | Session 154
+  // ISSUE: useState(() => checkWebGL()) runs on the server where document is undefined.
+  //        Server renders WebGLUnavailable, client renders 3D scene → hydration mismatch.
+  // RESOLUTION: Initialize as null (matches on both server and first client render).
+  //             useEffect fires after mount, sets real value, triggers correct re-render.
+  // LAW: Never put browser-only checks in useState lazy initializers — use useEffect.
+  const [webglAvailable, setWebglAvailable] = useState<boolean | null>(null)
 
-  if (!webglAvailable) {
-    return <WebGLUnavailable />
-  }
+  useEffect(() => {
+    setWebglAvailable(checkWebGL())
+  }, [])
+
+  // null = first render (server + client agree) → show loading screen
+  if (webglAvailable === null) return <KingdomLoadingScreen />
+  if (!webglAvailable) return <WebGLUnavailable />
 
   return (
     <KingdomErrorBoundary>
-      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-        <KingdomScene3D className="w-full h-full" />
-        <ProductionQueueHUD />
-        <SwarmLauncher />
-      </div>
+      <KingdomLiveProvider>
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+          <KingdomScene3D className="w-full h-full" />
+          {/* Right-side HUD stack — flex column so height changes never overlap */}
+          <div style={{
+            position:      'absolute',
+            top:           24,
+            right:         24,
+            zIndex:        20,
+            display:       'flex',
+            flexDirection: 'column',
+            gap:           8,
+            pointerEvents: 'none',
+          }}>
+            <TokenHUD />
+            <PresenceStrip />
+            <ClaudeStatusBadge />
+            <AgentPanel />
+          </div>
+          <ProductionQueueHUD />
+          <SwarmLauncher />
+          <HeraldTicker />
+        </div>
+      </KingdomLiveProvider>
     </KingdomErrorBoundary>
   )
 }
