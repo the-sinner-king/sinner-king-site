@@ -44,7 +44,9 @@ export async function GET() {
     // Only expose liveData — don't re-serve the full SCRYER state blob
     const liveData = data.liveData as Record<string, unknown> | undefined
     if (!liveData) {
-      return NextResponse.json({ ok: false, reason: 'no_livedata' }, { status: 204 })
+      // 200 (not 204) — HTTP 204 must have no body; CDNs strip 204 bodies silently.
+      // Client checks snap.ok === false to detect no-data case.
+      return NextResponse.json({ ok: false, reason: 'no_livedata' }, { status: 200 })
     }
 
     return NextResponse.json(

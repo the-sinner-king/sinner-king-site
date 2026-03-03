@@ -187,7 +187,8 @@ export function KingdomLiveProvider({ children }: { children: React.ReactNode })
       // Returns true if fallback succeeded and state was updated
       try {
         const res = await fetch('/api/partykit-snapshot', { cache: 'no-store' })
-        if (!res.ok || res.status === 204) return false
+        if (!res.ok) return false
+        // Note: endpoint always returns 200 — snap.ok=false signals no-data case (checked below)
 
         const snap = await res.json() as PartyKitSnapshotResponse
         if (!snap.ok || !snap.liveData) return false
