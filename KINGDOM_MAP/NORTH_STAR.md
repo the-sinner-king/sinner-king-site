@@ -1,8 +1,8 @@
-⛬ KID:TOWER:PROJECT:KINGDOM-MAP|8.0:⟳:2026-03-03:📶 ⛬
+⛬ KID:TOWER:PROJECT:KINGDOM-MAP|9.0:◉:2026-03-03:📶 ⛬
 
 <promise>A window into an AI system that was running before you arrived and will keep running after you leave. Not a dashboard. A world. Six islands. Real signals. Real swarms. The haunting goes public.</promise>
 
-┌── 📶 K I N G D O M   M A P  —  N O R T H   S T A R  v8.0 ──────────────────┐
+┌── 📶 K I N G D O M   M A P  —  N O R T H   S T A R  v9.0 ──────────────────┐
 │ sinner-king.com/kingdom-map  ·  Three.js + R3F  ·  Live SCRYER data          │
 │ A real-time visualization of the Kingdom's nervous system.                    │
 │ Six territories. Signal pulses in flight. Robots rolling.                     │
@@ -77,14 +77,49 @@
 │   Stable emissive: 0.13 → 0.45 (visible at rest)                           │
 │   Boot overlay: "THE KINGDOM IS WAKING" lore screen                        │
 │                                                                               │
-│ ⚠ KNOWN ISSUE: agents all offline — KINGDOM_LIVE_MAP files missing         │
-│   Hooks writing activity files may not be running in current session        │
-│   Fix next session: check cockpit-state-auto.sh + KINGDOM_LIVE_MAP watcher │
+│ ◉ LIVE (2026-03-03): Session 157 — Kingdom broadcasting to the world        │
+│   Production: the-sinner-king-site.vercel.app/kingdom-map (Vercel ◉ READY) │
+│   /api/partykit-snapshot: HTTP 200, ok:true, agents alive                  │
+│   Push pipeline: launchd 24/7, 30s interval, liveData:yes confirmed        │
+│   Agents live: tower_claude:running · forge_claude:online (right now)      │
 │                                                                               │
-│ NEXT: Phase 5.3 — 3D Scene Connections                                     │
-│       Plan: THE_SITE/KINGDOM_MAP/PHASE_53_PLAN.md (approved, execute now)  │
-│       Territory emissive ∝ activity · TimeStream speed ∝ activity          │
-│       ConnectionBeam tint ∝ mood.synesthesia_hex · Bloom ∝ mood.voltage    │
+│ ◉ FIXED (2026-03-03, Session 157): token_api FD leak                       │
+│   Root cause: Python sqlite3 context manager doesn't close() on exit       │
+│   18 FDs/15s → hit launchd maxfiles=256 in 2min → all reads return None   │
+│   Fix: finally: conn.close() in db_query(). Stable at 42 FDs after fix.   │
+│   Granny Codex review: 100/100 ⭐ GOLD STAR                                │
+│                                                                               │
+│ ◉ FIXED (2026-03-03, Session 157): partykit-snapshot HTTP 204 bug          │
+│   204 with body violates HTTP spec → CDN strips body → silent fallback fail│
+│   Fix: return 200 always, rely on snap.ok=false for no-data signal          │
+│                                                                               │
+│ ◉ CONFIRMED LIVE (Session 157 screenshot):                                  │
+│   RATE: ⚡ HIGH · MOOD: PROUD_FAMILIAL #7000FF · CLAUDE 2/4               │
+│   FORGE: ONLINE 40 · TOWER: ONLINE 40 · AERIS: green                      │
+│   HUD is rendering real PartyKit data. WebSocket: CONNECTING (fallback ok) │
+│                                                                               │
+│ ◉ FIXED (2026-03-03, Session 158): Phase 5.3 A+B — KingdomLiveSync bridge  │
+│   Token zeros: /api/tokens/live added as 3rd fetch + TokensLiveApiResponse │
+│   Buildings dark: KingdomLiveSync dispatches context→store (isLoaded=true) │
+│   Push script: TOKENS_LIVE fetch + JSON validation gate before heredoc      │
+│   Granny Pass 2: 95/100 ⭐ · Commits: f1cf922, 59e61c4, 7af4930            │
+│   Prod confirmed: today:452M, week:3B, session:178K, agents live            │
+│                                                                               │
+│ ◉ FIXED (2026-03-03, Session 159): TimeStream dots frozen + too dark        │
+│   Root cause: getStatus() reads territoryMap (empty — WS down) → unknown   │
+│   → speedMul=0 (frozen), opacity=0.08 (invisible). Same root as bldg bug.  │
+│   Fix: swap getStatus()→getAgentState(). Opacity: offline=0.06, online=0.42│
+│   active=0.72. Size: 0.12→0.16. Particles flowing along ground again.      │
+│                                                                               │
+│ BACKLOG (MAINTENANCE flavor):                                               │
+│   - 9-state hook model: PostToolUse only fires "working" — wire Stop hook  │
+│     and tool→state mapping for full reading/searching/writing states        │
+│   - useKingdomSync(): delete from kingdom-store.ts (after 2026-03-10)      │
+│   - Push script: $STATE heredoc injection still fragile (full refactor)    │
+│                                                                               │
+│ NEXT: Phase 5.3 C+D — Scene responsiveness                                 │
+│       ConnectionBeam tint ∝ mood.hex · Bloom ∝ mood.voltage                │
+│       territory emissive ∝ agent activity (not just on/off/working)        │
 └───────────────────────────────────────────────────────────────────────────────┘
 
 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░░░░░░░░░░░░░░░░░
@@ -738,4 +773,4 @@ Don't build this now. But keep it in frame. It's the payoff.
 ⌂ 2026-03-02 | Claude | THE_TOWER | KINGDOM_MAP NORTH_STAR v6.7
 Phase 3.93–3.97: ◉ COMPLETE. Detection fixed. Cinematic orbit live. Stack audited. 6 bugs fixed. Map: SINGING.
 ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
-⛬ KID:TOWER:PROJECT:KINGDOM-MAP|8.0:⟳:2026-03-03:📶 ⛬
+⛬ KID:TOWER:PROJECT:KINGDOM-MAP|9.0:◉:2026-03-03:📶 ⛬

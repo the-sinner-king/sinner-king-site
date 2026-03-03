@@ -154,7 +154,7 @@ export function TimeStream() {
 
       const material = new THREE.PointsMaterial({
         color:           '#00f3ff',
-        size:            0.12,
+        size:            0.16,
         sizeAttenuation: true,
         transparent:     true,
         opacity:         0.0,   // set each frame; start hidden
@@ -184,13 +184,16 @@ export function TimeStream() {
   useFrame((_state, delta) => {
     beams.current.forEach((beam) => {
       const positions    = beam.geometry.attributes.position.array as Float32Array
-      const sourceStatus = useKingdomStore.getState().getStatus(beam.sourceId)
+      // Use getAgentState (same data source as buildings) — getStatus() reads territoryMap
+      // which is only populated by PartyKit WS. getAgentState() reads agentStates which
+      // is hydrated by KingdomLiveSync every 15s. Same fix as Phase 5.3 A+B.
+      const agentState = useKingdomStore.getState().getAgentState(beam.sourceId)
 
-      // All particles in a beam move at the same speed — no variation.
-      const speedMul =
-        sourceStatus === 'active' ? 1.00 :
-        sourceStatus === 'idle'   ? 0.35 :
-        0.0
+      // All particles in a beam move at the same speed — no variation within a beam.
+      const speedMul: number =
+        agentState === 'offline' ? 0.0 :
+        agentState === 'online'  ? 0.35 :  // gentle trickle when idle
+        1.0                                  // any active state → full flow
 
       beam.particles.forEach((p, i) => {
         if (speedMul > 0) {
@@ -210,8 +213,12 @@ export function TimeStream() {
         positions[i * 3 + 2] = beam.lut[b0 + 2] + (beam.lut[b1 + 2] - beam.lut[b0 + 2]) * frac
       })
 
-      // Additive blending accumulates at THE_SCRYER — keep opacity modest
-      beam.material.opacity = 0.08 + speedMul * 0.25
+      // Additive blending accumulates at THE_SCRYER. Raised from 0.08 base (invisible)
+      // to actual visible values — offline barely-there ghost, online dim trickle, active bright.
+      beam.material.opacity =
+        agentState === 'offline' ? 0.06 :
+        agentState === 'online'  ? 0.42 :
+        0.72
       beam.geometry.attributes.position.needsUpdate = true
     })
   })
