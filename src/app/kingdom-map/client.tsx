@@ -20,7 +20,7 @@
  *           GL_VENDOR=Disabled means Chrome GPU process is sandboxed/disabled — not code.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { ProductionQueueHUD } from '@/components/kingdom/ProductionQueueHUD'
 import { SwarmLauncher } from '@/components/kingdom/SwarmLauncher'
@@ -103,90 +103,57 @@ function WebGLUnavailable() {
 function KingdomLoadingScreen() {
   return (
     <>
-      <style>{`
-        @keyframes kingdom-pulse {
-          0% {
-            opacity: 0.4;
-            text-shadow: 0 0 8px rgba(112, 0, 255, 0.6);
-          }
-          50% {
-            opacity: 1;
-            text-shadow: 0 0 16px rgba(112, 0, 255, 0.9);
-          }
-          100% {
-            opacity: 0.4;
-            text-shadow: 0 0 8px rgba(112, 0, 255, 0.6);
-          }
+      <style href="kingdom-loading-anim" precedence="default">{`
+        @keyframes waking-title {
+          0%   { opacity: 0; letter-spacing: 0.4em; }
+          100% { opacity: 1; letter-spacing: 0.22em; }
         }
-
-        @keyframes kingdom-glow {
-          0% {
-            opacity: 0.5;
-            filter: blur(0px);
-          }
-          50% {
-            opacity: 1;
-            filter: blur(2px);
-          }
-          100% {
-            opacity: 0.5;
-            filter: blur(0px);
-          }
+        @keyframes waking-sub {
+          0%   { opacity: 0; }
+          100% { opacity: 1; }
         }
-
-        @keyframes kingdom-rotate {
-          0% {
-            transform: rotate(0deg);
-          }
-          100% {
-            transform: rotate(360deg);
-          }
-        }
-
-        .kingdom-hex {
-          font-size: 32px;
-          animation: kingdom-rotate 8s linear infinite;
-          margin-bottom: 16px;
-        }
-
-        .kingdom-title {
-          color: #7000ff;
-          font-size: 13px;
-          letter-spacing: 0.15em;
-          margin-bottom: 8px;
-          animation: kingdom-pulse 2s ease-in-out infinite;
-        }
-
-        .kingdom-subtitle {
-          color: #504840;
-          font-size: 10px;
-          letter-spacing: 0.12em;
-          margin-bottom: 12px;
-        }
-
-        .kingdom-status {
-          color: #a09888;
-          font-size: 9px;
-          letter-spacing: 0.1em;
-          animation: kingdom-glow 1.5s ease-in-out infinite;
+        @keyframes waking-dots {
+          0%   { opacity: 0.2; }
+          50%  { opacity: 0.8; }
+          100% { opacity: 0.2; }
         }
       `}</style>
-      <div
-        style={{
-          width: '100%',
-          height: '100vh',
-          background: '#0a0a0f',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontFamily: 'monospace',
-        }}
-      >
-        <div className="kingdom-hex">◈</div>
-        <div className="kingdom-title">KINGDOM MAP</div>
-        <div className="kingdom-subtitle">INITIALIZING SIGNAL FEEDS...</div>
-        <div className="kingdom-status">CONNECTING</div>
+      <div style={{
+        width:          '100%',
+        height:         '100vh',
+        background:     '#0a0a0f',
+        display:        'flex',
+        flexDirection:  'column',
+        alignItems:     'center',
+        justifyContent: 'center',
+        fontFamily:     'monospace',
+        gap:            12,
+      }}>
+        <div style={{
+          color:       '#7000ff',
+          fontSize:    11,
+          letterSpacing: '0.22em',
+          animation:   'waking-title 1.8s ease-out forwards',
+        }}>
+          T H E &nbsp; K I N G D O M
+        </div>
+        <div style={{
+          color:       '#3a3438',
+          fontSize:    10,
+          letterSpacing: '0.18em',
+          animation:   'waking-sub 2.4s ease-out forwards',
+        }}>
+          I S &nbsp; W A K I N G
+        </div>
+        <div style={{
+          color:       '#504840',
+          fontSize:    9,
+          letterSpacing: '0.3em',
+          marginTop:   8,
+          animation:   'waking-dots 1.6s ease-in-out infinite',
+        }}>
+          · · ·
+        </div>
       </div>
     </>
   )
@@ -220,10 +187,25 @@ export function KingdomMapClient() {
   //             useEffect fires after mount, sets real value, triggers correct re-render.
   // LAW: Never put browser-only checks in useState lazy initializers — use useEffect.
   const [webglAvailable, setWebglAvailable] = useState<boolean | null>(null)
+  // sceneReady: false until R3F has had time to paint its first frame.
+  // Overlay fades out via CSS transition — never unmounted, just pointerEvents: none.
+  const [sceneReady, setSceneReady] = useState(false)
+  const readyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     setWebglAvailable(checkWebGL())
   }, [])
+
+  useEffect(() => {
+    if (!webglAvailable) return
+    // Give R3F ~1s to compile shaders and paint the first frame, then fade the overlay.
+    readyTimerRef.current = setTimeout(() => {
+      requestAnimationFrame(() => setSceneReady(true))
+    }, 1000)
+    return () => {
+      if (readyTimerRef.current) clearTimeout(readyTimerRef.current)
+    }
+  }, [webglAvailable])
 
   // null = first render (server + client agree) → show loading screen
   if (webglAvailable === null) return <KingdomLoadingScreen />
@@ -253,6 +235,17 @@ export function KingdomMapClient() {
           <ProductionQueueHUD />
           <SwarmLauncher />
           <HeraldTicker />
+          {/* Boot overlay — fades out 1s after WebGL context is ready */}
+          <div style={{
+            position:      'absolute',
+            inset:         0,
+            zIndex:        50,
+            pointerEvents: sceneReady ? 'none' : 'auto',
+            opacity:       sceneReady ? 0 : 1,
+            transition:    'opacity 0.9s ease',
+          }}>
+            <KingdomLoadingScreen />
+          </div>
         </div>
       </KingdomLiveProvider>
     </KingdomErrorBoundary>
