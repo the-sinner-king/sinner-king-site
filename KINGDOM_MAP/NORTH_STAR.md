@@ -111,15 +111,87 @@
 │   Fix: swap getStatus()→getAgentState(). Opacity: offline=0.06, online=0.42│
 │   active=0.72. Size: 0.12→0.16. Particles flowing along ground again.      │
 │                                                                               │
+│ ◉ JANITOR (2026-03-04, Session 161):                                        │
+│   Deleted: KingdomMap.tsx (dead 2D map), SignalStream.tsx (unwired feed)   │
+│   Deleted: useKingdomSync() from kingdom-store.ts (TODO date passed)       │
+│                                                                               │
+│ ◉ SHIPPED (2026-03-04, Session 161): online→offline timer 15min → 2hr     │
+│   token_api.py: age > 900 → age > 7200. Stations stay online for 2 hours  │
+│   before going dark. Working→idle degradation at 120s unchanged.           │
+│                                                                               │
+│ ◉ SHIPPED (2026-03-04, Session 161): TokenHUD CHRONICLE                    │
+│   SESSION row removed. CHRONICLE row added = lifetime_estimate_tokens.     │
+│   Today: 9.2B (2B baseline + 7.2B sentinel). 4th parallel fetch in        │
+│   KingdomLiveProvider. Shows — in production until push script updated.    │
+│   Commit 2ba9963.                                                           │
+│                                                                               │
+│ ◉ SHIPPED (2026-03-04, Session 161): Emissive ∝ activity (smooth ramp)    │
+│   Building emissive now scales linearly 0–100. No more binary jump.        │
+│   offline=0.015, online(40)=0.56, reading(70)=0.98, swarming(100)=1.4.    │
+│                                                                               │
+│ 🟡 READY (2026-03-04, Session 161): Synthwave Patch Plan                   │
+│   7 patches, all in KingdomScene3D.tsx, one at a time with approval.       │
+│   Plan: THE_SITE/KINGDOM_MAP/DESIGN_PATCH_PLAN.md                          │
+│   Patch 1: Sky gradient · Patch 2: Cyan grid · Patch 3: Dusk lighting     │
+│   Patch 4: Flat-shaded buildings · Patch 5: Colored beams                  │
+│   Patch 6: Bloom · Patch 7: Label typography                               │
+│   Waiting on Brandon command to begin Patch 1+2.                           │
+│                                                                               │
+│ ◉ SHIPPED (2026-03-04, Session 161): Synthwave Patches 1+2                 │
+│   Patch 1: CSS sky gradient (indigo→purple→orange) + alpha:true on Canvas  │
+│   Patch 2: Cyan grid (#00D9FF) + 2 glow halo layers (additive blend)       │
+│   Also: terrain emissive 1.2→0.7, orange gradient stop pushed to 55%       │
+│                                                                               │
+│ ◉ SHIPPED (2026-03-04, Session 161): Synthwave Patches 3+4                 │
+│   Patch 3: Dusk lighting — ambient 0.03→0.18, orange+purple directionals   │
+│   Patch 4: Flat-shaded buildings — flatShading:true, peach/mint base colors│
+│   Emissive ceiling: stable→0.28, working→1.4 (base color visible at rest)  │
+│                                                                               │
+│ ◉ FIXED (2026-03-04, Session 161): Patch 3+4 lighting — 4-drone swarm     │
+│   Root cause: orange #FF6B35 zeroed G+B channels. Ambient ~black.          │
+│   Fix: white ambient 0.10 + warm-white front #FF9966@0.22 + cool back      │
+│   fill #4466BB@0.12. Two-tone synthwave lighting. All 6 base colors read.  │
+│   Per-territory colors: house=#BB88FF forge=#FFD966 throne=#FF88CC         │
+│     tower=#88AAFF scryer=#44EECC core=#FFEECC                              │
+│                                                                               │
+│ ◉ SHIPPED (2026-03-04, Session 161): Synthwave Patches 5+6+7 — COMPLETE    │
+│   Patch 5: Beams now glow in source territory color (from?.color)           │
+│   Patch 6: KingdomBloom EffectComposer — working buildings get corona       │
+│   Patch 7: Labels updated to dusk palette — indigo bg, purple border        │
+│   Also: ambient dimmed 0.22→0.10, directionals reduced — neon blazes       │
+│   TypeScript: 0 errors. Art Gate: PASSED.                                   │
+│                                                                               │
+│ ◉ SHIPPED (2026-03-04, Session 162): Void tuning + ring work               │
+│   Sky darkened to near-black (#03000A→#050200) — orange bleed gone         │
+│   Terrain emissive dropped 0.7→0.10 — ground stops flooding purple         │
+│   Lights dimmed: ambient 0.07, front 0.15, back 0.07                       │
+│   Grid at 2%: Layer1=0.02, Layer2=0.008, Layer3=0.003 — subtle scanlines   │
+│   Idle emissive ceiling 0.45→0.50. Ring stable opacity 0.34→0.55.          │
+│   Cinematic orbit: 20s→15s idle, phi-seeding fix (no vertical jump).       │
+│   Ring glow: glowColor = territory.color lerped 50% white (all visible).   │
+│   Two glow layers inner+outer — colors good, but rings too chunky.         │
+│                                                                               │
+│ ◉ SHIPPED (2026-03-04, Session 163): Ring diffusion — slim neon tubes      │
+│   inner glow: tube 0.09→0.055, outer corona REMOVED, opacity ×0.30→×0.50  │
+│   Granny Codex: ok:true, issues:[] — Art Gate: PASSED                       │
+│                                                                               │
+│ ◉ SHIPPED (2026-03-04, Session 163): State-blind rings — always on          │
+│   Ring decoupled from agent state. RING_OPACITY_BASE=0.55, BREATHE=0.04   │
+│   All 6 territories crowned always. Ring = identity. Emissive = activity.  │
+│   ringOpacityBase/Amplitude removed from BuildingStateConfig entirely.      │
+│   Granny Codex: ok:true ×2. Art Gate: PASSED.                               │
+│                                                                               │
+│ 🔒 BASELINE LOCKED (2026-03-04): git commit after session 163               │
+│   Synthwave skin complete. Rings perfect. This is the foundation.           │
+│                                                                               │
 │ BACKLOG (MAINTENANCE flavor):                                               │
 │   - 9-state hook model: PostToolUse only fires "working" — wire Stop hook  │
-│     and tool→state mapping for full reading/searching/writing states        │
-│   - useKingdomSync(): delete from kingdom-store.ts (after 2026-03-10)      │
 │   - Push script: $STATE heredoc injection still fragile (full refactor)    │
+│   - CHRONICLE in production: add /tokens/lifetime to kingdom-live-push.sh  │
+│   - Detail panel STATE label stale (no subscription to agentStates)        │
+│   - UI redesign pass: popups/panels (uiverse.io CSS components → JSX)      │
 │                                                                               │
-│ NEXT: Phase 5.3 C+D — Scene responsiveness                                 │
-│       ConnectionBeam tint ∝ mood.hex · Bloom ∝ mood.voltage                │
-│       territory emissive ∝ agent activity (not just on/off/working)        │
+│ NEXT: Hardening pass → deploy to Vercel → show other humans.                │
 └───────────────────────────────────────────────────────────────────────────────┘
 
 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░░░░░░░░░░░░░░░░░

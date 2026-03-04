@@ -1,56 +1,57 @@
 {
   "flavor": "CODING",
-  "flavor_locked_at": "2026-03-03T17:00:00Z",
-  "operation": "Phase 5.3 smoke test + fix — buildings light on load for live agents",
-  "started_at": "2026-03-03T17:00:00Z",
+  "flavor_locked_at": "2026-03-04T17:30:00-05:00",
+  "operation": "Decouple ring opacity from agent state — rings always on, state-blind identity markers",
+  "started_at": "2026-03-04T17:30:00-05:00",
   "promise": "COMPLETE",
   "blocker": null,
 
-  "architectural_plaque": "Phase 5.3 A+B was already shipped. Full end-to-end trace confirmed: hook files → token_api → push script → PartyKit (30s fresh) → partykit-snapshot → KingdomLiveContext → KingdomLiveSync → KingdomStore.hydrateAgentStates → useFrame.getAgentState → deriveBuildingState. Three buildings HOT PULSING (FORGE=thinking, TOWER=running, HOUSE=working). Throne dark (offline). SCRYER + CORE LORE steady glow. Tokens TODAY=493M, SESSION=127K. TypeScript 0 errors. Nothing broken. Nothing to fix.",
-
-  "prd_reference": "KINGDOM_MAP/PHASE_53_PLAN.md",
-
   "learnings": [
-    "token_api.py maps tool_name → agent state (e.g. Bash→running, Read→reading) — NOT the hook's 'working' argument. The 9-state model is already partially working at the token_api layer.",
-    "cockpit-state.sh writes status=working always from hooks, but token_api.py reads the tool_name from the file and derives the richer state. This is why live data shows thinking/running/writing/reading not just 'working'.",
-    "The FIX_PLAN_v1.md research document was written before Phase 5.3 A+B landed — its 'deferred' items (3D scene connections) are now complete.",
-    "End-to-end smoke test method: curl /api/local/agents/status on running dev server + Python derivation script. Faster and more reliable than browser testing.",
-    "Production verified: partykit-snapshot returns fresh data (0-30s age), agents alive, correct states."
+    "Ring = territory existence (constant). Emissive = activity state (variable). These are orthogonal. Never couple them.",
+    "When a magic number needs a comment, document the math that produces it, not just the intent.",
+    "Removing dead config fields (ringOpacityBase, ringOpacityAmplitude) is as important as the feature fix — dead fields are lies waiting to confuse.",
+    "Core/Scryer were always 'stable' because they have no TERRITORY_TO_AGENT entry → getAgentState returns 'online' → deriveBuildingState → 'stable'. The 4 agent territories went offline. Now rings never go offline."
   ],
-
   "agent_log": [
-    "Investigated: verified agents_status shape in production PartyKit (correct)",
-    "Investigated: traced full data path from API → context → store → useFrame (all correct)",
-    "Tested: local dev server building state derivation (3 hot pulsing, 1 dark, 2 stable)",
-    "Verified: TypeScript 0 errors (no changes needed)",
-    "Art Gate: PASSED — proud of the bridge architecture, ready to ship"
+    "ARCHITECT: diagnosed root cause (offline state → ringOpacityBase 0.03), designed structural decoupling",
+    "BUILDER: 3 edits — interface cleanup, config cleanup + constants, useFrame ring block",
+    "COBALT pass 1 (Granny): flagged 0.65 magic number → fixed with inline math comment",
+    "COBALT pass 2 (Granny): ok:true, issues:[], all criteria pass"
   ],
-
   "steps_completed": [
-    "Curl production partykit-snapshot → correct agent states + fresh tokens",
-    "Check proxy route timeout (ECONNREFUSED = instant, not 5s block)",
-    "Verify partykit-snapshot route returns correct liveData shape",
-    "Verify AgentStatus interface matches actual API response shape",
-    "Check TERRITORY_TO_AGENT mapping against live agent keys (all match)",
-    "Run local dev server building state derivation — 3 buildings HOT PULSING",
-    "TypeScript 0 errors confirmed",
-    "Art Gate PASSED"
+    "Removed ringOpacityBase + ringOpacityAmplitude from BuildingStateConfig interface",
+    "Removed those fields from all 3 config entries (offline, stable, working)",
+    "Added RING_OPACITY_BASE=0.55, RING_BREATHE_AMP=0.04, RING_BREATHE_FREQ=0.6 constants",
+    "useFrame ring block: now reads constants only, 4 lines (was 8 tangled with cfg)",
+    "Selected opacity 0.65 documented with math rationale in comment",
+    "grep ringOpacityBase → 0 matches",
+    "TypeScript: clean",
+    "Granny Codex: ok:true, issues:[]"
   ],
-
   "mistakes": [],
 
   "active_work": null,
   "priorities": [],
-  "swarm": null,
+  "swarm": {
+    "ARCHITECT": "complete",
+    "BUILDER": "complete",
+    "COBALT": "complete",
+    "auditor_status": "PASSED"
+  },
 
   "acceptance_criteria_status": {
-    "buildings_glow_for_active_agents_on_load": "PASSING",
-    "agents_status_shape_correct_in_partykit": "PASSING",
-    "buildings_glow_in_production": "PASSING",
-    "typescript_clean": "PASSING"
+    "all_6_rings_always_visible": "passing",
+    "ring_opacity_not_reading_cfg": "passing",
+    "ringOpacityBase_removed_from_interface": "passing",
+    "ringOpacityBase_removed_from_config": "passing",
+    "selected_ring_still_elevated": "passing",
+    "typescript_clean": "passing",
+    "no_regression_to_emissive_or_labels": "passing"
   },
 
   "test_status": "PASSING",
   "ghost_nodes": [],
-  "art_gate_result": "PASSED — clean bridge architecture, end-to-end verified, proud of the work. KingdomLiveSync is still exactly one thing. The buildings breathe with real agent state."
+  "art_gate_result": "PASSED",
+  "architectural_plaque": "Ring = territory is present (always true). Emissive/label = current activity (variable). These are orthogonal signals. Decoupling them makes each legible on its own terms. All 6 territories breathe the same idle ring. Agent state drives the building, not the crown.",
+  "prd_reference": null
 }

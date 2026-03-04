@@ -18,6 +18,7 @@
 import React, { useRef, useMemo, useCallback, useEffect } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Html } from '@react-three/drei'
+import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import * as THREE from 'three'
 import { useKingdomStore, usePartyKitSync } from '@/lib/kingdom-store'
@@ -52,20 +53,23 @@ interface BuildingStateConfig {
   emissiveBase: number
   breatheAmplitude: number
   breatheFreq: number
-  ringOpacityBase: number
-  ringOpacityAmplitude: number
   lightIntensityMul: number
   stateLabel: string
   stateLabelColor: string
 }
+
+// Ring constants — decoupled from agent state.
+// Ring = "this territory exists" (always true). Emissive/label = current activity.
+// All 6 territories show the same idle ring. Selected ring elevated to mark selection.
+const RING_OPACITY_BASE  = 0.55
+const RING_BREATHE_AMP   = 0.04
+const RING_BREATHE_FREQ  = 0.6    // rad/s — gentle ~10s cycle, like a slow pulse
 
 const BUILDING_STATE_CONFIG: Record<BuildingState, BuildingStateConfig> = {
   offline: {
     emissiveBase:       0.015,
     breatheAmplitude:   0,
     breatheFreq:        0,
-    ringOpacityBase:    0.03,
-    ringOpacityAmplitude: 0,
     lightIntensityMul:  0.02,
     stateLabel:         'OFFLINE',
     stateLabelColor:    '#201810',
@@ -77,8 +81,6 @@ const BUILDING_STATE_CONFIG: Record<BuildingState, BuildingStateConfig> = {
     emissiveBase:       0.45,
     breatheAmplitude:   0.06,
     breatheFreq:        0.6,
-    ringOpacityBase:    0.28,
-    ringOpacityAmplitude: 0.04,
     lightIntensityMul:  0.50,
     stateLabel:         'STABLE',
     stateLabelColor:    '#706050',
@@ -87,13 +89,9 @@ const BUILDING_STATE_CONFIG: Record<BuildingState, BuildingStateConfig> = {
     // 2.8 rad/s ≈ 0.45 Hz (~2.2s cycle) — tuned by eye. Painfully obvious working state.
     // Note: breatheFreq is in rad/s. Period = 2π / freq. 2.8 rad/s → ~2.24s cycle.
     // Emissive cranked high (1.4 base + 0.6 amp = 2.0 peak) — no mistaking active.
-    // Ring also hot (0.65 base, 0.30 amp = 0.95 peak) — AdditiveBlending still OK
-    // because the building shapes are distinct enough it doesn't blur into noise.
     emissiveBase:       1.4,
     breatheAmplitude:   0.6,
     breatheFreq:        2.8,
-    ringOpacityBase:    0.65,
-    ringOpacityAmplitude: 0.30,
     lightIntensityMul:  2.0,
     stateLabel:         'WORKING',
     stateLabelColor:    '#00f3ff',
@@ -150,15 +148,27 @@ function TerritoryNode({ territory }: TerritoryNodeProps) {
   const baseY      = getWorldY(territory)
   const params     = SHAPE_PARAMS[territory.id] ?? DEFAULT_SHAPE_PARAMS
 
-  // Shared material — one instance, all sub-meshes (forge pair, tower balls) reference it
-  const color    = useMemo(() => new THREE.Color(territory.color), [territory.color])
+  // Shared material — one instance, all sub-meshes (forge pair, tower balls) reference it.
+  // Patch 4: flat-shaded low-poly look. Per-territory base colors, bright enough to read
+  // through the orange directional light. Neon emissive stays territory.color.
+  const BASE_COLORS: Record<string, string> = {
+    claude_house: '#BB88FF',  // bright lavender   → warm rose-pink under orange fill
+    the_throne:   '#FF88CC',  // hot pink          → warm coral under orange fill
+    the_forge:    '#FFD966',  // warm gold          → stays gold — loves orange light
+    the_tower:    '#88AAFF',  // periwinkle         → soft lilac under orange fill
+    the_scryer:   '#44EECC',  // cyan-teal          → warm teal-white under orange fill
+    core_lore:    '#FFEECC',  // warm ivory         → bright cream — sacred/warm
+  }
+  const baseColor = useMemo(() => BASE_COLORS[territory.id] ?? '#CCBBFF', [territory.id])
+
   const material = useMemo(() => new THREE.MeshStandardMaterial({
-    color:            territory.color,
-    emissive:         color,
-    emissiveIntensity: 0.2,
-    roughness:        0.55,
-    metalness:        0.25,
-  }), [territory.color, color])
+    color:             baseColor,
+    emissive:          territory.color,  // neon emissive stays the territory color
+    emissiveIntensity: 0.2,              // animated in useFrame — initial value only
+    roughness:         0.85,
+    metalness:         0.0,
+    flatShading:       true,             // faceted low-poly look — each face gets solid fill
+  }), [baseColor, territory.color])
   useEffect(() => () => material.dispose(), [material])
 
   // Ring material — stable instance across renders. Inline JSX <meshBasicMaterial> would
@@ -173,6 +183,28 @@ function TerritoryNode({ territory }: TerritoryNodeProps) {
     blending:    THREE.AdditiveBlending,
   }), [territory.color])
   useEffect(() => () => ringMaterial.dispose(), [ringMaterial])
+
+  // Glow corona color — territory color lerped 50% toward white so dark colors
+  // (purple #7000ff, amber #f0a500) produce a visible bright corona regardless of
+  // their original luminance. Crisp main ring keeps territory.color for identity.
+  const glowColor = useMemo(() => {
+    const col = new THREE.Color(territory.color)
+    col.lerp(new THREE.Color('#ffffff'), 0.5)
+    return col
+  }, [territory.color])
+
+  // Glow corona — single soft halo, tube just barely wider than the main ring.
+  // tube=0.055 (vs main 0.04) = 37% wider — a slim bleeding edge, not a fat disc.
+  // Opacity driven in useFrame at 50% of main ring opacity.
+  const glowRingMaterial = useMemo(() => new THREE.MeshBasicMaterial({
+    color:       glowColor,
+    transparent: true,
+    opacity:     0.08,
+    side:        THREE.DoubleSide,
+    depthWrite:  false,
+    blending:    THREE.AdditiveBlending,
+  }), [glowColor])
+  useEffect(() => () => glowRingMaterial.dispose(), [glowRingMaterial])
 
   // Stable callback — reads current selection from store directly, not from subscription.
   // isSelected is not in deps: we call getState() to get the live value at click time,
@@ -193,15 +225,27 @@ function TerritoryNode({ territory }: TerritoryNodeProps) {
 
     if (!meshRef.current) return
 
-    const agentState    = useKingdomStore.getState().getAgentState(territory.id)
+    const store         = useKingdomStore.getState()
+    const agentState    = store.getAgentState(territory.id)
     const buildingState = deriveBuildingState(agentState)
     const cfg           = BUILDING_STATE_CONFIG[buildingState]
+
+    // Activity-scaled emissive with state-dependent ceiling.
+    // offline  → cfg.emissiveBase (0.015) — dark, static
+    // stable   → scales to max 0.28 — lets flat-shaded base color (peach/mint) read through
+    // working  → scales to max 1.4  — neon blazes, base color overwhelmed (intentional)
+    //   stable:  online(40)→0.11  reading(70)→0.20  (base color + neon tint visible)
+    //   working: working(80)→1.12  swarming(100)→1.4 (neon dominates)
+    const agentKey         = TERRITORY_TO_AGENT[territory.id]
+    const activity         = agentKey ? (store.agentStates[agentKey]?.activity ?? 0) : 40
+    const emissiveCeiling  = buildingState === 'working' ? 1.4 : 0.50
+    const activityBase     = buildingState === 'offline' ? cfg.emissiveBase : (activity / 100) * emissiveCeiling
 
     // Breathing pulse — modifies shared material (all sub-meshes update)
     const breathe = cfg.breatheAmplitude > 0
       ? Math.sin(t * cfg.breatheFreq + offset * 0.5) * cfg.breatheAmplitude
       : 0
-    const targetIntensity = cfg.emissiveBase + breathe
+    const targetIntensity = activityBase + breathe
 
     // Frame-rate independent exponential approach — same convergence at any FPS
     const lerpFactor = 1 - Math.pow(EMISSIVE_LERP_BASE, delta * 60)
@@ -213,18 +257,17 @@ function TerritoryNode({ territory }: TerritoryNodeProps) {
         0.08 + Math.sin(t * 1.8 + offset) * 0.06)
     }
 
-    // Ring opacity — selected holds at full, unselected breathes with state.
-    // Mutate ringMaterial directly (stable useMemo instance) — no cast needed.
+    // Ring opacity — identity marker, state-blind. Ring = territory is present (always true).
+    // All 6 territories share the same idle ring. Selected ring elevated slightly above
+    // idle peak (BASE + AMP = 0.59) → selected = 0.65, a clear but not jarring step up.
     if (ringRef.current) {
-      if (isSelected) {
-        ringMaterial.opacity = 0.55
-      } else {
-        const ringBreathe = cfg.ringOpacityAmplitude > 0
-          ? Math.sin(t * cfg.breatheFreq + offset * 0.5) * cfg.ringOpacityAmplitude
-          : 0
-        ringMaterial.opacity = cfg.ringOpacityBase + ringBreathe
-      }
+      ringMaterial.opacity = isSelected
+        ? 0.65  // BASE(0.55) + AMP(0.04) = 0.59 idle peak → 0.65 is ~10% above, marks selection
+        : RING_OPACITY_BASE + Math.sin(t * RING_BREATHE_FREQ + offset * 0.5) * RING_BREATHE_AMP
     }
+    // Glow corona — slim halo just outside the crisp ring edge.
+    // 50% of main opacity keeps it visible but subordinate to the crisp wire.
+    glowRingMaterial.opacity = ringMaterial.opacity * 0.50
 
     // Point light — position is fixed relative to float group, just update intensity
     if (lightRef.current) {
@@ -234,9 +277,9 @@ function TerritoryNode({ territory }: TerritoryNodeProps) {
     // Label color — direct DOM update, no re-render
     if (labelRef.current) {
       const labelColor = buildingState === 'offline'
-        ? '#252018'
+        ? '#2a1830'
         : buildingState === 'stable'
-        ? '#504840'
+        ? '#8a7090'
         : territory.color
       labelRef.current.style.color = isSelected ? territory.color : labelColor
       labelRef.current.style.borderColor = isSelected
@@ -327,6 +370,15 @@ function TerritoryNode({ territory }: TerritoryNodeProps) {
           <torusGeometry args={[params.ringRadius, 0.04, 8, 32]} />
           <primitive object={ringMaterial} />
         </mesh>
+        {/* Glow corona — tube=0.055, barely wider than main (0.04).
+            Additive blending on dark void: slim colored bleed at ring edge, not a disc. */}
+        <mesh
+          position={[0, params.ringY, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+        >
+          <torusGeometry args={[params.ringRadius, 0.055, 8, 32]} />
+          <primitive object={glowRingMaterial} />
+        </mesh>
 
         {/* Point light — fixed above shape center */}
         <pointLight
@@ -351,12 +403,12 @@ function TerritoryNode({ territory }: TerritoryNodeProps) {
               fontFamily: 'monospace',
               fontSize: '10px',
               letterSpacing: '0.1em',
-              color: '#504840',
-              background: 'rgba(10,10,15,0.7)',
+              color: '#6a5a70',
+              background: 'rgba(13,2,33,0.75)',
               padding: '2px 6px',
               borderRadius: '2px',
               whiteSpace: 'nowrap',
-              border: '1px solid transparent',
+              border: '1px solid rgba(100,60,180,0.15)',
             }}
           >
             {territory.label}
@@ -392,16 +444,18 @@ function ConnectionBeam({ fromId, toId }: ConnectionBeamProps) {
         ]
       : [new THREE.Vector3(), new THREE.Vector3()]
     const geometry = new THREE.BufferGeometry().setFromPoints(points)
+    // Patch 5: beam glows in source territory's color — network reads as colored light threads.
+    // from?.color is module-level const from TERRITORY_MAP, never changes — empty deps correct.
+    const beamColor = from?.color ?? '#FF1493'
     const mat = new THREE.LineBasicMaterial({
-      color: '#7000ff',
+      color: beamColor,
       transparent: true,
-      opacity: 0.06,
+      opacity: 0.08,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     })
     return { lineObj: new THREE.Line(geometry, mat), material: mat }
-    // `from`/`to` come from TERRITORY_MAP — a module-level const, never mutated.
-    // Positions are fixed at load time; empty deps is correct.
+    // `from`/`to`/`from.color` come from TERRITORY_MAP — module-level const, never mutated.
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -414,7 +468,7 @@ function ConnectionBeam({ fromId, toId }: ConnectionBeamProps) {
   useFrame(() => {
     if (!from || !to) return
     const combined = (getActivity(fromId) + getActivity(toId)) / 2
-    material.opacity = 0.04 + (combined / 100) * 0.35
+    material.opacity = 0.06 + (combined / 100) * 0.45
   })
 
   if (!from || !to) return null
@@ -456,24 +510,29 @@ function KingdomGround() {
       {/* Solid dark terrain surface */}
       <mesh geometry={groundGeo} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
         <meshStandardMaterial
-          color="#070710"
+          color="#0a0818"
           roughness={0.98}
           metalness={0.0}
-          emissive="#0c0820"
-          emissiveIntensity={0.9}
+          emissive="#040110"
+          emissiveIntensity={0.10}
         />
       </mesh>
-      {/* Glowing wireframe grid overlay — the digital landscape.
-          AdditiveBlending: grid lines glow against dark terrain (not painted on). */}
-      <mesh geometry={groundGeo} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <meshBasicMaterial
-          color="#2a0870"
-          wireframe
-          transparent
-          opacity={0.18}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
+      {/* Cyan wireframe grid — primary crisp layer.
+          Opacity reduced 40% (0.22 → 0.13). Two glow halos above it
+          simulate bloom without a full post-processing pass. */}
+      <mesh geometry={groundGeo} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.010, 0]}>
+        <meshBasicMaterial color="#00D9FF" wireframe transparent opacity={0.02}
+          blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {/* Glow halo 1 — slightly brighter, starts the halo */}
+      <mesh geometry={groundGeo} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.016, 0]}>
+        <meshBasicMaterial color="#40EEFF" wireframe transparent opacity={0.008}
+          blending={THREE.AdditiveBlending} depthWrite={false} />
+      </mesh>
+      {/* Glow halo 2 — near-white, diffuse outer bloom */}
+      <mesh geometry={groundGeo} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.024, 0]}>
+        <meshBasicMaterial color="#9AF8FF" wireframe transparent opacity={0.003}
+          blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
     </group>
   )
@@ -523,8 +582,9 @@ function CinematicOrbit({ orbitRef }: WASDProps) {
   const cs = useRef({
     theta:           0,
     radius:          22,
+    phiTimeOffset:   0,   // clock offset so phi wave starts at current camera elevation (no jump)
     active:          false,
-    lastInteraction: Date.now(),   // start paused; cinematic kicks in after 8s of stillness
+    lastInteraction: Date.now(),
   })
 
   // Scratch objects — allocated once, reused every frame (no garbage)
@@ -562,7 +622,7 @@ function CinematicOrbit({ orbitRef }: WASDProps) {
     }
   }, [orbitRef])
 
-  const IDLE_MS    = 20000  // ms of stillness before cinematic engages (20s — safe for demo setup)
+  const IDLE_MS    = 15000  // ms of stillness before cinematic engages (15s)
   const ORBIT_SPD  = 0.040  // rad/s horizontal — full lap in ~157s (~2.6 min)
   const VERT_FREQ  = 0.027  // rad/s vertical wave — full cycle ~233s (~3.9 min)
   const VERT_AMP   = 0.20   // ± radians of elevation swing (≈ ±11°)
@@ -577,6 +637,11 @@ function CinematicOrbit({ orbitRef }: WASDProps) {
       _spherical.setFromVector3(_offset)
       cs.current.theta  = _spherical.theta
       cs.current.radius = Math.max(14, Math.min(35, _spherical.radius))
+      // Seed phi time offset so elevation wave starts exactly at current camera elevation.
+      // Solves: PHI_BASE + sin((t + offset) * VERT_FREQ) * VERT_AMP = currentPhi
+      const currentPhi = Math.max(PHI_BASE - VERT_AMP, Math.min(PHI_BASE + VERT_AMP, _spherical.phi))
+      const phiNorm    = (currentPhi - PHI_BASE) / VERT_AMP
+      cs.current.phiTimeOffset = Math.asin(Math.max(-1, Math.min(1, phiNorm))) / VERT_FREQ - clock.elapsedTime
       cs.current.active = true
       if (orbitRef.current) orbitRef.current.enabled = false
     }
@@ -584,8 +649,8 @@ function CinematicOrbit({ orbitRef }: WASDProps) {
     // Advance azimuth
     cs.current.theta += ORBIT_SPD * delta
 
-    // Compute elevation with vertical sinusoidal wave
-    const phi    = PHI_BASE + Math.sin(clock.elapsedTime * VERT_FREQ) * VERT_AMP
+    // Compute elevation with vertical sinusoidal wave (offset ensures no elevation jump on engage)
+    const phi    = PHI_BASE + Math.sin((clock.elapsedTime + cs.current.phiTimeOffset) * VERT_FREQ) * VERT_AMP
     const sinPhi = Math.sin(phi)
     const cosPhi = Math.cos(phi)
     const r      = cs.current.radius
@@ -687,6 +752,26 @@ function WASDControls({ orbitRef }: WASDProps) {
 }
 
 // ---------------------------------------------------------------------------
+// BLOOM — neon corona on active buildings. Threshold 0.55 sits just above
+// the peach/mint base colors (~0.56 luminance) so only emissive peaks bloom.
+// Working-state buildings (emissiveIntensity up to 2.0) bloom hard.
+// Stable buildings bloom faintly or not at all. Ground/terrain unaffected.
+// ---------------------------------------------------------------------------
+
+function KingdomBloom() {
+  return (
+    <EffectComposer>
+      <Bloom
+        luminanceThreshold={0.55}
+        luminanceSmoothing={0.85}
+        intensity={1.2}
+        mipmapBlur
+      />
+    </EffectComposer>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // SCENE CONTENTS (inside Canvas)
 // ---------------------------------------------------------------------------
 
@@ -704,9 +789,14 @@ function SceneContents() {
 
   return (
     <>
-      {/* Lighting */}
-      <ambientLight intensity={0.03} color="#0a0a1f" />
-      <directionalLight position={[10, 20, 10]} intensity={0.08} color="#ffffff" />
+      {/* Lighting — synthwave two-tone. White ambient (low) ensures all base color channels
+          survive. Warm-white front key still reads as dusk but G:60%/B:40% vs pure orange
+          G:42%/B:21% — cool base colors (lavender, periwinkle) now illuminate correctly.
+          Cool back fill from opposite angle: warm-front/cool-back = classic synthwave drama,
+          also illuminates shadow faces so flat-shading facet contrast actually reads. */}
+      <ambientLight intensity={0.07} color="#ffffff" />
+      <directionalLight position={[-8, 12, 14]} intensity={0.15} color="#FF9966" />
+      <directionalLight position={[8, 6, -10]}  intensity={0.07} color="#4466BB" />
 
       {/* Hilly terrain with wireframe grid */}
       <KingdomGround />
@@ -722,6 +812,9 @@ function SceneContents() {
 
       {/* System heartbeat layer — GOLDFISH (5min) + SCRYER watch ring (60s) */}
       <SystemHeartbeat />
+
+      {/* Bloom — neon corona on active buildings, cyan grid intersection glow */}
+      <KingdomBloom />
 
       {/* Connection beams */}
       {EDGES.map(([aId, bId]) => (
@@ -1082,7 +1175,14 @@ export function KingdomScene3D({ className = '' }: KingdomScene3DProps) {
   return (
     <div
       className={className}
-      style={{ position: 'relative', width: '100%', height: '100%', background: '#0a0a0f' }}
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        // Synthwave dusk sky — deep indigo top, purple mid, warm orange horizon bleed.
+        // alpha:true on Canvas lets WebGL canvas be transparent so this shows through.
+        background: 'linear-gradient(to bottom, #03000A 0%, #08001F 30%, #05010B 50%, #0F0402 75%, #050200 100%)',
+      }}
     >
       {/* R3F Canvas */}
       <Canvas
@@ -1095,7 +1195,7 @@ export function KingdomScene3D({ className = '' }: KingdomScene3DProps) {
         dpr={[1, 2]}
         gl={{
           antialias: false,
-          alpha: false,
+          alpha: true,      // transparent canvas — CSS sky gradient shows through WebGL
           powerPreference: 'default',
         }}
         style={{ width: '100%', height: '100%' }}
