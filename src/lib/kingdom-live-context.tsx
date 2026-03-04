@@ -46,6 +46,7 @@ export interface KingdomLiveData {
     today:          TokenWindow
     week:           TokenWindow
     this_session:   SessionWindow
+    lifetime:       number        // lifetime_estimate_tokens from /api/tokens/lifetime
     intensity:      'high' | 'medium' | 'low' | 'quiet'
     tokens_per_min: number
   }
@@ -117,6 +118,10 @@ interface TokensLiveApiResponse {
   this_session?: { tokens: number; cost_usd: number; session_id: string }
 }
 
+interface LifetimeApiResponse {
+  lifetime_estimate_tokens?: number
+}
+
 // ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
@@ -146,6 +151,7 @@ function buildMerged(
   live: KingdomLiveApiResponse,
   agentsPayload: AgentsStatusApiResponse,
   tokensPayload: TokensLiveApiResponse,
+  lifetimePayload: LifetimeApiResponse,
   prev: KingdomLiveData | null
 ): KingdomLiveData {
   return {
@@ -155,6 +161,7 @@ function buildMerged(
       today:          tokensPayload.today        ?? prev?.tokens?.today        ?? EMPTY_TOKEN_WINDOW,
       week:           tokensPayload.week         ?? prev?.tokens?.week         ?? EMPTY_TOKEN_WINDOW,
       this_session:   tokensPayload.this_session ?? prev?.tokens?.this_session ?? EMPTY_SESSION_WINDOW,
+      lifetime:       lifetimePayload.lifetime_estimate_tokens ?? prev?.tokens?.lifetime ?? 0,
       intensity:      live.tokens?.intensity      ?? prev?.tokens?.intensity      ?? 'quiet',
       // rate_per_min is the flat alias used by /api/kingdom/live; tokens_per_min is the legacy key
       tokens_per_min: live.tokens?.tokens_per_min ?? live.tokens?.rate_per_min ?? prev?.tokens?.tokens_per_min ?? 0,
@@ -207,7 +214,7 @@ export function KingdomLiveProvider({ children }: { children: React.ReactNode })
         const status: KingdomLiveCtx['status'] = age > STALE_THRESHOLD_MS ? 'stale' : 'ok'
 
         const prev    = ctxRef.current.data
-        const merged  = buildMerged(kingdom_live ?? {}, agents_status ?? {}, tokens_live ?? {}, prev)
+        const merged  = buildMerged(kingdom_live ?? {}, agents_status ?? {}, tokens_live ?? {}, {}, prev)
 
         if (!cancelled) {
           setCtx({ data: merged, status, lastSuccessAt: now - age, age_ms: age })
@@ -222,10 +229,11 @@ export function KingdomLiveProvider({ children }: { children: React.ReactNode })
       if (cancelled) return
 
       try {
-        const [liveRes, agentsRes, tokensRes] = await Promise.allSettled([
-          fetch('/api/local/kingdom/live',  { cache: 'no-store' }),
-          fetch('/api/local/agents/status', { cache: 'no-store' }),
-          fetch('/api/local/tokens/live',   { cache: 'no-store' }),
+        const [liveRes, agentsRes, tokensRes, lifetimeRes] = await Promise.allSettled([
+          fetch('/api/local/kingdom/live',    { cache: 'no-store' }),
+          fetch('/api/local/agents/status',   { cache: 'no-store' }),
+          fetch('/api/local/tokens/live',     { cache: 'no-store' }),
+          fetch('/api/local/tokens/lifetime', { cache: 'no-store' }),
         ])
 
         if (cancelled) return
@@ -259,7 +267,11 @@ export function KingdomLiveProvider({ children }: { children: React.ReactNode })
         const tokensPayload: TokensLiveApiResponse =
           hasTokens ? (await tokensRes.value.json() as TokensLiveApiResponse) : {}
 
-        const merged = buildMerged(live, agentsPayload, tokensPayload, ctxRef.current.data)
+        const hasLifetime = lifetimeRes.status === 'fulfilled' && lifetimeRes.value.ok
+        const lifetimePayload: LifetimeApiResponse =
+          hasLifetime ? (await lifetimeRes.value.json() as LifetimeApiResponse) : {}
+
+        const merged = buildMerged(live, agentsPayload, tokensPayload, lifetimePayload, ctxRef.current.data)
 
         setCtx({ data: merged, status: 'ok', lastSuccessAt: now, age_ms: 0 })
 

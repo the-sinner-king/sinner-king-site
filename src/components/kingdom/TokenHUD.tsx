@@ -10,9 +10,9 @@
  *   ┌──────────────────────────────┐
  *   │ TOKEN FEED                   │
  *   │──────────────────────────────│
- *   │ SESSION    142,733           │
- *   │ TODAY      21.3M  ·  $11.21 │
- *   │ WEEK       2.6B   ·  $1,061 │
+ *   │ TODAY      21.3M             │
+ *   │ WEEK       2.6B              │
+ *   │ CHRONICLE  5.1B              │
  *   │ RATE       ⚡ HIGH            │
  *   │──────────────────────────────│
  *   │ ◉ FLOW  homecoming  #FFB347  │
@@ -178,14 +178,14 @@ export function TokenHUD() {
               TOKEN FEED
             </div>
 
-            {/* Session row */}
-            <Row label="SESSION" value={fmtTokens(tokens.this_session.tokens)} color={ACCENT} dim />
-
             {/* Today row */}
-            <Row label="TODAY"   value={fmtTokens(tokens.today.tokens)}        color={ACCENT} />
+            <Row label="TODAY"     value={fmtTokens(tokens.today.tokens)}                              color={ACCENT} />
 
             {/* Week row */}
-            <Row label="WEEK"    value={fmtTokens(tokens.week.tokens)}          color={ACCENT} dim />
+            <Row label="WEEK"      value={fmtTokens(tokens.week.tokens)}                               color={ACCENT} dim />
+
+            {/* Chronicle row — all-time lifetime estimate */}
+            <Row label="CHRONICLE" value={tokens.lifetime > 0 ? fmtTokens(tokens.lifetime) : '—'}     color={ACCENT} dim />
 
             {/* Rate row */}
             <RateRow intensity={intensity} />
