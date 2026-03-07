@@ -35,11 +35,10 @@ import type { RadioTrack } from './radio-tracks'
 // ---------------------------------------------------------------------------
 
 const ASCII_CHARS = ' .:-=+*#%@'   // 10 levels — space (silence) → @ (peak)
-const CANVAS_W    = 400
-const CANVAS_H    = 100
-// 52 cols × ~7.7px each at CANVAS_W=400 — slightly denser than FONT_SIZE=8 would
-// suggest. Intentional: packed terminal look, columns slightly overlap horizontally.
-const COL_COUNT   = 52
+const CANVAS_W    = 260
+const CANVAS_H    = 72
+// 34 cols × ~7.6px each at CANVAS_W=260 — packed terminal look.
+const COL_COUNT   = 34
 const FONT_SIZE   = 8              // px — monospace
 
 // Territory colors — cycles across visualizer columns
@@ -132,7 +131,9 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
       const barRows = Math.floor((avg / 255) * rowCount)  // how many rows to fill
 
       const color = TERRITORY_COLORS[col % TERRITORY_COLORS.length]
-      ctx.fillStyle = color
+      ctx.fillStyle   = color
+      ctx.shadowColor = color   // glow — each column's color bleeds out around its characters
+      ctx.shadowBlur  = 7
 
       // Gradient: top of bar (smallest row index) gets hottest ASCII char.
       // (rowCount - row) grows as row decreases → peak energy shown at bar apex.
@@ -143,6 +144,7 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
         ctx.fillText(char, col * colW, row * FONT_SIZE + FONT_SIZE)
       }
     }
+    ctx.shadowBlur = 0  // reset after loop — don't bleed into clearRect next frame
 
     if (!document.hidden) {
       rafRef.current = requestAnimationFrame(drawVisualizer)

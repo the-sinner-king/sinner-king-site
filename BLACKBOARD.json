@@ -1,29 +1,40 @@
 {
   "flavor": "CODING",
-  "flavor_locked_at": "2026-03-07T09:00:00Z",
-  "operation": "Panel z-fix + Radio bottom-right install on Kingdom Map",
-  "started_at": "2026-03-07T09:00:00Z",
-  "promise": "",
+  "flavor_locked_at": "2026-03-07T10:00:00Z",
+  "operation": "Radio skinny + visualizer glow + popup floats near territory in 3D",
+  "started_at": "2026-03-07T10:00:00Z",
+  "promise": "COMPLETE",
   "blocker": null,
-  "learnings": [],
-  "agent_log": ["2026-03-07T09:00:00Z — BLACKBOARD initialized."],
-  "steps_completed": [],
-  "mistakes": [],
-  "active_work": "STEP 1: Fix TerritoryDetailPanel zIndex 20→40",
-  "priorities": [
-    "FIX: TerritoryDetailPanel zIndex 20→40",
-    "FIX: SinnerKingRadio — add initialTrackId + autoPlay props",
-    "WIRE: Radio in client.tsx bottom-right eternal-rick autoPlay"
+  "learnings": [
+    "drei <Html> must live inside SceneContents (inside R3F Canvas) — DOM overlays section is outside the canvas boundary",
+    "TerritoryDetailFloat uses position=[px, 5, pz] — y=5 clears tallest buildings on all islands",
+    "Canvas 2D shadowBlur must be reset to 0 after draw loop or it bleeds into clearRect next frame",
+    "autoPlay one-shot guard: hasAutoplayed=useRef(false) prevents re-trigger when audioReady resets on track change"
   ],
+  "agent_log": [
+    "2026-03-07T10:00:00Z — BLACKBOARD initialized. 3 tasks, one at a time.",
+    "2026-03-07 — TASK 1 DONE: CANVAS_W 400→260, CANVAS_H 100→72, COL_COUNT 52→34",
+    "2026-03-07 — TASK 2 DONE: per-column ctx.shadowColor=color, ctx.shadowBlur=7, reset after loop",
+    "2026-03-07 — TASK 3 DONE: TerritoryDetailFloat as drei <Html> at [px,5,pz], wired into SceneContents"
+  ],
+  "steps_completed": [
+    "Radio skinny: CANVAS_W/H/COL_COUNT reduced",
+    "Visualizer glow: canvas shadowColor + shadowBlur per column",
+    "Float popup: TerritoryDetailFloat as drei <Html> inside SceneContents",
+    "TypeScript: 0 errors"
+  ],
+  "mistakes": [],
+  "active_work": null,
+  "priorities": [],
   "acceptance_criteria_status": {
-    "panel_above_hud": "PENDING",
-    "radio_bottom_right": "PENDING",
-    "radio_autoplay_rick": "PENDING",
-    "typescript_zero_errors": "PENDING"
+    "radio_compact": "DONE",
+    "visualizer_glow": "DONE",
+    "popup_floats_near_territory": "DONE",
+    "typescript_zero_errors": "DONE"
   },
-  "test_status": "UNKNOWN",
+  "test_status": "PASS",
   "ghost_nodes": [],
-  "art_gate_result": null,
+  "art_gate_result": "PASS",
   "architectural_plaque": null,
   "prd_reference": null
 }

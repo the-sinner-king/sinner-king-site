@@ -900,24 +900,30 @@ function SceneContents() {
         minDistance={4}
         maxDistance={40}
       />
+
+      {/* Territory detail popup — floats in 3D space near clicked territory */}
+      <TerritoryDetailFloat />
     </>
   )
 }
 
 // ---------------------------------------------------------------------------
-// TERRITORY DETAIL PANEL (DOM overlay)
+// TERRITORY DETAIL FLOAT (R3F Html — floats in 3D space near clicked territory)
+//
+// Replaces the old DOM overlay approach. Using drei <Html> anchored to the
+// territory's world position means the popup naturally sits near the building
+// rather than pinned to a screen corner.
+//
+// REGRESSION GUARD: hooks must all be called before any early return.
+// The detailBuildingState selector MUST remain reactive (no getState() in render).
 // ---------------------------------------------------------------------------
 
-function TerritoryDetailPanel() {
-  const selectedId = useKingdomStore((s) => s.selectedId)
+function TerritoryDetailFloat() {
+  const selectedId      = useKingdomStore((s) => s.selectedId)
   const selectTerritory = useKingdomStore((s) => s.selectTerritory)
   const currentActivity = useKingdomStore((s) => s.currentActivity)
-  const activeProject = useKingdomStore((s) => s.activeProject)
-  // Reactive building state — derived directly from subscribed store slices so the STATE
-  // label updates in real-time when agentStates or debugOverrides change.
-  // REGRESSION GUARD: do NOT call getState() in render to derive this value — getState()
-  // is a snapshot and won't trigger re-renders. Derive inline from the selector result.
-  // Also respects debugOverrides so DebugPanel overrides show in the detail panel.
+  const activeProject   = useKingdomStore((s) => s.activeProject)
+  // Reactive building state — see REGRESSION GUARD above.
   const detailBuildingState = useKingdomStore((s): BuildingState => {
     if (!selectedId) return 'stable'
     const override = s.debugOverrides[selectedId]
@@ -938,26 +944,34 @@ function TerritoryDetailPanel() {
   if (!selectedId) return null
 
   const layout = TERRITORY_MAP[selectedId]
-
   if (!layout) return null
 
+  const [px, , pz] = layout.position
+  // Float panel ~5 world units above the territory's XZ position.
+  // y=5 clears the tallest buildings and terrain variation on all islands.
+  const anchorY = 5
+
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 16,
-        right: 16,
-        width: 280,
-        background: 'rgba(10,10,15,0.92)',
-        border: `1px solid ${layout.color}40`,
-        borderRadius: 4,
-        padding: '16px',
-        fontFamily: 'monospace',
-        color: '#e8e0d0',
-        zIndex: 40,   // must be > HUD stack (zIndex:20 in client.tsx) — same stacking context
-        backdropFilter: 'blur(8px)',
-      }}
+    <Html
+      position={[px, anchorY, pz]}
+      center
+      style={{ pointerEvents: 'auto' }}
+      zIndexRange={[50, 0]}
     >
+      <div
+        style={{
+          width: 240,
+          background: 'rgba(8,6,14,0.97)',
+          border: `1px solid ${layout.color}50`,
+          borderRadius: 4,
+          padding: '14px',
+          fontFamily: 'monospace',
+          color: '#e8e0d0',
+          backdropFilter: 'blur(12px)',
+          boxShadow: `0 0 24px ${layout.color}25, 0 6px 32px rgba(0,0,0,0.7)`,
+          userSelect: 'none',
+        }}
+      >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div style={{ color: layout.color, fontSize: 11, letterSpacing: '0.15em', marginBottom: 4 }}>
@@ -1057,7 +1071,8 @@ function TerritoryDetailPanel() {
           ) : null
         })}
       </div>
-    </div>
+      </div>
+    </Html>
   )
 }
 
@@ -1290,7 +1305,6 @@ export function KingdomScene3D({ className = '' }: KingdomScene3DProps) {
 
       {/* DOM overlays */}
       <StatusBar />
-      <TerritoryDetailPanel />
       <DebugPanel />
 
       {/* Hint text */}
