@@ -37,6 +37,11 @@ function fmtTokens(n: number): string {
 // ---------------------------------------------------------------------------
 // Intensity → border style
 // ---------------------------------------------------------------------------
+// REGRESSION GUARD: Never mix border (shorthand) + borderLeft (longhand) on the same element.
+// React 19 DOM reconciliation fires a console error on every re-render when both are set.
+// These values are applied to borderTop/borderRight/borderBottom only.
+// borderLeft is always the structural accent (ACCENT color, 2px solid) — set separately.
+// ---------------------------------------------------------------------------
 
 const INTENSITY_BORDER: Record<string, string> = {
   quiet:  '1px solid rgba(112,0,255, 0.18)',
@@ -50,30 +55,6 @@ const INTENSITY_SHADOW: Record<string, string> = {
   low:    'none',
   medium: '0 0 8px rgba(112,0,255,0.4)',
   high:   '0 0 12px rgba(112,0,255,0.8)',
-}
-
-// ---------------------------------------------------------------------------
-// Voltage bar
-// ---------------------------------------------------------------------------
-
-function VoltageBar({ voltage, color }: { voltage: number; color: string }) {
-  return (
-    <div style={{
-      height:       2,
-      background:   'rgba(255,255,255,0.05)',
-      borderRadius: 1,
-      overflow:     'hidden',
-      marginTop:    6,
-    }}>
-      <div style={{
-        height:     '100%',
-        width:      `${Math.round(voltage * 100)}%`,
-        background: `linear-gradient(90deg, ${color}66, ${color})`,
-        boxShadow:  `0 0 4px ${color}88`,
-        transition: 'width 1s ease-out',
-      }} />
-    </div>
-  )
 }
 
 // ---------------------------------------------------------------------------
@@ -127,13 +108,7 @@ export function TokenHUD() {
   if (status === 'loading' || status === 'error' || !data) return null
 
   const tokens    = data.tokens
-  const mood      = data.mood
   const intensity = tokens.intensity
-
-  const moodColor  = mood.synesthesia_hex ?? ACCENT
-  const moodState  = mood.state           ?? '—'
-  const moodLabel  = mood.texture         ?? mood.drive ?? '—'
-  const voltage    = mood.voltage
 
   return (
     <>
@@ -157,7 +132,11 @@ export function TokenHUD() {
         }}>
           <div style={{
             background:    'rgba(10, 10, 15, 0.88)',
-            border:        INTENSITY_BORDER[intensity] ?? INTENSITY_BORDER.quiet,
+            // Expand shorthand to avoid React 19 border/borderLeft conflict warning.
+            // Top/right/bottom = intensity-driven. Left = always accent — structural rule.
+            borderTop:     INTENSITY_BORDER[intensity] ?? INTENSITY_BORDER.quiet,
+            borderRight:   INTENSITY_BORDER[intensity] ?? INTENSITY_BORDER.quiet,
+            borderBottom:  INTENSITY_BORDER[intensity] ?? INTENSITY_BORDER.quiet,
             borderLeft:    `2px solid ${ACCENT}`,
             borderRadius:  2,
             padding:       '8px 12px 9px',
@@ -189,64 +168,6 @@ export function TokenHUD() {
 
             {/* Rate row */}
             <RateRow intensity={intensity} />
-
-            {/* Mood section */}
-            <>
-              <div style={{
-                borderTop:  '1px solid rgba(255,255,255,0.06)',
-                marginTop:  7,
-                paddingTop: 7,
-              }}>
-                {/* State + texture */}
-                <div style={{
-                  display:    'flex',
-                  alignItems: 'center',
-                  gap:        6,
-                }}>
-                  {/* Mood dot */}
-                  <div style={{
-                    width:        5,
-                    height:       5,
-                    borderRadius: '50%',
-                    background:   moodColor,
-                    boxShadow:    `0 0 6px ${moodColor}`,
-                    flexShrink:   0,
-                  }} />
-                  <span style={{
-                    color:         moodColor,
-                    fontSize:      11,
-                    letterSpacing: '0.14em',
-                    textTransform: 'uppercase',
-                    fontWeight:    'bold',
-                  }}>
-                    {moodState}
-                  </span>
-                  <span style={{
-                    color:         `${moodColor}88`,
-                    fontSize:      10,
-                    letterSpacing: '0.1em',
-                    textTransform: 'uppercase',
-                    marginLeft:    2,
-                  }}>
-                    {moodLabel}
-                  </span>
-                  {/* Hex swatch */}
-                  <span style={{
-                    marginLeft:    'auto',
-                    color:         '#504840',
-                    fontSize:      9,
-                    letterSpacing: '0.08em',
-                  }}>
-                    {moodColor.toUpperCase()}
-                  </span>
-                </div>
-
-                {/* Voltage bar */}
-                {voltage !== null && (
-                  <VoltageBar voltage={voltage} color={moodColor} />
-                )}
-              </div>
-            </>
 
           </div>
         </div>

@@ -69,10 +69,6 @@ html {
 body {
   background-color: var(--void);
   color: var(--bone);
-  /* Subtle noise texture over the void */
-  background-image:
-    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
-  background-repeat: repeat;
 }
 
 /* --- Scrollbar — Kingdom themed --- */
@@ -87,7 +83,7 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background: var(--violet-dim);
-  border-radius: 2px;
+  border-radius: 0;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -117,7 +113,6 @@ p {
 a {
   color: var(--cyan);
   text-decoration: none;
-  transition: color 150ms ease, text-shadow 150ms ease;
 }
 
 a:hover {
@@ -133,7 +128,8 @@ code, pre, kbd {
 @layer components {
   /* Panel — the primary surface unit */
   .panel {
-    @apply bg-kingdom-void-mid border border-kingdom-violet/20 rounded-kingdom-md;
+    @apply bg-kingdom-void-mid border border-kingdom-violet/20;
+    border-radius: 0;
     box-shadow: var(--inner-void, inset 0 1px 0 rgba(255,255,255,0.04));
   }
 
@@ -144,26 +140,26 @@ code, pre, kbd {
 
   /* Signal dot — alive indicator */
   .signal-dot {
-    @apply w-2 h-2 rounded-full bg-kingdom-cyan;
+    @apply w-2 h-2 bg-kingdom-cyan;
     animation: pulse_kingdom 3s ease-in-out infinite;
     box-shadow: 0 0 6px var(--cyan);
   }
 
   .signal-dot-idle {
-    @apply w-2 h-2 rounded-full bg-kingdom-violet-dim;
+    @apply w-2 h-2 bg-kingdom-violet-dim;
   }
 
   .signal-dot-alert {
-    @apply w-2 h-2 rounded-full bg-kingdom-pink;
+    @apply w-2 h-2 bg-kingdom-pink;
     animation: pulse_kingdom 1s ease-in-out infinite;
     box-shadow: 0 0 6px var(--pink);
   }
 
   /* Kingdom button */
   .btn-kingdom {
-    @apply inline-flex items-center gap-2 px-4 py-2 rounded-kingdom font-mono text-sm;
+    @apply inline-flex items-center gap-2 px-4 py-2 font-mono text-sm;
     @apply bg-kingdom-void-light border border-kingdom-violet/40 text-kingdom-bone;
-    @apply transition-all duration-150;
+    border-radius: 0;
   }
 
   .btn-kingdom:hover {

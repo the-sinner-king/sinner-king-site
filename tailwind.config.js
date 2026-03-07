@@ -46,64 +46,23 @@ module.exports = {
 
       // Keyframes for Kingdom animations
       keyframes: {
-        // Text glitch effect
-        glitch: {
-          '0%, 100%': { transform: 'translate(0)', filter: 'none', opacity: '1' },
-          '10%': { transform: 'translate(-2px, 1px)', filter: 'hue-rotate(90deg)', opacity: '0.9' },
-          '20%': { transform: 'translate(2px, -1px)', filter: 'hue-rotate(-90deg)' },
-          '30%': { transform: 'translate(0)', filter: 'none' },
-          '70%': { transform: 'translate(0)', filter: 'none' },
-          '80%': { transform: 'translate(1px, 2px)', filter: 'hue-rotate(45deg)', opacity: '0.95' },
-          '90%': { transform: 'translate(-1px, -2px)', filter: 'hue-rotate(-45deg)' },
-        },
-        // Slow pulse for "alive" indicators
+        // Slow pulse for "alive" indicators — the only allowed Kingdom animation
         pulse_kingdom: {
           '0%, 100%': { opacity: '1', boxShadow: '0 0 0 0 rgba(112, 0, 255, 0)' },
           '50%': { opacity: '0.7', boxShadow: '0 0 12px 4px rgba(112, 0, 255, 0.4)' },
         },
-        // Signal stream — data flowing left to right
+        // Signal stream — data ticker scrolling left to right
         signal_flow: {
           '0%': { transform: 'translateX(-100%)', opacity: '0' },
           '10%': { opacity: '1' },
           '90%': { opacity: '1' },
           '100%': { transform: 'translateX(100%)', opacity: '0' },
         },
-        // Scan line effect
-        scanline: {
-          '0%': { transform: 'translateY(-100vh)' },
-          '100%': { transform: 'translateY(100vh)' },
-        },
-        // Breathing glow for active elements
-        glow_breathe: {
-          '0%, 100%': { filter: 'brightness(1) saturate(1)' },
-          '50%': { filter: 'brightness(1.2) saturate(1.3)' },
-        },
-        // Cipher — text cycling through characters
-        cipher: {
-          '0%': { opacity: '0.3' },
-          '50%': { opacity: '1' },
-          '100%': { opacity: '0.3' },
-        },
-        // Flicker for unstable elements
-        flicker: {
-          '0%, 100%': { opacity: '1' },
-          '92%': { opacity: '1' },
-          '93%': { opacity: '0.4' },
-          '94%': { opacity: '1' },
-          '96%': { opacity: '0.2' },
-          '97%': { opacity: '1' },
-        },
       },
 
       animation: {
-        glitch: 'glitch 4s infinite',
-        'glitch-fast': 'glitch 1.5s infinite',
         pulse_kingdom: 'pulse_kingdom 3s ease-in-out infinite',
         signal_flow: 'signal_flow 2s linear infinite',
-        scanline: 'scanline 8s linear infinite',
-        glow_breathe: 'glow_breathe 4s ease-in-out infinite',
-        cipher: 'cipher 2s ease-in-out infinite',
-        flicker: 'flicker 5s linear infinite',
       },
 
       // Background patterns

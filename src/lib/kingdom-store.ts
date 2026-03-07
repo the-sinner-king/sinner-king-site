@@ -5,11 +5,8 @@
  *
  * Zustand store — single source of truth for the Kingdom's live state.
  *
- * Two sync strategies available:
- *   usePartyKitSync — PRIMARY. WebSocket push from PartyKit (sub-400ms latency).
- *                     Falls back to 30s REST poll when WS is disconnected.
- *   useKingdomSync  — FALLBACK / DEV. Pure REST poll against /api/kingdom-state.
- *                     Kept for debugging. Not called in production.
+ * Sync: usePartyKitSync — WebSocket push from PartyKit (sub-400ms latency).
+ *        Falls back to 30s REST poll when WS is disconnected.
  *
  * R3F scene components subscribe to the store. Never setState in render loops.
  *
@@ -231,71 +228,6 @@ export const useKingdomStore = create<KingdomStore>((set, get) => ({
   },
 
 }))
-
-// --- Polling hook ---
-// @deprecated — replaced by useKingdomLive() in kingdom-live-context.tsx
-// Kept as debug fallback. Verify useKingdomLive() stable for 2+ sessions before removing.
-// TODO: remove after 2026-03-10
-export function useKingdomSync(pollInterval = 5000) {
-  const hydrate = useKingdomStore((s) => s.hydrate)
-  const hydrateSignals = useKingdomStore((s) => s.hydrateSignals)
-  const pushDroneSwarm = useKingdomStore((s) => s.pushDroneSwarm)
-
-  useEffect(() => {
-    let cancelled = false
-
-    const poll = async () => {
-      if (cancelled) return
-      try {
-        const res = await fetch('/api/kingdom-state', {
-          cache: 'no-store',
-          headers: { Accept: 'application/json' },
-        })
-        if (res.ok && !cancelled) {
-          const data = await res.json()
-          if (data.state) hydrate(data.state)
-          if (data.stream) hydrateSignals(data.stream)
-
-          // Hydrate drone swarms from active_events
-          if (data.activeEvents?.events?.length) {
-            const store = useKingdomStore.getState()
-            const existingIds = new Set(
-              store.activeDroneSwarms.map((s) => s.id)
-            )
-            for (const event of data.activeEvents.events) {
-              if (!existingIds.has(event.id) && Date.now() < event.expiresAt) {
-                pushDroneSwarm({
-                  id: event.id,
-                  label: event.label,
-                  sourceTerritoryId: event.sourceTerritoryId,
-                  targetTerritoryId: event.targetTerritoryId,
-                  direction: event.direction ?? 'to_territory',
-                  active: true,
-                  startedAt: event.startedAt,
-                })
-              }
-            }
-          }
-        }
-      } catch {
-        // SCRYER offline — silently keep last state
-      }
-    }
-
-    // Immediate first fetch
-    poll()
-
-    // Tab-aware polling — pause when hidden
-    const interval = setInterval(() => {
-      if (!document.hidden) poll()
-    }, pollInterval)
-
-    return () => {
-      cancelled = true
-      clearInterval(interval)
-    }
-  }, [hydrate, hydrateSignals, pushDroneSwarm, pollInterval])
-}
 
 // --- PartyKit sync hook ---
 // Primary sync path. WS push from PartyKit → instant updates.

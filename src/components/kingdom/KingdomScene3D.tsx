@@ -65,6 +65,15 @@ const RING_OPACITY_BASE  = 0.55
 const RING_BREATHE_AMP   = 0.04
 const RING_BREATHE_FREQ  = 0.6    // rad/s — gentle ~10s cycle, like a slow pulse
 
+// REGRESSION GUARD: emissive floor — same philosophy as RING_OPACITY_BASE: territory existing ≠ darkness.
+// Applied to stable/working states only. Offline (cfg.emissiveBase=0.015) is intentionally
+// dark — that state conveys absence. Idle agents (state=online, activity=0) are present,
+// so they hold a faint identity glow.
+// 0.35 confirmed necessary: dark-hued emissives (#7000ff, #9b30ff) disappear at 0.18 in the void
+// scene. Gold (#f0a500) was visible at 0.18 due to color physics (high-luminance), creating false
+// glow differential. 0.35 makes all territory emissives perceptible at idle. S166 root cause.
+const EMISSIVE_FLOOR = 0.35
+
 const BUILDING_STATE_CONFIG: Record<BuildingState, BuildingStateConfig> = {
   offline: {
     emissiveBase:       0.015,
@@ -226,20 +235,30 @@ function TerritoryNode({ territory }: TerritoryNodeProps) {
     if (!meshRef.current) return
 
     const store         = useKingdomStore.getState()
-    const agentState    = store.getAgentState(territory.id)
+    const debugOverride = store.debugOverrides[territory.id]
+    // REGRESSION GUARD: debugOverride must take priority over agentStates for DebugPanel to work.
+    // DebugOverride.status maps: 'active'→'working', 'idle'→'online', 'offline'→'offline'.
+    // Without this, setDebugOverride() writes to a store slice TerritoryNode never reads.
+    const agentState: AgentState = debugOverride
+      ? (debugOverride.status === 'offline' ? 'offline' : debugOverride.status === 'idle' ? 'online' : 'working')
+      : store.getAgentState(territory.id)
     const buildingState = deriveBuildingState(agentState)
     const cfg           = BUILDING_STATE_CONFIG[buildingState]
 
-    // Activity-scaled emissive with state-dependent ceiling.
-    // offline  → cfg.emissiveBase (0.015) — dark, static
-    // stable   → scales to max 0.28 — lets flat-shaded base color (peach/mint) read through
-    // working  → scales to max 1.4  — neon blazes, base color overwhelmed (intentional)
-    //   stable:  online(40)→0.11  reading(70)→0.20  (base color + neon tint visible)
-    //   working: working(80)→1.12  swarming(100)→1.4 (neon dominates)
-    const agentKey         = TERRITORY_TO_AGENT[territory.id]
-    const activity         = agentKey ? (store.agentStates[agentKey]?.activity ?? 0) : 40
+    // Activity-scaled emissive with state-dependent ceiling and floor.
+    // offline  → cfg.emissiveBase (0.015) — dark, static — conveys absence intentionally
+    // stable   → EMISSIVE_FLOOR (0.18) min → scales to 0.50 ceiling at activity=100
+    // working  → EMISSIVE_FLOOR (0.18) min → scales to 1.40 ceiling at activity=100
+    //   stable:  idle(0)→0.18(floor)  online(40)→0.20  reading(70)→0.35
+    //   working: working(80)→1.12  swarming(100)→1.40 (neon dominates)
+    const agentKey  = TERRITORY_TO_AGENT[territory.id]
+    const activity  = debugOverride
+      ? debugOverride.activity
+      : agentKey ? (store.agentStates[agentKey]?.activity ?? 0) : 40
     const emissiveCeiling  = buildingState === 'working' ? 1.4 : 0.50
-    const activityBase     = buildingState === 'offline' ? cfg.emissiveBase : (activity / 100) * emissiveCeiling
+    const activityBase     = buildingState === 'offline'
+      ? cfg.emissiveBase
+      : Math.max(EMISSIVE_FLOOR, (activity / 100) * emissiveCeiling)
 
     // Breathing pulse — modifies shared material (all sub-meshes update)
     const breathe = cfg.breatheAmplitude > 0

@@ -81,6 +81,9 @@ export function SignalPulses() {
   const slotMapRef = useRef<Map<string, number>>(new Map())
   // C2: Free slot queue — pre-filled 0..POOL_SIZE-1, lowest index first
   const freeSlotsRef = useRef<number[]>([])
+  // P2 fix: O(1) pulse lookup replaces O(n) .find() in useFrame inner loop.
+  // Without this, iterating N active slots × .find() across N pulses = O(n²) per frame.
+  const pulseMapRef = useRef<Map<string, PulseInstance>>(new Map())
 
   // Scratch vector — reused every frame, no per-frame allocation
   const scratchPos = useMemo(() => new THREE.Vector3(), [])
@@ -120,6 +123,7 @@ export function SignalPulses() {
       meshPoolRef.current = []
       slotMapRef.current.clear()
       freeSlotsRef.current = []
+      pulseMapRef.current.clear()
     }
   }, [])
 
@@ -132,7 +136,7 @@ export function SignalPulses() {
     // their position within this batch — not across the whole pulsesRef array.
     const newSignals: SignalEvent[] = []
     recentSignalEvents.forEach((event: SignalEvent) => {
-      if (pulsesRef.current.some((p) => p.id === event.id)) return
+      if (pulseMapRef.current.has(event.id)) return  // O(1) check via pulseMapRef
       newSignals.push(event)
     })
 
@@ -169,6 +173,7 @@ export function SignalPulses() {
       }
 
       pulsesRef.current.push(pulse)
+      pulseMapRef.current.set(pulse.id, pulse)  // register for O(1) lookup in useFrame
     })
 
     // Expire pulses — compare Unix ms to Unix ms (same time domain)
@@ -183,6 +188,7 @@ export function SignalPulses() {
         freeSlotsRef.current.sort((a, b) => a - b)
         slotMapRef.current.delete(p.id)
       }
+      pulseMapRef.current.delete(p.id)
     })
     pulsesRef.current = pulsesRef.current.filter((p) => p.expiresAtMs > nowMs)
   }, [recentSignalEvents])
@@ -202,13 +208,14 @@ export function SignalPulses() {
         freeSlotsRef.current.sort((a, b) => a - b)
         slotMapRef.current.delete(p.id)
       }
+      pulseMapRef.current.delete(p.id)
     })
     pulsesRef.current = pulsesRef.current.filter((p) => p.expiresAtMs > nowMs)
 
     // C2: Iterate by stable slot assignment rather than positional array index.
     // A pulse's slot never changes during its lifetime — no teleport on expiry.
     for (const [pulseId, slot] of slotMapRef.current) {
-      const pulse = pulsesRef.current.find((p) => p.id === pulseId)
+      const pulse = pulseMapRef.current.get(pulseId)  // O(1) — was O(n) .find()
       if (!pulse) continue
       if (slot >= meshPoolRef.current.length) continue
 

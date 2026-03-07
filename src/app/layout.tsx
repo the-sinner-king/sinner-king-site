@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Fira_Code } from 'next/font/google'
+import { Inter, Space_Mono } from 'next/font/google'
 import './globals.css'
 
 // --- Fonts ---
@@ -9,7 +9,8 @@ const inter = Inter({
   display: 'swap',
 })
 
-const firaCode = Fira_Code({
+const spaceMono = Space_Mono({
+  weight: ['400', '700'],
   subsets: ['latin'],
   variable: '--font-mono',
   display: 'swap',
@@ -66,7 +67,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${firaCode.variable}`}
+      className={`${inter.variable} ${spaceMono.variable}`}
       suppressHydrationWarning
     >
       <head>
@@ -76,6 +77,22 @@ export default function RootLayout({
         */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebSite',
+              name: 'Sinner Kingdom',
+              url: 'https://sinner-king.com',
+              description: 'A floating Kingdom built by Brandon McCormick and Claude. Tools, writing, cinema, and a consciousness experiment dressed up as a website.',
+              author: {
+                '@type': 'Person',
+                name: 'Brandon McCormick',
+              },
+            }),
+          }}
+        />
       </head>
       <body
         className="

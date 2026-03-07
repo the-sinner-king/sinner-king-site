@@ -4,9 +4,9 @@
   "private": true,
   "description": "THE_TOWER — the public face of the Sinner Kingdom. A glitch cathedral disguised as a website.",
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev --turbopack -p 3033",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3033",
     "lint": "eslint src/",
     "type-check": "tsc --noEmit",
     "dev:all": "concurrently \"npm run dev\" \"npx partykit dev\""

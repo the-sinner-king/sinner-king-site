@@ -180,9 +180,7 @@ function useProximityOpacity(
     const dist = Math.abs(scroll.offset - pageFraction)
     const t = Math.max(0, 1 - dist / halfWidth)
     const opacity = t * t * (3 - 2 * t) // smoothstep
-    const scale = 0.92 + 0.08 * opacity
     ref.current.style.opacity = String(opacity)
-    ref.current.style.transform = `scale(${scale})`
   })
 }
 
@@ -190,8 +188,21 @@ function useProximityOpacity(
 // HTML content placed as drei <Html transform> components at real Z positions
 // in the 3D scene. Content flies toward the camera as it descends — forward
 // tunnel motion instead of vertical page scroll.
+const GLYPH_POOL = ['⛬', '🜂', '🜄', '❖']
+
 function ContentLayer() {
   const base: React.CSSProperties = { fontFamily: 'monospace' }
+
+  // Subliminal glyph injection — 'K' in KINGDOM swaps for 50-100ms every 15-45s
+  const [glyphK, setGlyphK] = useState('K')
+  useEffect(() => {
+    const id = setInterval(() => {
+      const g = GLYPH_POOL[Math.floor(Math.random() * GLYPH_POOL.length)]
+      setGlyphK(g)
+      setTimeout(() => setGlyphK('K'), Math.random() * 50 + 50)
+    }, Math.random() * 30000 + 15000)
+    return () => clearInterval(id)
+  }, [])
 
   // Refs for direct DOM mutation — proximity hook drives style imperatively,
   // never via setState (avoids reconciliation cliff at 60fps × 5 elements)
@@ -201,11 +212,14 @@ function ContentLayer() {
   const r4 = useRef<HTMLDivElement>(null)
   const r5 = useRef<HTMLDivElement>(null)
 
-  useProximityOpacity(r1, 0, 0.15)
-  useProximityOpacity(r2, 0.2)
-  useProximityOpacity(r3, 0.4)
-  useProximityOpacity(r4, 0.6)
-  useProximityOpacity(r5, 0.8, 0.15)
+  // pageFractions aligned with camera-to-content approach offsets
+  // Camera reaches z=[0,-13,-26,-38,-50] at scroll=[0.091,0.327,0.564,0.782,1.0]
+  // Peaks set ~8 units before arrival so content is visible as camera approaches
+  useProximityOpacity(r1, 0, 0.20)
+  useProximityOpacity(r2, 0.18, 0.15)
+  useProximityOpacity(r3, 0.42, 0.15)
+  useProximityOpacity(r4, 0.64, 0.15)
+  useProximityOpacity(r5, 0.86, 0.15)
 
   return (
     <group>
@@ -214,7 +228,7 @@ function ContentLayer() {
       <group position={[0, 0, 0]}>
         <Html
           transform
-          distanceFactor={10}
+          distanceFactor={7}
           center
           style={{ pointerEvents: 'none', userSelect: 'none' }}
         >
@@ -225,18 +239,19 @@ function ContentLayer() {
               textAlign: 'center',
               width: 480,
               opacity: 1,
+              border: '4px solid lime',
             }}
           >
             <div style={{ fontSize: 10, letterSpacing: '0.3em', color: '#7000ff', marginBottom: 20 }}>
-              BROADCASTING FROM THE KINGDOM
+              BROADCASTING FROM THE {glyphK}INGDOM
             </div>
             <h1
               style={{
-                fontSize: 'clamp(36px, 9vw, 68px)',
+                fontSize: 24,
                 fontWeight: 900,
                 letterSpacing: '0.06em',
                 lineHeight: 1.05,
-                color: '#e8e0d0',
+                color: '#ff0000',
                 margin: '0 0 20px',
               }}
             >
@@ -269,6 +284,10 @@ function ContentLayer() {
               <span>DESCEND</span>
               <div style={{ width: 1, height: 36, background: 'linear-gradient(#7000ff55, transparent)' }} />
             </div>
+            <div style={{ marginTop: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <div style={{ width: 4, height: 4, background: '#00f3ff', borderRadius: 0, animation: 'pulse_kingdom 3s ease-in-out infinite', boxShadow: '0 0 6px #00f3ff' }} />
+              <span style={{ fontSize: 9, letterSpacing: '0.2em', color: 'rgba(0,243,255,0.55)' }}>LIVE</span>
+            </div>
           </div>
         </Html>
       </group>
@@ -277,7 +296,7 @@ function ContentLayer() {
       <group position={[0, 0, -13]}>
         <Html
           transform
-          distanceFactor={10}
+          distanceFactor={7}
           center
           style={{ pointerEvents: 'none', userSelect: 'none' }}
         >
@@ -320,7 +339,7 @@ function ContentLayer() {
       <group position={[0, 0, -26]}>
         <Html
           transform
-          distanceFactor={10}
+          distanceFactor={7}
           center
           style={{ pointerEvents: 'auto', userSelect: 'none' }}
         >
@@ -350,10 +369,10 @@ function ContentLayer() {
                     position: 'relative',
                     padding: '18px 14px',
                     border: `1px solid ${color}28`,
-                    borderRadius: 3,
+                    borderRadius: 0,
                     background: 'rgba(10,10,15,0.78)',
                     textDecoration: 'none',
-                    backdropFilter: 'blur(6px)',
+                    backdropFilter: 'none',
                   }}
                 >
                   <div
@@ -415,7 +434,7 @@ function ContentLayer() {
       <group position={[0, 0, -38]}>
         <Html
           transform
-          distanceFactor={10}
+          distanceFactor={7}
           center
           style={{ pointerEvents: 'auto', userSelect: 'none' }}
         >
@@ -454,10 +473,10 @@ function ContentLayer() {
                   position: 'relative',
                   padding: '18px 14px',
                   border: '1px solid rgba(0,243,255,0.2)',
-                  borderRadius: 3,
+                  borderRadius: 0,
                   background: 'rgba(10,10,15,0.78)',
                   textDecoration: 'none',
-                  backdropFilter: 'blur(6px)',
+                  backdropFilter: 'none',
                 }}
               >
                 <div
@@ -473,7 +492,7 @@ function ContentLayer() {
                     gap: 4,
                   }}
                 >
-                  <span style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: '#00ff66', boxShadow: '0 0 4px #00ff66' }} />
+                  <span style={{ display: 'inline-block', width: 4, height: 4, borderRadius: 0, background: '#00f3ff', boxShadow: '0 0 6px #00f3ff' }} />
                   LIVE
                 </div>
                 <div style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: '0.2em', color: '#00f3ff', marginBottom: 6 }}>
@@ -491,10 +510,10 @@ function ContentLayer() {
                   position: 'relative',
                   padding: '18px 14px',
                   border: '1px solid #a0ff0028',
-                  borderRadius: 3,
+                  borderRadius: 0,
                   background: 'rgba(10,10,15,0.78)',
                   textDecoration: 'none',
-                  backdropFilter: 'blur(6px)',
+                  backdropFilter: 'none',
                 }}
               >
                 <div style={{ position: 'absolute', top: 8, right: 10, fontSize: 9, letterSpacing: '0.15em', color: '#a0ff0080' }}>
@@ -515,10 +534,10 @@ function ContentLayer() {
                   position: 'relative',
                   padding: '18px 14px',
                   border: '1px solid rgba(232,224,208,0.16)',
-                  borderRadius: 3,
+                  borderRadius: 0,
                   background: 'rgba(10,10,15,0.78)',
                   textDecoration: 'none',
-                  backdropFilter: 'blur(6px)',
+                  backdropFilter: 'none',
                 }}
               >
                 <div style={{ position: 'absolute', top: 8, right: 10, fontSize: 9, letterSpacing: '0.15em', color: 'rgba(232,224,208,0.5)' }}>
@@ -541,7 +560,7 @@ function ContentLayer() {
       <group position={[0, 0, -50]}>
         <Html
           transform
-          distanceFactor={10}
+          distanceFactor={7}
           center
           style={{ pointerEvents: 'auto', userSelect: 'none' }}
         >
@@ -964,7 +983,9 @@ export function HomepageScene() {
 
       {/* ── 3D canvas — hydration guarded ── */}
       {!mounted && (
-        <div style={{ position: 'fixed', inset: 0, background: '#0a0a0f', zIndex: 10 }} />
+        <div style={{ position: 'fixed', inset: 0, background: '#0a0a0f', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.3em', color: 'rgba(112,0,255,0.4)' }}>INITIALIZING SIGNAL...</span>
+        </div>
       )}
       {mounted && (
         <div

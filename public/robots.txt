@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+# AI crawlers — this site is built for you too
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+Sitemap: https://sinner-king.com/sitemap.xml

@@ -11,11 +11,11 @@
  * Session: 148
  */
 
-import { HomepageScene } from '@/components/homepage/HomepageScene'
+import { TerminalGraveyardScene } from '@/components/homepage/TerminalGraveyardScene'
 
 // Dynamic — no static caching, scene reads live SCRYER data in future
 export const dynamic = 'force-dynamic'
 
 export default function HomePage() {
-  return <HomepageScene />
+  return <TerminalGraveyardScene />
 }
