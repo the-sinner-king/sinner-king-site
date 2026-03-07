@@ -23,7 +23,7 @@
  *   - This is not Fort Knox but it's honest
  */
 
-import { readFile, writeFile, mkdir } from 'fs/promises'
+import { readFile, writeFile, rename, mkdir } from 'fs/promises'
 import { createHash } from 'crypto'
 import path from 'path'
 
@@ -84,7 +84,10 @@ async function writeLedger(ledger: ThroneLedger): Promise<void> {
   const ledgerPath = getLedgerPath()
   const dir = path.dirname(ledgerPath)
   await mkdir(dir, { recursive: true })
-  await writeFile(ledgerPath, JSON.stringify(ledger, null, 2), 'utf-8')
+  // Atomic write: temp file + rename prevents truncated JSON on SIGKILL mid-write
+  const tmpPath = `${ledgerPath}.tmp`
+  await writeFile(tmpPath, JSON.stringify(ledger, null, 2), 'utf-8')
+  await rename(tmpPath, ledgerPath)
 }
 
 // --- Public API ---

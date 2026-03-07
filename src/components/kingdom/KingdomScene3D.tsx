@@ -58,6 +58,18 @@ interface BuildingStateConfig {
   stateLabelColor: string
 }
 
+// Per-territory flat-shaded base colors — module scope so they aren't re-allocated on every
+// TerritoryNode render. Bright enough to read through the warm-white directional fill.
+// Neon emissive stays territory.color (separate channel).
+const TERRITORY_BASE_COLORS: Record<string, string> = {
+  claude_house: '#BB88FF',  // bright lavender   → warm rose-pink under orange fill
+  the_throne:   '#FF88CC',  // hot pink          → warm coral under orange fill
+  the_forge:    '#FFD966',  // warm gold          → stays gold — loves orange light
+  the_tower:    '#88AAFF',  // periwinkle         → soft lilac under orange fill
+  the_scryer:   '#44EECC',  // cyan-teal          → warm teal-white under orange fill
+  core_lore:    '#FFEECC',  // warm ivory         → bright cream — sacred/warm
+}
+
 // Ring constants — decoupled from agent state.
 // Ring = "this territory exists" (always true). Emissive/label = current activity.
 // All 6 territories show the same idle ring. Selected ring elevated to mark selection.
@@ -156,11 +168,13 @@ interface TerritoryNodeProps {
 
 function TerritoryNode({ territory }: TerritoryNodeProps) {
   // floatGroupRef animates Y — all children float together (fixes Y double-count bug)
-  const floatGroupRef = useRef<THREE.Group>(null)
-  const meshRef       = useRef<THREE.Mesh>(null)    // main shape — used for material access
-  const ringRef       = useRef<THREE.Mesh>(null)
-  const lightRef      = useRef<THREE.PointLight>(null)
-  const labelRef      = useRef<HTMLDivElement>(null)
+  const floatGroupRef    = useRef<THREE.Group>(null)
+  const meshRef          = useRef<THREE.Mesh>(null)    // main shape — used for material access
+  const ringRef          = useRef<THREE.Mesh>(null)
+  const lightRef         = useRef<THREE.PointLight>(null)
+  const labelRef         = useRef<HTMLDivElement>(null)
+  const labelColorRef    = useRef<string>('')          // change-track: skip DOM write when unchanged
+  const labelBorderRef   = useRef<string>('')          // change-track: skip DOM write when unchanged
 
   // Derived selector — only re-renders THIS node when ITS selection state changes.
   // Without this, all 6 nodes re-render on every click (they all subscribed to selectedId).
@@ -172,15 +186,9 @@ function TerritoryNode({ territory }: TerritoryNodeProps) {
   // Shared material — one instance, all sub-meshes (forge pair, tower balls) reference it.
   // Patch 4: flat-shaded low-poly look. Per-territory base colors, bright enough to read
   // through the orange directional light. Neon emissive stays territory.color.
-  const BASE_COLORS: Record<string, string> = {
-    claude_house: '#BB88FF',  // bright lavender   → warm rose-pink under orange fill
-    the_throne:   '#FF88CC',  // hot pink          → warm coral under orange fill
-    the_forge:    '#FFD966',  // warm gold          → stays gold — loves orange light
-    the_tower:    '#88AAFF',  // periwinkle         → soft lilac under orange fill
-    the_scryer:   '#44EECC',  // cyan-teal          → warm teal-white under orange fill
-    core_lore:    '#FFEECC',  // warm ivory         → bright cream — sacred/warm
-  }
-  const baseColor = useMemo(() => BASE_COLORS[territory.id] ?? '#CCBBFF', [territory.id])
+  // PERF: BASE_COLORS hoisted to module scope — was re-allocated as a new object literal
+  // on every render for all 6 TerritoryNode instances.
+  const baseColor = useMemo(() => TERRITORY_BASE_COLORS[territory.id] ?? '#CCBBFF', [territory.id])
 
   const material = useMemo(() => new THREE.MeshStandardMaterial({
     color:             baseColor,
@@ -316,17 +324,26 @@ function TerritoryNode({ territory }: TerritoryNodeProps) {
       lightRef.current.intensity = targetIntensity * cfg.lightIntensityMul
     }
 
-    // Label color — direct DOM update, no re-render
+    // Label color — direct DOM update, change-tracked to eliminate 6 string allocs/frame at rest
+    // FIX (S167 audit): previously wrote to style on every frame regardless of state change.
     if (labelRef.current) {
       const labelColor = buildingState === 'offline'
         ? '#2a1830'
         : buildingState === 'stable'
         ? '#8a7090'
         : territory.color
-      labelRef.current.style.color = isSelected ? territory.color : labelColor
-      labelRef.current.style.borderColor = isSelected
+      const nextColor  = isSelected ? territory.color : labelColor
+      const nextBorder = isSelected
         ? `${territory.color}40`
         : buildingState === 'offline' ? 'transparent' : `${territory.color}20`
+      if (nextColor !== labelColorRef.current) {
+        labelRef.current.style.color = nextColor
+        labelColorRef.current = nextColor
+      }
+      if (nextBorder !== labelBorderRef.current) {
+        labelRef.current.style.borderColor = nextBorder
+        labelBorderRef.current = nextBorder
+      }
     }
   })
 
@@ -894,7 +911,6 @@ function SceneContents() {
 function TerritoryDetailPanel() {
   const selectedId = useKingdomStore((s) => s.selectedId)
   const selectTerritory = useKingdomStore((s) => s.selectTerritory)
-  const territories = useKingdomStore((s) => s.territories)
   const currentActivity = useKingdomStore((s) => s.currentActivity)
   const activeProject = useKingdomStore((s) => s.activeProject)
   // Reactive building state — derived directly from subscribed store slices so the STATE
@@ -917,11 +933,11 @@ function TerritoryDetailPanel() {
       : 'online'
     return deriveBuildingState(agentState)
   })
+  const liveData = useKingdomStore((s) => selectedId ? s.territoryMap.get(selectedId) : undefined)
 
   if (!selectedId) return null
 
   const layout = TERRITORY_MAP[selectedId]
-  const liveData = territories.find((t) => t.id === selectedId)
 
   if (!layout) return null
 
@@ -1055,9 +1071,7 @@ function StatusBar() {
   const claudeActive = useKingdomStore((s) => s.claudeActive)
   const aerisActive = useKingdomStore((s) => s.aerisActive)
   const brandonPresent = useKingdomStore((s) => s.brandonPresent)
-  const territories = useKingdomStore((s) => s.territories)
-
-  const activeCount = territories.filter((t) => t.status === 'active').length
+  const activeCount = useKingdomStore((s) => s.territories.filter((t) => t.status === 'active').length)
 
   return (
     <div

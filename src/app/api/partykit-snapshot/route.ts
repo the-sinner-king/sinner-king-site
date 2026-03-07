@@ -22,12 +22,17 @@ export async function GET() {
   const protocol = PARTYKIT_HOST.startsWith('localhost') ? 'http' : 'https'
   const url = `${protocol}://${PARTYKIT_HOST}/parties/main/${PARTYKIT_ROOM}`
 
+  const controller = new AbortController()
+  const timeoutId  = setTimeout(() => controller.abort(), 8000)
+
   try {
     const res = await fetch(url, {
       method:  'GET',
       headers: { 'x-kingdom-secret': PUSH_SECRET },
       next:    { revalidate: 0 },
+      signal:  controller.signal,
     })
+    clearTimeout(timeoutId)
 
     if (!res.ok) {
       return NextResponse.json({ error: 'PartyKit unreachable', status: res.status }, { status: 502 })
@@ -58,6 +63,7 @@ export async function GET() {
       }
     )
   } catch (err) {
+    clearTimeout(timeoutId)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

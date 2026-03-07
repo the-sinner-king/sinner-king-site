@@ -108,6 +108,15 @@ export async function POST(request: NextRequest) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
       }
 
+      // Hard wall-clock timeout — close the stream if Anthropic doesn't complete in 45s
+      let streamDone = false
+      const timeoutId = setTimeout(() => {
+        if (!streamDone) {
+          sendEvent({ type: 'error', message: 'Æris fell silent. Try again.' })
+          controller.close()
+        }
+      }, 45_000)
+
       try {
         const aerisStream = await streamAerisResponse({
           messages: messages.map((m) => ({
@@ -132,6 +141,8 @@ export async function POST(request: NextRequest) {
           detail: process.env.NODE_ENV === 'development' ? message : undefined,
         })
       } finally {
+        streamDone = true
+        clearTimeout(timeoutId)
         controller.close()
       }
     },

@@ -28,6 +28,12 @@ async function handleRequest(
 ): Promise<Response> {
   const { path } = await params
   const segments = path ?? []
+
+  // SECURITY: reject path traversal attempts before proxying to localhost:2701
+  if (segments.some((seg) => seg === '..' || seg === '.' || seg.includes('\0'))) {
+    return NextResponse.json({ error: 'Invalid path' }, { status: 400 })
+  }
+
   const targetPath = segments.join('/')
 
   // Forward query params

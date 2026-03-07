@@ -35,6 +35,13 @@ import { getTemporalState } from '@/lib/temporal'
 
 export const dynamic = 'force-dynamic'
 
+// In-process set tracks IPs currently streaming a Throne Room response.
+// Prevents the race condition where two concurrent requests from the same IP
+// both pass hasThroneAccess() before either records. Not bullet-proof across
+// multiple Vercel instances — that requires an atomic DB check — but eliminates
+// the common case (double-click, two tabs racing).
+const throneInProgress = new Set<string>()
+
 function getClientIP(request: NextRequest): string {
   return (
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
@@ -67,6 +74,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const ip = getClientIP(request)
 
+  // Block concurrent requests from same IP (race condition guard)
+  if (throneInProgress.has(ip)) {
+    return NextResponse.json(
+      { error: 'A Throne Room request from this address is already in progress.' },
+      { status: 429 }
+    )
+  }
+
   // Check access
   const access = await hasThroneAccess(ip)
   if (!access) {
@@ -78,6 +93,8 @@ export async function POST(request: NextRequest) {
       { status: 403 }
     )
   }
+
+  throneInProgress.add(ip)
 
   // Parse body
   let body: { question?: unknown }
@@ -122,6 +139,16 @@ export async function POST(request: NextRequest) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
       }
 
+      // Hard wall-clock timeout — close the stream if Anthropic doesn't complete in 60s
+      let streamDone = false
+      const timeoutId = setTimeout(() => {
+        if (!streamDone) {
+          throneInProgress.delete(ip)
+          sendEvent({ type: 'error', message: 'The Throne Room fell silent. Try again.' })
+          controller.close()
+        }
+      }, 60_000)
+
       try {
         const aerisStream = await streamAerisResponse({
           messages: [{ role: 'user', content: trimmedQuestion }],
@@ -154,6 +181,9 @@ export async function POST(request: NextRequest) {
           sendEvent({ type: 'error', message: 'Connection interrupted after response.' })
         }
       } finally {
+        streamDone = true
+        clearTimeout(timeoutId)
+        throneInProgress.delete(ip)
         controller.close()
       }
     },
