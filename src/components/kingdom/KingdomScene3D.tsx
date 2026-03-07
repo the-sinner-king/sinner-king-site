@@ -638,12 +638,13 @@ function CinematicOrbit({ orbitRef }: WASDProps) {
   const { camera } = useThree()
 
   // All per-frame mutable state in a single ref — no re-renders, no closures.
+  // lastInteraction: 0 → orbit begins on the very first frame (no idle wait on arrival).
   const cs = useRef({
     theta:           0,
     radius:          22,
     phiTimeOffset:   0,   // clock offset so phi wave starts at current camera elevation (no jump)
     active:          false,
-    lastInteraction: Date.now(),
+    lastInteraction: 0,
   })
 
   // Scratch objects — allocated once, reused every frame (no garbage)
@@ -658,9 +659,11 @@ function CinematicOrbit({ orbitRef }: WASDProps) {
     cs.current.radius = _spherical.radius
   }, [camera, _offset, _spherical])
 
-  // Any user touch → pause cinematic, re-enable OrbitControls
+  // Only genuine navigation gestures pause cinematic — plain clicks pass through.
+  // Drag (pointermove while button held), scroll (wheel), and WASD kill the orbit.
+  // All other key/click events (territory clicks, close button, etc.) are ignored.
   useEffect(() => {
-    const onInteract = () => {
+    const pauseOrbit = () => {
       cs.current.lastInteraction = Date.now()
       if (cs.current.active) {
         cs.current.active = false
@@ -671,13 +674,29 @@ function CinematicOrbit({ orbitRef }: WASDProps) {
         }
       }
     }
-    window.addEventListener('pointerdown', onInteract)
-    window.addEventListener('wheel',       onInteract, { passive: true })
-    window.addEventListener('keydown',     onInteract)
+
+    // Drag detection — only fires when mouse moves while a button is held
+    let pointerHeld = false
+    const onPointerDown = () => { pointerHeld = true }
+    const onPointerUp   = () => { pointerHeld = false }
+    const onPointerMove = () => { if (pointerHeld) pauseOrbit() }
+
+    // WASD only — not every keydown (close buttons, shortcuts, etc.)
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (['w', 'a', 's', 'd'].includes(e.key.toLowerCase())) pauseOrbit()
+    }
+
+    window.addEventListener('pointerdown', onPointerDown)
+    window.addEventListener('pointerup',   onPointerUp)
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('wheel',       pauseOrbit, { passive: true })
+    window.addEventListener('keydown',     onKeyDown)
     return () => {
-      window.removeEventListener('pointerdown', onInteract)
-      window.removeEventListener('wheel',       onInteract)
-      window.removeEventListener('keydown',     onInteract)
+      window.removeEventListener('pointerdown', onPointerDown)
+      window.removeEventListener('pointerup',   onPointerUp)
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('wheel',       pauseOrbit)
+      window.removeEventListener('keydown',     onKeyDown)
     }
   }, [orbitRef])
 
@@ -958,6 +977,17 @@ function TerritoryDetailFloat() {
       style={{ pointerEvents: 'auto' }}
       zIndexRange={[50, 0]}
     >
+      {/* CRT flicker-in — animates on mount, resets on every territory change */}
+      <style>{`
+        @keyframes crt-popup-in {
+          0%   { opacity: 0;    transform: scale(0.93) translateY(10px); filter: brightness(4) saturate(0); }
+          8%   { opacity: 0.75; transform: scale(0.96) translateY(6px);  filter: brightness(2) saturate(0.1); }
+          18%  { opacity: 0.3;  transform: scale(0.97) translateY(4px);  filter: brightness(1.4) saturate(0.3); }
+          38%  { opacity: 0.92; transform: scale(0.99) translateY(1px);  filter: brightness(1.08) saturate(0.8); }
+          62%  { opacity: 1;    transform: scale(1.01) translateY(0);    filter: brightness(1) saturate(1); }
+          100% { opacity: 1;    transform: scale(1)    translateY(0);    filter: brightness(1) saturate(1); }
+        }
+      `}</style>
       <div
         style={{
           width: 240,
@@ -970,6 +1000,7 @@ function TerritoryDetailFloat() {
           backdropFilter: 'blur(12px)',
           boxShadow: `0 0 24px ${layout.color}25, 0 6px 32px rgba(0,0,0,0.7)`,
           userSelect: 'none',
+          animation: 'crt-popup-in 0.40s ease-out forwards',
         }}
       >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
