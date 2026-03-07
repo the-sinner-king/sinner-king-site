@@ -920,9 +920,136 @@ function SceneContents() {
         maxDistance={40}
       />
 
+      {/* CORE LORE cascade — expanding knowledge rings on agent searching state */}
+      <CoreLoreCascade />
+
       {/* Territory detail popup — floats in 3D space near clicked territory */}
       <TerritoryDetailFloat />
     </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// CORE LORE CASCADE
+//
+// When any agent enters `searching` state, CORE LORE emits expanding ring waves.
+// Knowledge accessed has weight. This animation is unique to CORE LORE — no other
+// territory does this. Identity rings (TerritoryNode) are static. These move.
+//
+// ARCHITECTURE: zero allocation per frame. Pre-allocated pool of WAVE_POOL meshes.
+// useFrame reads agentStates via getState() (no subscription, no re-renders).
+// Rings start at MIN_RADIUS, expand to MAX_RADIUS over WAVE_DURATION seconds,
+// opacity fades out as they reach the edge.
+//
+// REGRESSION GUARD: mesh.scale.set(0,0,0) when inactive — never leave ghost geometry.
+// ---------------------------------------------------------------------------
+
+const CORE_WAVE_POOL     = 4      // simultaneous rings in flight
+const CORE_WAVE_DURATION = 2.8    // seconds to travel full radius
+const CORE_WAVE_INTERVAL = 1.8    // seconds between new waves while searching
+const CORE_RING_MIN_R    = 0.4    // world units — spawn radius
+const CORE_RING_MAX_R    = 5.6    // world units — death radius
+const CORE_RING_TUBE     = 0.025  // torus tube thickness — hairline
+const CORE_RING_SEGS     = 64     // tubular segments — smooth circle
+const CORE_LAYOUT        = TERRITORY_MAP['core_lore']
+const CORE_ANCHOR: [number, number, number] = [
+  CORE_LAYOUT.position[0],
+  getWorldY(CORE_LAYOUT) + 0.06,  // just above terrain surface
+  CORE_LAYOUT.position[2],
+]
+
+interface CascadeWave {
+  active:    boolean
+  startTime: number
+}
+
+function CoreLoreCascade() {
+  const pool     = useRef<CascadeWave[]>(
+    Array.from({ length: CORE_WAVE_POOL }, () => ({ active: false, startTime: 0 }))
+  )
+  const meshRefs = useRef<(THREE.Mesh | null)[]>(
+    Array.from({ length: CORE_WAVE_POOL }, () => null)
+  )
+  const lastSpawn = useRef(0)
+
+  useFrame(({ clock }) => {
+    const now     = clock.elapsedTime
+    const waves   = pool.current
+    const meshes  = meshRefs.current
+
+    // Read current agent states without subscribing (no re-render)
+    const { agentStates } = useKingdomStore.getState()
+    const anySearching    = Object.values(agentStates).some((a) => a?.state === 'searching')
+
+    // Spawn new wave into the first free slot
+    if (anySearching && now - lastSpawn.current >= CORE_WAVE_INTERVAL) {
+      const slot = waves.findIndex((w) => !w.active)
+      if (slot !== -1) {
+        waves[slot].active    = true
+        waves[slot].startTime = now
+        lastSpawn.current     = now
+      }
+    }
+
+    // Animate each ring in the pool
+    for (let i = 0; i < CORE_WAVE_POOL; i++) {
+      const wave = waves[i]
+      const mesh = meshes[i]
+      if (!mesh) continue
+
+      if (!wave.active) {
+        mesh.scale.set(0, 0, 0)
+        continue
+      }
+
+      const p = (now - wave.startTime) / CORE_WAVE_DURATION
+
+      if (p >= 1) {
+        wave.active = false
+        mesh.scale.set(0, 0, 0)
+        continue
+      }
+
+      const radius = CORE_RING_MIN_R + (CORE_RING_MAX_R - CORE_RING_MIN_R) * p
+
+      // Opacity: ramp in fast (first 8%), hold, ease out slowly (last 40%)
+      let opacity: number
+      if (p < 0.08) {
+        opacity = p / 0.08
+      } else if (p > 0.60) {
+        opacity = 1 - (p - 0.60) / 0.40
+      } else {
+        opacity = 1
+      }
+      opacity *= 0.55  // max opacity — present but not overpowering
+
+      // Flat ring on XZ plane — scale X and Z, keep Y=1 (geometry is in XY plane, rotated)
+      mesh.scale.set(radius, radius, 1)
+      ;(mesh.material as THREE.MeshStandardMaterial).opacity = opacity
+    }
+  })
+
+  return (
+    <group position={CORE_ANCHOR}>
+      {Array.from({ length: CORE_WAVE_POOL }, (_, i) => (
+        <mesh
+          key={i}
+          ref={(el) => { meshRefs.current[i] = el }}
+          rotation={[Math.PI / 2, 0, 0]}
+          scale={[0, 0, 0]}
+        >
+          <torusGeometry args={[1, CORE_RING_TUBE, 3, CORE_RING_SEGS]} />
+          <meshStandardMaterial
+            color={CORE_LAYOUT.color}
+            emissive={CORE_LAYOUT.color}
+            emissiveIntensity={2.2}
+            transparent
+            opacity={0}
+            depthWrite={false}
+          />
+        </mesh>
+      ))}
+    </group>
   )
 }
 

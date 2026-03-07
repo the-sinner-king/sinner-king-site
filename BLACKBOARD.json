@@ -1,40 +1,40 @@
 {
   "flavor": "CODING",
-  "flavor_locked_at": "2026-03-07T10:00:00Z",
-  "operation": "Radio skinny + visualizer glow + popup floats near territory in 3D",
-  "started_at": "2026-03-07T10:00:00Z",
+  "flavor_locked_at": "2026-03-07T16:00:00Z",
+  "operation": "CORE LORE cascade pulse — expanding ring waves on searching state",
+  "started_at": "2026-03-07T16:00:00Z",
   "promise": "COMPLETE",
   "blocker": null,
   "learnings": [
-    "drei <Html> must live inside SceneContents (inside R3F Canvas) — DOM overlays section is outside the canvas boundary",
-    "TerritoryDetailFloat uses position=[px, 5, pz] — y=5 clears tallest buildings on all islands",
-    "Canvas 2D shadowBlur must be reset to 0 after draw loop or it bleeds into clearRect next frame",
-    "autoPlay one-shot guard: hasAutoplayed=useRef(false) prevents re-trigger when audioReady resets on track change"
+    "For horizontal rings: rotation=[Pi/2,0,0] + scale.set(r,r,1) expands correctly in world XZ plane. Local X→World X, Local Y→World -Z after rotation.",
+    "depthWrite:false is critical for overlapping transparent rings — prevents z-fighting artifacts.",
+    "useKingdomStore.getState() inside useFrame: correct pattern for reading store without subscription. No re-renders, just current value per frame.",
+    "Pre-allocated mesh pool + wave state refs = zero GC pressure. Inactive meshes scale to 0 (invisible, not unmounted)."
   ],
   "agent_log": [
-    "2026-03-07T10:00:00Z — BLACKBOARD initialized. 3 tasks, one at a time.",
-    "2026-03-07 — TASK 1 DONE: CANVAS_W 400→260, CANVAS_H 100→72, COL_COUNT 52→34",
-    "2026-03-07 — TASK 2 DONE: per-column ctx.shadowColor=color, ctx.shadowBlur=7, reset after loop",
-    "2026-03-07 — TASK 3 DONE: TerritoryDetailFloat as drei <Html> at [px,5,pz], wired into SceneContents"
+    "2026-03-07T16:00:00Z — BLACKBOARD initialized.",
+    "2026-03-07T16:05:00Z — CoreLoreCascade written + wired into SceneContents.",
+    "2026-03-07T16:06:00Z — TypeScript: 0 errors.",
+    "2026-03-07T16:07:00Z — Art Gate: PASS."
   ],
   "steps_completed": [
-    "Radio skinny: CANVAS_W/H/COL_COUNT reduced",
-    "Visualizer glow: canvas shadowColor + shadowBlur per column",
-    "Float popup: TerritoryDetailFloat as drei <Html> inside SceneContents",
-    "TypeScript: 0 errors"
+    "CoreLoreCascade component written (pool of 4 waves, useFrame-driven, zero allocation)",
+    "Wired into SceneContents before TerritoryDetailFloat",
+    "TypeScript 0 errors"
   ],
   "mistakes": [],
   "active_work": null,
   "priorities": [],
   "acceptance_criteria_status": {
-    "radio_compact": "DONE",
-    "visualizer_glow": "DONE",
-    "popup_floats_near_territory": "DONE",
+    "waves_on_searching": "DONE",
+    "waves_stop_when_not_searching": "DONE",
+    "pool_zero_allocation": "DONE",
+    "visually_distinct_from_identity_rings": "DONE",
     "typescript_zero_errors": "DONE"
   },
   "test_status": "PASS",
   "ghost_nodes": [],
-  "art_gate_result": "PASS",
-  "architectural_plaque": null,
+  "art_gate_result": "PASS — knowledge radiating outward. Hairline rings at emissiveIntensity 2.2 blaze under bloom then fade at horizon. Different from every other territory.",
+  "architectural_plaque": "CoreLoreCascade: pre-allocated pool of 4 wave entries + mesh refs. useFrame reads agentStates via getState(). Rotation [Pi/2,0,0] + scale.set(r,r,1) = horizontal XZ plane expansion. depthWrite false prevents overlap artifacts.",
   "prd_reference": null
 }
