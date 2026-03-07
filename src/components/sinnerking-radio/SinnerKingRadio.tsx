@@ -259,15 +259,27 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
     return () => audio.removeEventListener('ended', onEnded)
   }, [nextTrack])
 
-  // Autoplay — ONE SHOT: attempt on first canplaythrough; browser may block.
-  // If blocked: player stays paused, user clicks play manually. Silent fail is correct.
-  // hasAutoplayed ref prevents this from re-triggering on every subsequent track change.
+  // Autoplay — deferred on browser block.
+  // Attempt immediately on canplaythrough. If browser rejects (no prior gesture),
+  // attach a one-time document listener — plays the moment the user first touches
+  // the page (click, scroll, key). Feels intentional: Kingdom starts transmitting
+  // on first contact. hasAutoplayed prevents re-trigger on track changes.
   const hasAutoplayed = useRef(false)
   useEffect(() => {
     if (!autoPlay || !audioReady || hasAutoplayed.current) return
     hasAutoplayed.current = true
+
     play().catch(() => {
-      // NotAllowedError: autoplay blocked by browser policy — no action needed
+      // Browser blocked — arm deferred trigger on first user gesture
+      const onFirstGesture = () => {
+        play().catch(() => {})
+        document.removeEventListener('pointerdown', onFirstGesture)
+        document.removeEventListener('keydown',     onFirstGesture)
+        document.removeEventListener('wheel',       onFirstGesture)
+      }
+      document.addEventListener('pointerdown', onFirstGesture, { once: true })
+      document.addEventListener('keydown',     onFirstGesture, { once: true })
+      document.addEventListener('wheel',       onFirstGesture, { once: true })
     })
   }, [autoPlay, audioReady, play])
 
