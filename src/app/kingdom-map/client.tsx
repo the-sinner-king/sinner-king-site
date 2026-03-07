@@ -31,6 +31,7 @@ import { HeraldTicker } from '@/components/kingdom/HeraldTicker'
 import { AgentPanel } from '@/components/kingdom/AgentPanel'
 import { KingdomLiveProvider, useKingdomLive } from '@/lib/kingdom-live-context'
 import { useKingdomStore } from '@/lib/kingdom-store'
+import { SinnerKingRadio } from '@/components/sinnerking-radio/SinnerKingRadio'
 
 // ---------------------------------------------------------------------------
 // WebGL availability check (runs synchronously on client mount)
@@ -258,6 +259,16 @@ export function KingdomMapClient() {
           <ProductionQueueHUD />
           <SwarmLauncher />
           <HeraldTicker />
+          {/* Sinner King Radio — bottom-right, autoplay eternal-rick on load */}
+          <div style={{
+            position:      'absolute',
+            bottom:        16,
+            right:         16,
+            zIndex:        25,
+            pointerEvents: 'auto',
+          }}>
+            <SinnerKingRadio initialTrackId="eternal-rick" autoPlay={true} />
+          </div>
           {/* Boot overlay — fades out 1s after WebGL context is ready */}
           <div style={{
             position:      'absolute',

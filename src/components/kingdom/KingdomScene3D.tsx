@@ -954,7 +954,7 @@ function TerritoryDetailPanel() {
         padding: '16px',
         fontFamily: 'monospace',
         color: '#e8e0d0',
-        zIndex: 20,
+        zIndex: 40,   // must be > HUD stack (zIndex:20 in client.tsx) — same stacking context
         backdropFilter: 'blur(8px)',
       }}
     >

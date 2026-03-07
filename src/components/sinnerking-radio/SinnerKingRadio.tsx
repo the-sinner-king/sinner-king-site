@@ -73,7 +73,14 @@ function fmt(seconds: number): string {
 // Component
 // ---------------------------------------------------------------------------
 
-export function SinnerKingRadio() {
+interface SinnerKingRadioProps {
+  /** If provided, start on this track ID instead of a random one */
+  initialTrackId?: string
+  /** If true, attempt to play on first canplaythrough event (browser may block) */
+  autoPlay?: boolean
+}
+
+export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKingRadioProps) {
   const audioRef    = useRef<HTMLAudioElement>(null)
   const canvasRef   = useRef<HTMLCanvasElement>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
@@ -81,7 +88,12 @@ export function SinnerKingRadio() {
   const ctxRef      = useRef<AudioContext | null>(null)
   const sourceRef   = useRef<MediaElementAudioSourceNode | null>(null)
 
-  const [currentTrack, setCurrentTrack] = useState<RadioTrack>(() => getRandomTrack())
+  const [currentTrack, setCurrentTrack] = useState<RadioTrack>(() => {
+    if (initialTrackId) {
+      return RADIO_TRACKS.find((t) => t.id === initialTrackId) ?? getRandomTrack()
+    }
+    return getRandomTrack()
+  })
   const [isPlaying,    setIsPlaying]    = useState(false)
   const [duration,     setDuration]     = useState(0)
   const [elapsed,      setElapsed]      = useState(0)
@@ -244,6 +256,18 @@ export function SinnerKingRadio() {
     audio.addEventListener('ended', onEnded)
     return () => audio.removeEventListener('ended', onEnded)
   }, [nextTrack])
+
+  // Autoplay — ONE SHOT: attempt on first canplaythrough; browser may block.
+  // If blocked: player stays paused, user clicks play manually. Silent fail is correct.
+  // hasAutoplayed ref prevents this from re-triggering on every subsequent track change.
+  const hasAutoplayed = useRef(false)
+  useEffect(() => {
+    if (!autoPlay || !audioReady || hasAutoplayed.current) return
+    hasAutoplayed.current = true
+    play().catch(() => {
+      // NotAllowedError: autoplay blocked by browser policy — no action needed
+    })
+  }, [autoPlay, audioReady, play])
 
   // Sync time display
   useEffect(() => {
