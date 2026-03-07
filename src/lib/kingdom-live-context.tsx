@@ -134,10 +134,11 @@ const EMPTY_SESSION_WINDOW: SessionWindow = { tokens: 0, cost_usd: 0, session_id
 
 // Shape of liveData stored in PartyKit by kingdom-live-push.sh
 interface PartyKitLiveData {
-  kingdom_live?:  KingdomLiveApiResponse | null
-  agents_status?: AgentsStatusApiResponse | null
-  tokens_live?:   TokensLiveApiResponse | null
-  pushed_at?:     number
+  kingdom_live?:    KingdomLiveApiResponse | null
+  agents_status?:   AgentsStatusApiResponse | null
+  tokens_live?:     TokensLiveApiResponse | null
+  tokens_lifetime?: LifetimeApiResponse | null
+  pushed_at?:       number
 }
 
 interface PartyKitSnapshotResponse {
@@ -206,7 +207,7 @@ export function KingdomLiveProvider({ children }: { children: React.ReactNode })
         const snap = await res.json() as PartyKitSnapshotResponse
         if (!snap.ok || !snap.liveData) return false
 
-        const { kingdom_live, agents_status, tokens_live, pushed_at } = snap.liveData
+        const { kingdom_live, agents_status, tokens_live, tokens_lifetime, pushed_at } = snap.liveData
         if (!kingdom_live && !agents_status) return false
 
         const now    = Date.now()
@@ -214,7 +215,7 @@ export function KingdomLiveProvider({ children }: { children: React.ReactNode })
         const status: KingdomLiveCtx['status'] = age > STALE_THRESHOLD_MS ? 'stale' : 'ok'
 
         const prev    = ctxRef.current.data
-        const merged  = buildMerged(kingdom_live ?? {}, agents_status ?? {}, tokens_live ?? {}, {}, prev)
+        const merged  = buildMerged(kingdom_live ?? {}, agents_status ?? {}, tokens_live ?? {}, tokens_lifetime ?? {}, prev)
 
         if (!cancelled) {
           setCtx({ data: merged, status, lastSuccessAt: now - age, age_ms: age })

@@ -343,6 +343,15 @@ export function usePartyKitSync(fallbackInterval = 30_000) {
         if (data.state) hydrateRef.current(data.state as KingdomState)
         if (data.stream) hydrateSignalsRef.current(data.stream as Parameters<typeof hydrateSignals>[0])
         applyActiveEvents(data)
+        // liveData is embedded by kingdom-live-push.sh — hydrate agent states + mood in real-time.
+        // Without this, agent states only update every 15s via the REST poll fallback.
+        // REGRESSION GUARD: liveData.agents_status.agents must merge (not replace) — partial
+        // pushes must not blank agents absent from this payload.
+        const liveData = data.liveData as Record<string, unknown> | undefined
+        if (liveData?.agents_status) {
+          const agentsPayload = liveData.agents_status as { agents?: Record<string, import('./kingdom-agents').AgentStatus> }
+          if (agentsPayload.agents) useKingdomStore.getState().hydrateAgentStates(agentsPayload.agents)
+        }
       } catch {
         // Malformed push — ignore
       }

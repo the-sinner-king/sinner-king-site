@@ -81,8 +81,17 @@ export function SignalPulses() {
   const slotMapRef = useRef<Map<string, number>>(new Map())
   // C2: Free slot queue — pre-filled 0..POOL_SIZE-1, lowest index first
   const freeSlotsRef = useRef<number[]>([])
-  // P2 fix: O(1) pulse lookup replaces O(n) .find() in useFrame inner loop.
-  // Without this, iterating N active slots × .find() across N pulses = O(n²) per frame.
+  // 🏛️ ARCHAEOLOGICAL RECORD // SignalPulse O(1) Lookup
+  // 🗓️ 2026-03-06 | Session 166 | FIX-D
+  // ISSUE: useFrame inner loop called activePulses.find(p => p.id === pulseId) per mesh slot.
+  //        With POOL_SIZE=20 slots × up to 20 active pulses = 400 comparisons per frame at 60fps
+  //        = 24,000 comparisons/second. Pure O(n²) in the hot render path.
+  //        Also: .some((p) => p.id === event.id) in the spawn gate was the same pattern.
+  // RESOLUTION: pulseMapRef — a Map<string, PulseInstance> kept in sync with activePulses[].
+  //             O(1) .has() for duplicate check. O(1) .get() in useFrame inner loop.
+  //             .set() on spawn, .delete() on expiry (both paths).
+  // LAW: Never use .find()/.some() in useFrame inner loops on unbounded lists.
+  //      Always maintain a companion Map for O(1) hot-path lookups.
   const pulseMapRef = useRef<Map<string, PulseInstance>>(new Map())
 
   // Scratch vector — reused every frame, no per-frame allocation

@@ -191,7 +191,76 @@
 │   - Detail panel STATE label stale (no subscription to agentStates)        │
 │   - UI redesign pass: popups/panels (uiverse.io CSS components → JSX)      │
 │                                                                               │
-│ NEXT: Hardening pass → deploy to Vercel → show other humans.                │
+│ ◉ DEPLOYED (2026-03-04, Session 163): git cf9dc17 pushed → Vercel live       │
+│   the-sinner-king-site.vercel.app/kingdom-map — showing friends now         │
+│                                                                               │
+│ ◉ BUILT (2026-03-04, Session 163): SinnerKing Radio                         │
+│   src/components/sinnerking-radio/ — NOT live yet                            │
+│   Needs: 8 MP3s in public/audio/ (Brandon sources via Suno.ai tonight)      │
+│   Prompts ready in radio-tracks.ts. Drop <SinnerKingRadio /> to activate.   │
+│                                                                               │
+│ ◉ FIXED (2026-03-04, Session 164): TokenHUD mood row killed                  │
+│   PROUD_FAMILIAL mood strip removed (user: "kill it, keep it clean")         │
+│   VoltageBar component removed (now unused). Token feed: TODAY/WEEK/         │
+│   CHRONICLE/RATE only. Clean.                                                 │
+│                                                                               │
+│ ◉ FIXED (2026-03-04, Session 164): React 19 border/borderLeft conflict       │
+│   TokenHUD mixed border (shorthand) + borderLeft (longhand) on same element  │
+│   → React 19 DOM reconciliation fires "conflicting property" on every render │
+│   Fix: expanded border → borderTop/Right/Bottom, kept borderLeft explicit.   │
+│   REGRESSION GUARD comment in TokenHUD.tsx.                                  │
+│                                                                               │
+│ ◉ FIXED (2026-03-04, Session 164): EMISSIVE_FLOOR — idle buildings no longer │
+│   go dark. activityBase = max(EMISSIVE_FLOOR=0.18, activity/100 × ceiling)   │
+│   Applies to non-offline states only. Offline (0.015) still dark.            │
+│   REGRESSION GUARD comment in KingdomScene3D.tsx.                            │
+│                                                                               │
+│ ◉ FIXED (2026-03-06, Session 166): Dark buildings — H2 confirmed              │
+│   Root cause: color physics. Purple (#7000ff, #9b30ff) disappears at          │
+│   EMISSIVE_FLOOR=0.18. Gold (#f0a500) visible at same intensity due to        │
+│   high luminance → false glow differential. EMISSIVE_FLOOR 0.18→0.35.         │
+│   Archaeological plaque placed. REGRESSION GUARD updated.                      │
+│                                                                               │
+│ ◉ FIXED (2026-03-06, Session 166): DebugPanel P0B — had never worked          │
+│   TerritoryNode.useFrame read agentStates directly, bypassed debugOverrides.  │
+│   Fix: check store.debugOverrides[territory.id] first. Archaeological plaque. │
+│                                                                               │
+│ ◉ FIXED (2026-03-06, Session 166): SignalPulse O(n) → O(1)                   │
+│   .find()/.some() in useFrame inner loop → pulseMapRef Map<string, Pulse>.   │
+│   Archaeological plaque placed.                                               │
+│                                                                               │
+│ ◉ FIXED (2026-03-06, Session 166): Debug log removed from KingdomLiveSync    │
+│   client.tsx clean. Stale-state read pattern documented as learning.          │
+│                                                                               │
+│ ◉ FIXED (2026-03-06, Session 166): Port permanently 3033                      │
+│   package.json dev/start scripts updated. Port 3000 = THE_FOUNDRY (Vite).    │
+│                                                                               │
+│ ◉ SHIPPED (2026-03-06, Session 166): Sinner King Radio — /radio               │
+│   4 tracks live: VOID CORONATION, THE ETERNAL RICK x2, KILLNAME               │
+│   ASCII visualizer, copy-prompt button, download button                       │
+│                                                                               │
+│ ◉ SHIPPED (2026-03-06, Session 166): WS real-time agent state hydration       │
+│   ws.onmessage now processes data.liveData.agents_status in real-time.        │
+│   Previously agent states only updated every 15s via REST poll fallback.      │
+│                                                                               │
+│ ◉ FIXED (2026-03-06, Session 166): Detail panel STATE label stale             │
+│   TerritoryDetailPanel now subscribes to agentStates → STATE label updates   │
+│   in real-time. Previously frozen at panel-open time.                         │
+│                                                                               │
+│ ◉ SHIPPED (2026-03-06, Session 166): CHRONICLE flows to production            │
+│   /tokens/lifetime added to push script + PartyKitLiveData interface +        │
+│   tryPartyKitFallback now passes tokens_lifetime to buildMerged.              │
+│                                                                               │
+│ ◉ HARDENED (2026-03-06, Session 166): Push script heredoc injection fixed     │
+│   Shell vars no longer expanded inside Python triple-quoted strings.          │
+│   All JSON written to temp files, Python reads with json.load(open(...)).     │
+│                                                                               │
+│ ◉ FIXED (2026-03-06, Session 166): claude_house_activity.json path bug       │
+│   cwd field split at space in "Claude's House". Fixed via tab delimiter       │
+│   in claude-house-state.sh + IFS=$'\t' read pattern.                         │
+│                                                                               │
+│ NEXT: UI redesign (Brandon has designs) → GoDaddy DNS → Blog first post      │
+│   PENDING (Brandon): CORE_LORE + THE_SITE_GRIMOIRE reindex (maker.html)      │
 └───────────────────────────────────────────────────────────────────────────────┘
 
 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░░░░░░░░░░░░░░░░░

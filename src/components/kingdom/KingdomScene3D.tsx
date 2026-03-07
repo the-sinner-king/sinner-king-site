@@ -65,13 +65,25 @@ const RING_OPACITY_BASE  = 0.55
 const RING_BREATHE_AMP   = 0.04
 const RING_BREATHE_FREQ  = 0.6    // rad/s — gentle ~10s cycle, like a slow pulse
 
+// 🏛️ ARCHAEOLOGICAL RECORD // EMISSIVE_FLOOR Color Physics
+// 🗓️ 2026-03-06 | Session 166 | FIX-B
+// ISSUE: The Forge appeared to glow while Claude's House and The Tower looked dark.
+//        Hypothesis H2 confirmed: this is color physics, not data pipeline failure.
+//        Three.js MeshStandardMaterial emissive at intensity 0.18 behaves differently
+//        per hue: Gold (#f0a500) has high luminance (R=240, G=165, B=0) — visible even
+//        at low intensity. Purple (#7000ff, #9b30ff) has low perceived luminance — below
+//        ~0.30 intensity it disappears into the void scene's dark background.
+//        Result: Forge (gold, activity=85) blazed. Tower (purple, activity=40) was
+//        invisible. Created a false "Forge is special" effect.
+// RESOLUTION: Raised EMISSIVE_FLOOR from 0.18 to 0.35. All territory emissives now
+//             perceptible at idle regardless of hue.
+// LAW: When adding a new territory color, verify it's visible at EMISSIVE_FLOOR in the
+//      void scene (#03000A bg). Low-luminance hues (purple, navy, deep red) are at risk.
+//
 // REGRESSION GUARD: emissive floor — same philosophy as RING_OPACITY_BASE: territory existing ≠ darkness.
 // Applied to stable/working states only. Offline (cfg.emissiveBase=0.015) is intentionally
 // dark — that state conveys absence. Idle agents (state=online, activity=0) are present,
 // so they hold a faint identity glow.
-// 0.35 confirmed necessary: dark-hued emissives (#7000ff, #9b30ff) disappear at 0.18 in the void
-// scene. Gold (#f0a500) was visible at 0.18 due to color physics (high-luminance), creating false
-// glow differential. 0.35 makes all territory emissives perceptible at idle. S166 root cause.
 const EMISSIVE_FLOOR = 0.35
 
 const BUILDING_STATE_CONFIG: Record<BuildingState, BuildingStateConfig> = {
@@ -234,6 +246,17 @@ function TerritoryNode({ territory }: TerritoryNodeProps) {
 
     if (!meshRef.current) return
 
+    // 🏛️ ARCHAEOLOGICAL RECORD // DebugPanel Override Gate
+    // 🗓️ 2026-03-06 | Session 166 | FIX-A
+    // ISSUE: DebugPanel called setDebugOverride(id, override) but buildings never responded.
+    //        This useFrame block read store.agentStates directly — debugOverrides slice was
+    //        written but never consulted. DebugPanel had never worked from the first day it
+    //        was built.
+    // RESOLUTION: Check store.debugOverrides[territory.id] first. Override takes priority
+    //             with explicit status→AgentState mapping. Without override, fall back to
+    //             getAgentState() (normal live path).
+    // LAW: Any code path that drives building visual state MUST read debugOverrides first.
+    //      getAgentState() alone is insufficient — it has no knowledge of the debug layer.
     const store         = useKingdomStore.getState()
     const debugOverride = store.debugOverrides[territory.id]
     // REGRESSION GUARD: debugOverride must take priority over agentStates for DebugPanel to work.
@@ -874,6 +897,26 @@ function TerritoryDetailPanel() {
   const territories = useKingdomStore((s) => s.territories)
   const currentActivity = useKingdomStore((s) => s.currentActivity)
   const activeProject = useKingdomStore((s) => s.activeProject)
+  // Reactive building state — derived directly from subscribed store slices so the STATE
+  // label updates in real-time when agentStates or debugOverrides change.
+  // REGRESSION GUARD: do NOT call getState() in render to derive this value — getState()
+  // is a snapshot and won't trigger re-renders. Derive inline from the selector result.
+  // Also respects debugOverrides so DebugPanel overrides show in the detail panel.
+  const detailBuildingState = useKingdomStore((s): BuildingState => {
+    if (!selectedId) return 'stable'
+    const override = s.debugOverrides[selectedId]
+    if (override) {
+      const agentState: AgentState = override.status === 'offline' ? 'offline'
+        : override.status === 'idle' ? 'online'
+        : 'working'
+      return deriveBuildingState(agentState)
+    }
+    const agentKey = TERRITORY_TO_AGENT[selectedId]
+    const agentState: AgentState = agentKey
+      ? ((s.agentStates[agentKey]?.state ?? 'offline') as AgentState)
+      : 'online'
+    return deriveBuildingState(agentState)
+  })
 
   if (!selectedId) return null
 
@@ -927,8 +970,7 @@ function TerritoryDetailPanel() {
       <div style={{ height: 1, background: `${layout.color}20`, margin: '12px 0' }} />
 
       {liveData && (() => {
-        const bState = deriveBuildingState(useKingdomStore.getState().getAgentState(selectedId ?? ''))
-        const bCfg = BUILDING_STATE_CONFIG[bState]
+        const bCfg = BUILDING_STATE_CONFIG[detailBuildingState]
         return (
           <div style={{ fontSize: 11, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1127,9 +1169,19 @@ function DebugPanel() {
         const cfg = BUILDING_STATE_CONFIG[bs]
 
         const cycleNext = () => {
-          // Find which slot we're in (by label match)
+          // REGRESSION GUARD: derive current building state from debugOverride if active,
+          // not from live agentStates. Without this, a second cycle click always reads
+          // live bs (unchanged), computing the same next index — cycle never advances.
           const bsToSlot: Record<BuildingState, number> = { offline: 0, stable: 1, working: 2 }
-          const nextIdx = (bsToSlot[bs] + 1) % STATE_CYCLE.length
+          const currentOverride = debugOverrides[id]
+          const currentBs: BuildingState = currentOverride
+            ? deriveBuildingState(
+                currentOverride.status === 'offline' ? 'offline'
+                  : currentOverride.status === 'idle' ? 'online'
+                  : 'working'
+              )
+            : bs
+          const nextIdx = (bsToSlot[currentBs] + 1) % STATE_CYCLE.length
           setDebugOverride(id, STATE_CYCLE[nextIdx])
         }
 
