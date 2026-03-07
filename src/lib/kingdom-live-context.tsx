@@ -142,8 +142,8 @@ interface PartyKitLiveData {
 }
 
 interface PartyKitSnapshotResponse {
-  ok:       boolean
-  liveData: PartyKitLiveData
+  ok:        boolean
+  liveData?: PartyKitLiveData  // undefined when ok=false (no_livedata)
   cached_at?: number
 }
 

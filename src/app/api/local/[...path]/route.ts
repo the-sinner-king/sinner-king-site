@@ -66,7 +66,7 @@ async function handleRequest(
     // Pass the response through with proxy metadata headers
     const responseHeaders = new Headers(res.headers)
     responseHeaders.set('X-Local-Status', 'ok')
-    responseHeaders.set('X-Local-Proxy-Target', targetUrl)
+    // X-Local-Proxy-Target intentionally omitted — would leak internal URL to browser DevTools
     responseHeaders.set('X-Kingdom-Timestamp', String(Date.now()))
     // Strip hop-by-hop headers
     responseHeaders.delete('connection')

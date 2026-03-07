@@ -316,7 +316,7 @@ export function isWhisperWindow(now: Date = new Date()): boolean {
  * Example: "temporal-whisper" → target with .temporal-whisper { --accent: ... }
  */
 export function getTemporalClass(now: Date = new Date()): string {
-  return `temporal-${getTemporalState(now).phase.replace('_', '-')}`
+  return `temporal-${getTemporalState(now).phase.replaceAll('_', '-')}`
 }
 
 /**

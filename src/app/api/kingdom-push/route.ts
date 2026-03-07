@@ -38,7 +38,15 @@ export async function POST(request: NextRequest) {
 
     if (hasBody) {
       // Prod/remote mode: SCRYER posted the payload directly
+      // Enforce a 512KB cap — a well-formed Kingdom payload is well under 50KB
+      const MAX_BODY_BYTES = 512 * 1024
+      if (contentLength && parseInt(contentLength, 10) > MAX_BODY_BYTES) {
+        return NextResponse.json({ error: 'Payload too large' }, { status: 413 })
+      }
       body = await request.text()
+      if (body.length > MAX_BODY_BYTES) {
+        return NextResponse.json({ error: 'Payload too large' }, { status: 413 })
+      }
       try { JSON.parse(body) } catch {
         return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
       }
