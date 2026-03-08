@@ -21,6 +21,7 @@ import PartySocket from 'partysocket'
 import type { KingdomState, TerritoryState } from './kingdom-state'
 import type { AgentStatus, AgentState, MoodState } from './kingdom-agents'
 import { TERRITORY_TO_AGENT } from './kingdom-agents'
+import { TERRITORY_MAP } from './kingdom-layout'
 
 // Signal TTL — single source of truth, applied at receive time (not creation time)
 const SIGNAL_TTL_MS = 5000
@@ -40,10 +41,13 @@ export interface DroneSwarm {
   label: string
   sourceTerritoryId: string
   targetTerritoryId: string
-  direction: 'to_territory' | 'off_screen'  // off_screen: fly out + return cyan
+  direction: 'to_territory' | 'off_screen' | 'orbit'
+  // orbit: drones circle source territory while agent is working/swarming.
+  // No targetTerritoryId needed for orbit — leave as '' or source id.
+  color?: string  // hex — drone tint. Defaults to territory droneColor if absent.
   active: boolean
   startedAt: number
-  expiresAt: number  // startedAt + 30000
+  expiresAt: number  // startedAt + 30000 (60000 for orbit swarms)
 }
 
 // --- Store ---
@@ -86,7 +90,7 @@ interface KingdomStore {
   hydrateAgentStates: (agents: Record<string, AgentStatus>) => void
   selectTerritory: (id: string | null) => void
   pushSignalEvent: (event: Omit<SignalEvent, 'expiresAt'>) => void
-  pushDroneSwarm: (swarm: Omit<DroneSwarm, 'expiresAt'>) => void
+  pushDroneSwarm: (swarm: Omit<DroneSwarm, 'expiresAt'> & { ttl?: number }) => void
   setDebugOverride: (id: string, override: DebugOverride | null) => void
 
   // Derived helpers (stable refs — safe to use in useFrame)
@@ -202,15 +206,18 @@ export const useKingdomStore = create<KingdomStore>((set, get) => ({
     set({ recentSignalEvents: updated })
   },
 
-  pushDroneSwarm: (swarm: Omit<DroneSwarm, 'expiresAt'>) => {
+  pushDroneSwarm: (swarm: Omit<DroneSwarm, 'expiresAt'> & { ttl?: number }) => {
+    const ttl = swarm.ttl ?? 30_000  // orbit swarms pass 60_000; SCRYER events use default 30s
     const newSwarm: DroneSwarm = {
       ...swarm,
-      expiresAt: swarm.startedAt + 30000,
+      expiresAt: swarm.startedAt + ttl,
     }
 
     const current = get().activeDroneSwarms
-    const pruned = current.filter((s) => Date.now() < s.expiresAt)
-    const updated = [newSwarm, ...pruned].slice(0, 5)
+    const now     = Date.now()
+    // Replace any existing swarm with the same id (handles orbit renewals)
+    const pruned  = current.filter((s) => now < s.expiresAt && s.id !== newSwarm.id)
+    const updated = [newSwarm, ...pruned].slice(0, 10)  // matches DroneSwarm.tsx MAX_SWARMS=10
 
     set({ activeDroneSwarms: updated })
   },
@@ -254,14 +261,18 @@ function applyActiveEvents(data: Record<string, unknown>) {
   for (const event of activeEvents.events) {
     if (!event.id || !event.startedAt || !event.sourceTerritoryId) continue  // guard against malformed SCRYER events
     if (!existingIds.has(event.id) && Date.now() < event.expiresAt) {
+      // Use territory droneColor for SCRYER-driven swarms so they read as belonging
+      // to the source territory rather than generic purple.
+      const srcTerritory = TERRITORY_MAP[event.sourceTerritoryId]
       store.pushDroneSwarm({
-        id: event.id,
-        label: event.label,
+        id:                event.id,
+        label:             event.label,
         sourceTerritoryId: event.sourceTerritoryId,
         targetTerritoryId: event.targetTerritoryId,
-        direction: event.direction ?? 'to_territory',
-        active: true,
-        startedAt: event.startedAt,
+        direction:         event.direction ?? 'to_territory',
+        color:             srcTerritory?.droneColor,
+        active:            true,
+        startedAt:         event.startedAt,
       })
     }
   }

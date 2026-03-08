@@ -23,7 +23,7 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import * as THREE from 'three'
 import { useKingdomStore, usePartyKitSync } from '@/lib/kingdom-store'
 import type { AgentState } from '@/lib/kingdom-agents'
-import { TERRITORY_TO_AGENT } from '@/lib/kingdom-agents'
+import { TERRITORY_TO_AGENT, AGENT_REGISTRY } from '@/lib/kingdom-agents'
 import { DroneSwarms } from './DroneSwarm'
 import { SignalPulses } from './SignalPulse'
 import { TimeStream } from './TimeStream'
@@ -930,6 +930,9 @@ function SceneContents() {
       {/* CORE LORE cascade — expanding knowledge rings on agent searching state */}
       <CoreLoreCascade />
 
+      {/* Swarm orchestrator — monitors agent states, spawns orbit swarms on working/swarming */}
+      <SwarmOrchestrator />
+
       {/* Territory detail popup — floats in 3D space near clicked territory */}
       <TerritoryDetailFloat />
     </>
@@ -1067,6 +1070,80 @@ function CoreLoreCascade() {
       ))}
     </group>
   )
+}
+
+// ---------------------------------------------------------------------------
+// SWARM ORCHESTRATOR
+//
+// Monitors live agent states and spawns orbit swarms client-side — no SCRYER
+// event required. Drones circle a territory while its agent is actively working.
+//
+// State → behavior:
+//   working | writing | running → orbit (loose radius, 8s lap)
+//   swarming                    → orbit (tight radius, faster breathe)
+//   all others                  → no orbit (let existing swarm expire)
+//
+// Architecture (adversarial-reviewed):
+//   - setInterval at 3s polling getState() directly — zero React subscriptions,
+//     zero re-renders. (Subscription to whole agentStates causes render storms
+//     because hydrateAgentStates creates a new object ref on every 15s poll.)
+//   - Fixed IDs per agent: 'orbit_{agentKey}'. On remount, checks activeDroneSwarms
+//     for live swarm before spawning — store IS the authoritative ref.
+//   - Renews if swarm expires within 10s and agent still active.
+//   - SCRYER to_territory events also enriched with territory droneColor (handled
+//     in applyActiveEvents via TERRITORY_MAP[id].droneColor).
+// ---------------------------------------------------------------------------
+
+// States that trigger orbit swarms — subset of 9-state model
+const ORBIT_STATES = new Set<AgentState>(['working', 'writing', 'running', 'swarming'])
+// Long TTL for orbit swarms — 60s so they stay alive across multiple poll intervals
+const ORBIT_TTL_MS = 60_000
+// Renew when this many ms remain before expiry
+const ORBIT_RENEW_AT_MS = 10_000
+
+function SwarmOrchestrator() {
+  useEffect(() => {
+    const check = () => {
+      const { agentStates, activeDroneSwarms, pushDroneSwarm } = useKingdomStore.getState()
+      const now = Date.now()
+
+      for (const agent of AGENT_REGISTRY) {
+        const { key: agentKey, territory: territoryId } = agent
+        const state = agentStates[agentKey]?.state
+
+        if (!state || !ORBIT_STATES.has(state)) continue
+
+        const orbitId  = `orbit_${agentKey}`
+        const existing = activeDroneSwarms.find((s) => s.id === orbitId)
+
+        // Skip if a live orbit swarm for this agent still has more than ORBIT_RENEW_AT_MS remaining
+        if (existing && existing.active && (existing.expiresAt - now) > ORBIT_RENEW_AT_MS) continue
+
+        const territory = TERRITORY_MAP[territoryId]
+        if (!territory) continue
+
+        // pushDroneSwarm now accepts optional ttl — orbit swarms use 60s
+        pushDroneSwarm({
+          id:                orbitId,
+          label:             state,        // used by computeLeaderWaypoint for radius + breatheFreq
+          sourceTerritoryId: territoryId,
+          targetTerritoryId: territoryId,  // orbit has no separate target
+          direction:         'orbit',
+          color:             territory.droneColor,
+          active:            true,
+          startedAt:         now,
+          ttl:               ORBIT_TTL_MS,
+        })
+      }
+    }
+
+    // Check immediately on mount, then every 3s
+    check()
+    const id = setInterval(check, 3000)
+    return () => clearInterval(id)
+  }, [])
+
+  return null
 }
 
 // ---------------------------------------------------------------------------

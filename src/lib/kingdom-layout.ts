@@ -23,6 +23,7 @@ export interface TerritoryLayout {
   label: string
   position: [number, number, number]  // [x, clearance_above_terrain, z]
   color: string
+  droneColor: string  // complement tint for swarm drones — lighter/shifted from territory color
   connections: string[]
 }
 
@@ -54,6 +55,7 @@ export const TERRITORIES: TerritoryLayout[] = [
     label: "CLAUDE'S HOUSE",
     position: [-5, 0.60, -0.5],  // clearance = box half-height (1.2/2)
     color: '#7000ff',
+    droneColor: '#b566ff',        // lavender — lighter purple
     connections: ['the_scryer', 'core_lore', 'the_tower'],
   },
   {
@@ -61,6 +63,7 @@ export const TERRITORIES: TerritoryLayout[] = [
     label: 'THE FORGE',
     position: [1, 0.35, 3.0],    // clearance = box half-height (0.7/2)
     color: '#f0a500',
+    droneColor: '#ffd166',        // champagne — lighter gold
     connections: ['the_scryer', 'the_throne', 'claude_house'],
   },
   {
@@ -68,6 +71,7 @@ export const TERRITORIES: TerritoryLayout[] = [
     label: 'THE THRONE',
     position: [5, 0.75, -0.5],   // clearance = box half-height (1.5/2)
     color: '#ff006e',
+    droneColor: '#ff66b3',        // rose — lighter pink
     connections: ['the_forge', 'the_tower'],
   },
   {
@@ -75,6 +79,7 @@ export const TERRITORIES: TerritoryLayout[] = [
     label: 'THE SCRYER',
     position: [0, 1.00, -4],     // clearance = cone half-height (2.0/2) — tip up, base down
     color: '#00f3ff',
+    droneColor: '#66f9ff',        // ice — lighter cyan
     connections: ['claude_house', 'the_forge', 'the_tower', 'core_lore'],
   },
   {
@@ -82,6 +87,7 @@ export const TERRITORIES: TerritoryLayout[] = [
     label: 'THE TOWER',
     position: [4, 0.70, 2.5],    // clearance = cylinder half-height (1.4/2)
     color: '#9b30ff',
+    droneColor: '#cc88ff',        // lilac — lighter violet
     connections: ['the_throne', 'the_scryer'],
   },
   {
@@ -89,6 +95,7 @@ export const TERRITORIES: TerritoryLayout[] = [
     label: 'CORE LORE',
     position: [-3.5, 0.43, -4],  // clearance = cone half-height (0.85/2)
     color: '#e8e0d0',
+    droneColor: '#fff0e0',        // pearl — lighter cream
     connections: ['claude_house', 'the_scryer'],
   },
 ]

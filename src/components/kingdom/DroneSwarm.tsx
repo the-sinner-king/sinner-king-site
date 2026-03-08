@@ -67,7 +67,7 @@ import { TERRITORY_MAP, getTerrainY } from '@/lib/kingdom-layout'
 // ---------------------------------------------------------------------------
 
 const DRONE_COUNT     = 5
-const MAX_SWARMS      = 5
+const MAX_SWARMS      = 10  // 4 orbit (one per agent) + 4 SCRYER to_territory + 2 spare
 const HISTORY_SIZE    = 80        // ring buffer frames (≈ 1.3s @ 60fps)
 const RESPONSIVENESS  = 3.0       // follower velocity lerp factor
 const MAX_SPEED       = 5.0       // units/second (followers catch-up)
@@ -79,6 +79,27 @@ const ARRIVE_DIST     = 2.5       // deceleration zone radius
 const VOID_DISTANCE   = 22
 const DRONE_COLOR_OUT  = '#7000ff'
 const DRONE_COLOR_BACK = '#00f3ff'
+
+// Orbit mode constants
+const ORBIT_SPEED      = 0.785    // rad/s — one full orbit in ~8s
+const ORBIT_HOVER_Y    = 0.55     // world units above territory world-Y
+const ORBIT_BREATHE_AMP = 0.18    // radius pulse amplitude (±0.18 world units)
+
+// Per-state orbit radius multiplier (applied to territory ring radius from SHAPE_PARAMS)
+// working/writing/running → loose outer orbit. swarming → tight inner orbit.
+const ORBIT_RADIUS_WORKING  = 2.2
+const ORBIT_RADIUS_SWARMING = 1.5
+
+// Per-territory base ring radii (mirrors SHAPE_PARAMS ringRadius in KingdomScene3D)
+// Needed here so orbit math doesn't depend on the scene file.
+const TERRITORY_RING_RADII: Record<string, number> = {
+  claude_house: 1.15,
+  the_throne:   1.42,
+  the_forge:    1.35,
+  core_lore:    0.65,
+  the_scryer:   0.65,
+  the_tower:    0.55,
+}
 
 // Formation offsets per drone [right, up, back-from-leader]
 // Loose V: inner ±1.5 / 1.2, outer ±3.0 / 2.4
@@ -206,6 +227,23 @@ function computeLeaderWaypoint(
       const returnT = (phase - 0.55) / 0.45
       out.lerpVectors(_void, _source, Math.min(returnT, 1.0))
     }
+  } else if (swarm.direction === 'orbit') {
+    // Orbit mode: leader circles source territory in XZ plane.
+    // _source is pre-set to territory world position (terrain Y + clearance) before this call.
+    // Radius breathes at orbit frequency — drones pulse with the bot's working rhythm.
+    const ringRadius   = TERRITORY_RING_RADII[swarm.sourceTerritoryId] ?? 0.9
+    const radiusMul    = swarm.label === 'swarming' ? ORBIT_RADIUS_SWARMING : ORBIT_RADIUS_WORKING
+    const baseRadius   = ringRadius * radiusMul
+    const breatheFreq  = swarm.label === 'swarming' ? 11.31 : (swarm.label === 'writing' ? 8.80 : 7.54)
+    // 11.31 = 2π/556ms, 8.80 = 2π/714ms, 7.54 = 2π/833ms
+    const radius = baseRadius + Math.sin(t * breatheFreq) * ORBIT_BREATHE_AMP
+    const angle  = t * ORBIT_SPEED
+
+    out.set(
+      _source.x + Math.cos(angle) * radius,
+      _source.y + ORBIT_HOVER_Y,             // world Y — uses _source.y, never territory.position[1] alone
+      _source.z + Math.sin(angle) * radius,
+    )
   } else {
     // to_territory
     if (phase < 0.6) {
@@ -234,7 +272,7 @@ function computeLeaderWaypoint(
 // SLOT INIT — called when a free slot is assigned to a new swarm
 // ---------------------------------------------------------------------------
 
-function initSlotForSwarm(slot: PoolSlot, sourcePos: THREE.Vector3): void {
+function initSlotForSwarm(slot: PoolSlot, sourcePos: THREE.Vector3, swarmColor?: string): void {
   // Pre-fill history with source — followers start at source, not at old garbage positions
   for (let h = 0; h < HISTORY_SIZE; h++) {
     slot.leaderHistory[h].copy(sourcePos)
@@ -249,9 +287,15 @@ function initSlotForSwarm(slot: PoolSlot, sourcePos: THREE.Vector3): void {
     slot.quats[i].identity()
     slot.meshes[i].position.copy(_offscreenPos)
     slot.meshes[i].quaternion.identity()
+    slot.meshes[i].visible = true  // re-enable visibility (cleared on slot release)
   }
 
-  slot.material.color.copy(_colorOut)
+  // Use territory drone color if provided, otherwise fall back to default purple
+  if (swarmColor) {
+    slot.material.color.set(swarmColor)
+  } else {
+    slot.material.color.copy(_colorOut)
+  }
   slot.material.opacity = 0.0
   slot.lastColor = 'out'
 }
@@ -304,7 +348,10 @@ export function DroneSwarms() {
       slot.swarmId = null
       slot.voidPos = null
       slot.material.opacity = 0
-      slot.meshes.forEach(m => m.position.copy(_offscreenPos))
+      slot.meshes.forEach(m => {
+        m.position.copy(_offscreenPos)
+        m.visible = false  // exclude from Three.js render list while parked
+      })
     })
 
     // Assign new swarms to free slots
@@ -332,7 +379,8 @@ export function DroneSwarms() {
         freeSlot.voidPos = null
       }
 
-      initSlotForSwarm(freeSlot, sourcePos)
+      // Pass drone color — orbit swarms use territory droneColor, others use swarm.color or default
+      initSlotForSwarm(freeSlot, sourcePos, swarm.color)
     })
   }, [activeDroneSwarms])
 
@@ -358,6 +406,7 @@ export function DroneSwarms() {
       _source.set(sp[0], getTerrainY(sp[0], sp[2]) + sp[1], sp[2])
 
       // ── GONE phase (off_screen 0.35–0.55) — hide + mark ─────────────────
+      // Orbit mode has no GONE phase — it holds continuously until TTL.
       if (swarm.direction === 'off_screen' && phase >= 0.35 && phase < 0.55) {
         slot.material.opacity = 0
         slot.meshes.forEach(m => m.position.copy(_offscreenPos))
@@ -384,6 +433,7 @@ export function DroneSwarms() {
       }
 
       // ── Set up world-space vectors ────────────────────────────────────────
+      // Orbit mode: no target or void needed — leader circles _source
       if (swarm.direction === 'to_territory') {
         const tgtTerritory = TERRITORY_MAP[swarm.targetTerritoryId]
         if (!tgtTerritory) return
@@ -398,7 +448,14 @@ export function DroneSwarms() {
 
       // ── Opacity ───────────────────────────────────────────────────────────
       let opacity: number
-      if (swarm.direction === 'to_territory') {
+      if (swarm.direction === 'orbit') {
+        // Fade in over first 5% of TTL, hold at 0.82, fade out in last 8%.
+        // (Orbit swarms have 60s TTL; last 8% = last ~5s for graceful fade on renewal/expiry.)
+        opacity =
+          phase < 0.05 ? phase / 0.05 :
+          phase > 0.92 ? Math.max(0, 1.0 - (phase - 0.92) / 0.08) :
+          0.82
+      } else if (swarm.direction === 'to_territory') {
         opacity =
           phase < 0.05 ? phase / 0.05 :
           phase < 0.80 ? 1.0 :
@@ -418,7 +475,8 @@ export function DroneSwarms() {
       }
       slot.material.opacity = opacity
 
-      // ── Color switch purple → cyan on return ─────────────────────────────
+      // ── Color switch purple → cyan on return (off_screen only) ───────────
+      // Orbit swarms keep their territory drone color for the full lifetime.
       if (swarm.direction === 'off_screen' && phase >= 0.55 && slot.lastColor !== 'back') {
         slot.material.color.copy(_colorBack)
         slot.lastColor = 'back'
