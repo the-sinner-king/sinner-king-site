@@ -274,7 +274,10 @@ export function KingdomLiveProvider({ children }: { children: React.ReactNode })
 
         const merged = buildMerged(live, agentsPayload, tokensPayload, lifetimePayload, ctxRef.current.data)
 
-        setCtx({ data: merged, status: 'ok', lastSuccessAt: now, age_ms: 0 })
+        // If agents endpoint failed, agent data is from prev (stale) — show STALE badge.
+        // 'ok' requires both primary endpoints healthy so consumers know agent glow is fresh.
+        const fetchStatus: KingdomLiveCtx['status'] = (hasLive && hasAgents) ? 'ok' : 'stale'
+        setCtx({ data: merged, status: fetchStatus, lastSuccessAt: now, age_ms: 0 })
 
       } catch {
         if (cancelled) return

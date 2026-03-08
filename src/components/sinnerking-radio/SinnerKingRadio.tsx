@@ -94,6 +94,10 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
     return getRandomTrack()
   })
   const [isPlaying,    setIsPlaying]    = useState(false)
+  // Stable ref — lets visibilitychange listener read current isPlaying without
+  // being in the effect deps (prevents listener re-creation on every play/pause toggle).
+  const isPlayingRef = useRef(false)
+  isPlayingRef.current = isPlaying
   const [duration,     setDuration]     = useState(0)
   const [elapsed,      setElapsed]      = useState(0)
   const [copied,       setCopied]       = useState(false)
@@ -151,18 +155,22 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
     }
   }, [])
 
-  // Pause RAF when tab hidden, resume when visible
+  // Pause RAF when tab hidden, resume when visible.
+  // REGRESSION GUARD: isPlaying is read via ref — NOT in deps array. If isPlaying
+  // were a dep, this effect would re-run on every play/pause toggle, briefly
+  // leaving the page unlistened between listener removal and re-attachment.
+  // isPlayingRef.current is always current without causing re-registration.
   useEffect(() => {
     const onVisibility = () => {
       if (document.hidden) {
         cancelAnimationFrame(rafRef.current)
-      } else if (isPlaying) {
+      } else if (isPlayingRef.current) {
         rafRef.current = requestAnimationFrame(drawVisualizer)
       }
     }
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)
-  }, [isPlaying, drawVisualizer])
+  }, [drawVisualizer])
 
   // Clean up RAF on unmount
   useEffect(() => () => { cancelAnimationFrame(rafRef.current) }, [])
@@ -260,27 +268,42 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
   }, [nextTrack])
 
   // Autoplay — deferred on browser block.
-  // Attempt immediately on canplaythrough. If browser rejects (no prior gesture),
-  // attach a one-time document listener — plays the moment the user first touches
-  // the page (click, scroll, key). Feels intentional: Kingdom starts transmitting
-  // on first contact. hasAutoplayed prevents re-trigger on track changes.
+  // hasAutoplayed is only marked true after play() ACTUALLY SUCCEEDS — not before.
+  // This ensures rapid track-switching before the first gesture doesn't silently
+  // consume the "one shot" and leave the radio permanently muted.
+  // Gesture listeners are cleaned up if the effect re-runs before they fire.
   const hasAutoplayed = useRef(false)
   useEffect(() => {
     if (!autoPlay || !audioReady || hasAutoplayed.current) return
-    hasAutoplayed.current = true
 
-    play().catch(() => {
-      // Browser blocked — arm deferred trigger on first user gesture
-      const onFirstGesture = () => {
-        play().catch(() => {})
-        document.removeEventListener('pointerdown', onFirstGesture)
-        document.removeEventListener('keydown',     onFirstGesture)
-        document.removeEventListener('wheel',       onFirstGesture)
+    // Stash gesture listener ref so cleanup can remove it if effect re-runs
+    let gestureHandler: (() => void) | null = null
+
+    const cleanup = () => {
+      if (gestureHandler) {
+        document.removeEventListener('pointerdown', gestureHandler)
+        document.removeEventListener('keydown',     gestureHandler)
+        document.removeEventListener('wheel',       gestureHandler)
+        gestureHandler = null
       }
-      document.addEventListener('pointerdown', onFirstGesture, { once: true })
-      document.addEventListener('keydown',     onFirstGesture, { once: true })
-      document.addEventListener('wheel',       onFirstGesture, { once: true })
-    })
+    }
+
+    play()
+      .then(() => { hasAutoplayed.current = true })
+      .catch(() => {
+        // Browser blocked — arm deferred trigger on first user gesture
+        gestureHandler = () => {
+          play()
+            .then(() => { hasAutoplayed.current = true })
+            .catch(() => {})
+          cleanup()
+        }
+        document.addEventListener('pointerdown', gestureHandler, { once: true })
+        document.addEventListener('keydown',     gestureHandler, { once: true })
+        document.addEventListener('wheel',       gestureHandler, { once: true })
+      })
+
+    return cleanup
   }, [autoPlay, audioReady, play])
 
   // Sync time display

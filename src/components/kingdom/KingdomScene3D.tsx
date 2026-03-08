@@ -189,7 +189,14 @@ function TerritoryNode({ territory }: TerritoryNodeProps) {
   // PERF: BASE_COLORS hoisted to module scope — was re-allocated as a new object literal
   // on every render for all 6 TerritoryNode instances.
   const baseColor = useMemo(() => TERRITORY_BASE_COLORS[territory.id] ?? '#CCBBFF', [territory.id])
+  // PERF: pre-compute color suffix strings — template literals in useFrame allocate on every call.
+  // These are stable for the life of the component (territory.color never changes at runtime).
+  const colorAlpha40 = useMemo(() => `${territory.color}40`, [territory.color])
+  const colorAlpha20 = useMemo(() => `${territory.color}20`, [territory.color])
 
+  // REGRESSION GUARD: deps are [baseColor, territory.color]. TERRITORY_BASE_COLORS is
+  // intentionally module-static (never changes at runtime). territory.id is implicitly
+  // covered via baseColor which is derived from territory.id above.
   const material = useMemo(() => new THREE.MeshStandardMaterial({
     color:             baseColor,
     emissive:          territory.color,  // neon emissive stays the territory color
@@ -334,8 +341,8 @@ function TerritoryNode({ territory }: TerritoryNodeProps) {
         : territory.color
       const nextColor  = isSelected ? territory.color : labelColor
       const nextBorder = isSelected
-        ? `${territory.color}40`
-        : buildingState === 'offline' ? 'transparent' : `${territory.color}20`
+        ? colorAlpha40
+        : buildingState === 'offline' ? 'transparent' : colorAlpha20
       if (nextColor !== labelColorRef.current) {
         labelRef.current.style.color = nextColor
         labelColorRef.current = nextColor
@@ -978,8 +985,13 @@ function CoreLoreCascade() {
     const meshes  = meshRefs.current
 
     // Read current agent states without subscribing (no re-render)
+    // PERF: direct key lookup — avoids Object.values() array allocation at 60fps
     const { agentStates } = useKingdomStore.getState()
-    const anySearching    = Object.values(agentStates).some((a) => a?.state === 'searching')
+    const anySearching    =
+      agentStates['forge_claude']?.state  === 'searching' ||
+      agentStates['tower_claude']?.state  === 'searching' ||
+      agentStates['claude_house']?.state  === 'searching' ||
+      agentStates['throne_claude']?.state === 'searching'
 
     // Spawn new wave into the first free slot
     if (anySearching && now - lastSpawn.current >= CORE_WAVE_INTERVAL) {
@@ -1025,7 +1037,11 @@ function CoreLoreCascade() {
 
       // Flat ring on XZ plane — scale X and Z, keep Y=1 (geometry is in XY plane, rotated)
       mesh.scale.set(radius, radius, 1)
-      ;(mesh.material as THREE.MeshStandardMaterial).opacity = opacity
+      // Type guard: material is always MeshStandardMaterial here (set in JSX), but
+      // guard against null/wrong-type during unmount races.
+      if (mesh.material instanceof THREE.MeshStandardMaterial) {
+        mesh.material.opacity = opacity
+      }
     }
   })
 
