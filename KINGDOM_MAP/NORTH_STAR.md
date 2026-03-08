@@ -259,7 +259,61 @@
 │   cwd field split at space in "Claude's House". Fixed via tab delimiter       │
 │   in claude-house-state.sh + IFS=$'\t' read pattern.                         │
 │                                                                               │
-│ NEXT: UI redesign (Brandon has designs) → GoDaddy DNS → Blog first post      │
+│ ◉ SHIPPED (2026-03-07, Session 167): Overnight audit — perf + security        │
+│   Performance: StatusBar primitive selector, TerritoryDetailPanel O(1)        │
+│   TerritoryNode label change-track (6×2×60fps DOM writes eliminated at rest)  │
+│   Security: throne race guard, atomic ledger write, SSRF path guard,          │
+│   partykit 8s timeout, streaming timeouts (aeris 45s, throne 60s),            │
+│   kingdom-push 512KB cap, X-Local-Proxy-Target header removed                 │
+│   temporal.ts replaceAll, PartyKitSnapshotResponse type fixed                 │
+│   model ID claude-opus-4-6 VERIFIED VALID                                     │
+│                                                                               │
+│ ◉ FIXED (2026-03-07, Session 167): TerritoryDetailPanel behind HUD            │
+│   Root: zIndex 20, same as HUD stack in client.tsx. HUD later in DOM → won.  │
+│   Fix: zIndex 20→40. Panel now floats above all HUD elements.                 │
+│                                                                               │
+│ ◉ SHIPPED (2026-03-07, Session 167): Sinner King Radio on Kingdom Map         │
+│   SinnerKingRadio: initialTrackId + autoPlay props added                      │
+│   Wired bottom-right of kingdom-map (zIndex 25). Auto-starts "eternal-rick"  │
+│   Synthwave Rick Astley plays on load. One-shot guard prevents re-autoplay.  │
+│                                                                               │
+│ ◉ SHIPPED (2026-03-07, Session 167): UI polish — radio + popup                │
+│   SinnerKingRadio: CANVAS_W 400→260, CANVAS_H 100→72, COL_COUNT 52→34       │
+│   Visualizer glow: shadowColor+shadowBlur=7 per column, reset after loop     │
+│   TerritoryDetailFloat: drei <Html> at [px,5,pz] — popup floats in 3D space │
+│   above clicked territory (no longer pinned to screen corner)                │
+│                                                                               │
+│ ◉ SHIPPED (2026-03-07, Session 167): CRT popup transition + orbit behavior   │
+│   Popup: @keyframes crt-popup-in — brightness burst → flicker → settle       │
+│   Orbit: lastInteraction=0 → starts spinning on page load (no 15s wait)      │
+│   Orbit: only drag+WASD kill orbit. Plain clicks (territory, close) pass     │
+│   through. Auto-resume after 15s idle unchanged.                             │
+│                                                                               │
+│ ◉ FIXED (2026-03-07, Session 167): Radio deferred autoplay                   │
+│   Browser blocks play() without prior gesture. If blocked, arms one-time     │
+│   pointerdown/keydown/wheel listener — starts transmitting on first touch.  │
+│   audio files confirmed present: eternal-rick.mp3 + 3 others.               │
+│                                                                               │
+│ ◉ SHIPPED (2026-03-08, Session 168): CoreLoreCascade — knowledge rings       │
+│   Expanding hairline rings from CORE LORE when any agent is in searching     │
+│   state. Pool of 4 pre-allocated waves. Radius 0.4→5.6 over 2.8s.          │
+│   emissiveIntensity 2.2 — blazes under bloom, fades at horizon.              │
+│   Only animation unique to one territory. Ring = knowledge leaving.          │
+│   PERF: Object.values() → 4 direct key lookups (no array alloc at 60fps).   │
+│   Template literals → useMemo (no per-frame string alloc for borders).       │
+│                                                                               │
+│ ◉ HARDENED (2026-03-08, Session 168): Granny Codex audit — 5 red flags      │
+│   RF1 CRIT: hasAutoplayed now set only after play() .then() success          │
+│   RF2 HIGH: material useMemo REGRESSION GUARD comment added                  │
+│   RF3 CRIT: kingdom-live-context status='ok' only if BOTH endpoints ok.     │
+│             Agents endpoint fail → 'stale' (badge + opacity 0.5)            │
+│   RF4 HIGH: visibilitychange listener → isPlayingRef (one lifetime, no      │
+│             re-registration on play/pause toggle)                            │
+│   RF5 MED:  CoreLoreCascade material cast → instanceof type guard            │
+│                                                                               │
+│ NEXT: Observation Window (90s watcher → territory notices you) · Throne Room │
+│   PENDING (Brandon): API key + THRONE_ROOM_SALT on Vercel → Throne Room live │
+│   PENDING (Brandon): 8 Suno.ai MP3s → public/audio/ → Radio fully stocked    │
 │   PENDING (Brandon): CORE_LORE + THE_SITE_GRIMOIRE reindex (maker.html)      │
 └───────────────────────────────────────────────────────────────────────────────┘
 
