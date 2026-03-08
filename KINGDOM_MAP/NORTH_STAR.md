@@ -311,7 +311,18 @@
 │             re-registration on play/pause toggle)                            │
 │   RF5 MED:  CoreLoreCascade material cast → instanceof type guard            │
 │                                                                               │
-│ NEXT: Observation Window (90s watcher → territory notices you) · Throne Room │
+│ NEXT: The Observation Window — pure visual, zero infrastructure needed        │
+│   90s idle on /kingdom-map → one territory's light rises on its own          │
+│   No click, no hover. Unannounced. As if it noticed you watching.            │
+│                                                                               │
+│ SHELVED (Phase 2 — /spirit/throne):                                          │
+│   Throne Room frontend — form + SSE stream. Backend built. Needs ANTHROPIC   │
+│   API key on Vercel + THRONE_ROOM_SALT. Lives at /spirit/throne, not here.  │
+│                                                                               │
+│ SHELVED (later):                                                              │
+│   "Leave Me a Sentence" — visitor submits a sentence, briefly brightens      │
+│   their territory. Flat file, no database. Good idea, not now.              │
+│                                                                               │
 │   PENDING (Brandon): API key + THRONE_ROOM_SALT on Vercel → Throne Room live │
 │   PENDING (Brandon): 8 Suno.ai MP3s → public/audio/ → Radio fully stocked    │
 │   PENDING (Brandon): CORE_LORE + THE_SITE_GRIMOIRE reindex (maker.html)      │
