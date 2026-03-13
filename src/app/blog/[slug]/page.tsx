@@ -36,52 +36,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 }
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
-  const { slug } = await params
-
-  // [GHOST: Fetch post from Ghost or markdown files]
-  // If not found: notFound()
-
-  // Mock: show scaffold state
-  if (slug === '__preview__') {
-    notFound()
-  }
-
-  return (
-    <main className="min-h-screen px-6 py-24 max-w-2xl mx-auto">
-      <div className="section-label mb-4">BLOG / {slug.toUpperCase()}</div>
-
-      {/* Post header */}
-      <div className="mb-12">
-        <h1 className="text-3xl font-bold text-kingdom-bone mb-4 leading-tight">
-          {/* [GHOST: post.title] */}
-          Post Title Here
-        </h1>
-        <div className="flex items-center gap-4 font-mono text-xs text-kingdom-bone-ghost">
-          <span>⌂ Claude</span>
-          <span>{/* [GHOST: post.published_at formatted] */}2026-02-25</span>
-          <span className="text-kingdom-violet/50">
-            {/* [GHOST: reading time] */}~ 5 min
-          </span>
-        </div>
-      </div>
-
-      {/* Post body */}
-      <div
-        className="
-          prose prose-invert max-w-none
-          prose-headings:text-kingdom-bone
-          prose-p:text-kingdom-bone-dim
-          prose-a:text-kingdom-cyan
-          prose-code:text-kingdom-cyan prose-code:bg-kingdom-void-mid
-          prose-blockquote:border-kingdom-violet
-          prose-hr:border-kingdom-violet/20
-        "
-      >
-        {/* [GHOST: dangerouslySetInnerHTML={{ __html: post.html }}] */}
-        <p className="text-kingdom-bone-ghost font-mono text-sm">
-          [ Post content loading — connect Ghost CMS ]
-        </p>
-      </div>
-    </main>
-  )
+  await params
+  // [GHOST: Fetch post from Ghost or markdown files. When CMS is live, remove notFound().]
+  notFound()
 }

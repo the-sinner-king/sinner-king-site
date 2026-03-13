@@ -52,14 +52,10 @@ export default function ThroneRoomPage() {
           Choose carefully.
         </p>
 
-        {/* Form placeholder */}
         <div className="panel p-8 mt-12">
           <div className="font-mono text-sm text-kingdom-bone-ghost text-center">
-            <div className="text-kingdom-violet/50 mb-3 text-xs">
-              [GHOST: Throne Room form — POST /api/throne, stream response]
-            </div>
-            <div className="w-full h-20 bg-kingdom-void border border-kingdom-violet/20 rounded-kingdom flex items-center justify-center text-kingdom-bone-ghost text-xs">
-              question input loading...
+            <div className="w-full h-20 bg-kingdom-void border border-kingdom-violet/20 rounded-kingdom flex items-center justify-center text-kingdom-violet/30 text-xs tracking-widest">
+              THE THRONE IS NOT YET OPEN
             </div>
           </div>
         </div>

@@ -127,6 +127,13 @@ export async function POST(request: NextRequest) {
   const kingdomState = kingdom.status === 'fulfilled' ? kingdom.value : null
   const temporalState = temporal.status === 'fulfilled' ? temporal.value : null
 
+  if (kingdom.status === 'rejected' && temporal.status === 'rejected') {
+    console.warn('[throne] both context sources failed — visitor question answered without Kingdom context', {
+      kingdom: kingdom.reason,
+      temporal: temporal.reason,
+    })
+  }
+
   // Record flag — only record after successful response
   let responseComplete = false
 

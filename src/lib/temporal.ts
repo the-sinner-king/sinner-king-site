@@ -309,19 +309,6 @@ export function isWhisperWindow(now: Date = new Date()): boolean {
   return getTemporalState(now).whispering
 }
 
-/**
- * Returns a CSS class modifier string for the current temporal phase.
- * Apply to body or root element to enable CSS variable overrides per phase.
- *
- * Example: "temporal-whisper" → target with .temporal-whisper { --accent: ... }
- */
-export function getTemporalClass(now: Date = new Date()): string {
-  return `temporal-${getTemporalState(now).phase.replaceAll('_', '-')}`
-}
-
-/**
- * Returns all phase definitions (for documentation/debugging).
- */
-export function getAllPhases(): PhaseDefinition[] {
-  return PHASES
-}
+// getTemporalClass() and getAllPhases() removed — confirmed unused across src/.
+// If needed later: getTemporalClass returns `temporal-${phase}` CSS modifier;
+// getAllPhases returns the full PHASES array for debugging/admin UI.

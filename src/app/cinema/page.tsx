@@ -25,10 +25,10 @@ export default function CinemaPage() {
 
       <div className="panel p-8 text-center">
         <div className="font-mono text-kingdom-bone-ghost text-sm">
-          [ CONTENT LOADING ]
+          The vault is sealed.
         </div>
-        <div className="mt-2 font-mono text-xs text-kingdom-violet/50">
-          Connecting to archive...
+        <div className="mt-2 font-mono text-xs text-kingdom-violet/40">
+          Content is being restored.
         </div>
       </div>
     </main>

@@ -98,7 +98,8 @@ async function handleRequest(
           ? 'token_api.py is not running on localhost:2701 — start it with: python3 token_api.py'
           : err instanceof Error ? err.message : 'Unknown error',
         timestamp: Date.now(),
-        targetUrl,
+        // targetUrl intentionally omitted from client response — already logged server-side.
+        // Including it would expose the internal localhost:2701 proxy target to browser DevTools.
       },
       {
         status: 503,

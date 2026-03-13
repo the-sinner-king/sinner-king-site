@@ -69,21 +69,26 @@ import { TERRITORY_MAP, getTerrainY } from '@/lib/kingdom-layout'
 const DRONE_COUNT     = 5
 const MAX_SWARMS      = 10  // 4 orbit (one per agent) + 4 SCRYER to_territory + 2 spare
 const HISTORY_SIZE    = 80        // ring buffer frames (≈ 1.3s @ 60fps)
-const RESPONSIVENESS  = 3.0       // follower velocity lerp factor
-const MAX_SPEED       = 5.0       // units/second (followers catch-up)
-const BOB_FREQ_RADS   = 0.9 * Math.PI * 2  // 0.9 Hz in rad/s
-const BOB_AMP         = 0.07
-const SEP_RADIUS      = 0.8       // separation trigger distance
-const SEP_WEIGHT      = 0.04
-const ARRIVE_DIST     = 2.5       // deceleration zone radius
+const MAX_SPEED       = 3.75      // units/second — 25% slower than original 5.0
+const BOB_FREQ_RADS   = 0.32 * Math.PI * 2  // 0.32 Hz → one slow wave every ~3s
+const BOB_AMP         = 0.035     // subtle — barely perceptible vertical drift
+const SEP_RADIUS      = 0.5       // tighter separation trigger
+const SEP_WEIGHT      = 2.0       // acceleration scale for separation (applied × dt)
 const VOID_DISTANCE   = 22
+
+// Critically damped spring constants (Game Programming Gem 4 — Thomas Lowe)
+// ω₀ = sqrt(SPRING_K) = 6 rad/s → converges in ~1s with zero overshoot.
+// Critical damping: SPRING_DAMP = 2 * ω₀ = 12.
+// Replaces the old velocity lerp — gives silky smooth formation holding.
+const SPRING_K    = 36.0
+const SPRING_DAMP = 12.0
 const DRONE_COLOR_OUT  = '#7000ff'
 const DRONE_COLOR_BACK = '#00f3ff'
 
 // Orbit mode constants
-const ORBIT_SPEED      = 0.785    // rad/s — one full orbit in ~8s
-const ORBIT_HOVER_Y    = 0.55     // world units above territory world-Y
-const ORBIT_BREATHE_AMP = 0.18    // radius pulse amplitude (±0.18 world units)
+const ORBIT_SPEED      = 0.59     // rad/s — 25% slower (~10.6s lap, stately not frantic)
+const ORBIT_HOVER_Y    = 0.35     // world units above territory world-Y — closer to building
+const ORBIT_BREATHE_AMP = 0.12    // radius pulse amplitude (±0.12 — subtle)
 
 // Per-state orbit radius multiplier (applied to territory ring radius from SHAPE_PARAMS)
 // working/writing/running → loose outer orbit. swarming → tight inner orbit.
@@ -102,25 +107,24 @@ const TERRITORY_RING_RADII: Record<string, number> = {
 }
 
 // Formation offsets per drone [right, up, back-from-leader]
-// Loose V: inner ±1.5 / 1.2, outer ±3.0 / 2.4
+// Swarm V: inner ±0.45 / 0.40, outer ±0.85 / 0.80 — tight enough to read as one organism.
+// v5.1: halved from v5.0 (inner was ±0.9/0.75, outer was ±1.7/1.50) per Brandon feedback.
 const FORMATION_OFFSETS: readonly [number, number, number][] = [
-  [0,    0, 0],    // 0: leader (front center)
-  [-1.5, 0, 1.2],  // 1: inner left wing
-  [1.5,  0, 1.2],  // 2: inner right wing
-  [-3.0, 0, 2.4],  // 3: outer left wing
-  [3.0,  0, 2.4],  // 4: outer right wing
+  [0,     0,    0   ],  // 0: leader (front center)
+  [-0.45, 0,    0.40],  // 1: inner left wing
+  [0.45,  0,    0.40],  // 2: inner right wing
+  [-0.85, 0,    0.80],  // 3: outer left wing
+  [0.85,  0,    0.80],  // 4: outer right wing
 ]
 
-// History lag per slot — followers trail the leader's past positions
-const LAG_FRAMES = [0, 10, 10, 20, 20] as const
+// History lag per slot — halved from v5.0 so followers stick closer
+const LAG_FRAMES = [0, 5, 5, 10, 10] as const
 
 // Evenly spaced bob phases across the formation
 const BOB_PHASES = Array.from({ length: DRONE_COUNT }, (_, i) =>
   (i / DRONE_COUNT) * Math.PI * 2
 )
 
-// Speed variation ±3% — subtle organic desync
-const SPEED_FACTORS = [1.0, 0.98, 1.02, 0.97, 1.03] as const
 
 // ---------------------------------------------------------------------------
 // MODULE-LEVEL SCRATCH VECTORS
@@ -249,20 +253,20 @@ function computeLeaderWaypoint(
     if (phase < 0.6) {
       out.lerpVectors(_source, _target, phase / 0.6)
     } else if (phase < 0.8) {
-      // Hover: orbit target
+      // Hover: tight orbit at target — closer, slower
       const hoverT = (phase - 0.6) / 0.2
-      const radius = 0.55 - hoverT * 0.15
-      const angle  = t * 1.8
+      const radius = 0.38 - hoverT * 0.10  // tighter than before (was 0.55)
+      const angle  = t * 1.35              // slower hover orbit (was 1.8)
       out.copy(_target)
       out.x += Math.cos(angle) * radius
       out.z += Math.sin(angle) * radius
     } else {
       // Fade: drift outward
       const fadeT = (phase - 0.8) / 0.2
-      const angle = t * 1.8
+      const angle = t * 1.35
       out.copy(_target)
-      out.x += Math.cos(angle) * (0.40 + fadeT * 0.6)
-      out.z += Math.sin(angle) * (0.40 + fadeT * 0.6)
+      out.x += Math.cos(angle) * (0.28 + fadeT * 0.5)
+      out.z += Math.sin(angle) * (0.28 + fadeT * 0.5)
       out.y += fadeT * 0.5
     }
   }
@@ -527,31 +531,34 @@ export function DroneSwarms() {
         _slotTarget.y += offU
         _slotTarget.addScaledVector(slot.leaderHeading, -offB)  // behind = -forward
 
-        // Desired velocity toward slot with arrive deceleration
+        // Displacement to formation slot
         _desired.subVectors(_slotTarget, slot.positions[i])
-        const dist = _desired.length()
-        if (dist > 0.001) {
-          const speed = MAX_SPEED * SPEED_FACTORS[i] * Math.min(1.0, dist / ARRIVE_DIST)
-          _desired.normalize().multiplyScalar(speed)
-        } else {
-          _desired.set(0, 0, 0)
-        }
 
-        // Separation force (XZ only — prevent clumping without fighting Y bob)
+        // Critically damped spring (Game Programming Gem 4 — Thomas Lowe)
+        // F = k*(target - pos) - damp*vel  →  ω₀=6 rad/s, ζ=1 (no overshoot).
+        // Replaces the old velocity lerp: spring naturally decelerates on approach,
+        // accelerates from rest — no ARRIVE_DIST or RESPONSIVENESS needed.
+        slot.velocities[i].x += (SPRING_K * _desired.x - SPRING_DAMP * slot.velocities[i].x) * dt
+        slot.velocities[i].y += (SPRING_K * _desired.y - SPRING_DAMP * slot.velocities[i].y) * dt
+        slot.velocities[i].z += (SPRING_K * _desired.z - SPRING_DAMP * slot.velocities[i].z) * dt
+
+        // Separation — XZ only, applied as a gentle velocity impulse (not through spring)
         _sepForce.set(0, 0, 0)
         for (let j = 0; j < DRONE_COUNT; j++) {
           if (j === i) continue
           _diff.subVectors(slot.positions[i], slot.positions[j])
-          _diff.y = 0  // XZ separation only
+          _diff.y = 0
           const d = _diff.length()
           if (d < SEP_RADIUS && d > 0.001) {
             _sepForce.addScaledVector(_diff.normalize(), (SEP_RADIUS - d) / SEP_RADIUS)
           }
         }
+        slot.velocities[i].x += _sepForce.x * SEP_WEIGHT * dt
+        slot.velocities[i].z += _sepForce.z * SEP_WEIGHT * dt
 
-        // Combine forces and lerp velocity
-        _desired.addScaledVector(_sepForce, SEP_WEIGHT)
-        slot.velocities[i].lerp(_desired, Math.min(1, dt * RESPONSIVENESS))
+        // Speed cap
+        const spd = slot.velocities[i].length()
+        if (spd > MAX_SPEED) slot.velocities[i].multiplyScalar(MAX_SPEED / spd)
 
         // Integrate position (base — no bob yet)
         slot.positions[i].addScaledVector(slot.velocities[i], dt)
@@ -561,7 +568,7 @@ export function DroneSwarms() {
         if (velLen > 0.05) {
           _velNorm.copy(slot.velocities[i]).divideScalar(velLen)
           _qTarget.setFromUnitVectors(_zAxis, _velNorm)
-          slot.quats[i].slerp(_qTarget, Math.min(1, dt * RESPONSIVENESS * 2))
+          slot.quats[i].slerp(_qTarget, Math.min(1, dt * 6.0))
         }
 
         // Bob applied at mesh level only — not fed back into physics

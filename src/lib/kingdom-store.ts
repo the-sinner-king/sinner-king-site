@@ -358,6 +358,8 @@ export function usePartyKitSync(fallbackInterval = 30_000) {
         // Without this, agent states only update every 15s via the REST poll fallback.
         // REGRESSION GUARD: liveData.agents_status.agents must merge (not replace) — partial
         // pushes must not blank agents absent from this payload.
+        // liveData shape: { agents_status?: { agents?: Record<territoryId, AgentStatus> }, mood?: string }
+        // Shape originates from kingdom-live-push.sh — add guard before reading .agents
         const liveData = data.liveData as Record<string, unknown> | undefined
         if (liveData?.agents_status) {
           const agentsPayload = liveData.agents_status as { agents?: Record<string, import('./kingdom-agents').AgentStatus> }

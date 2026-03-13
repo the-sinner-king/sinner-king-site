@@ -32,6 +32,15 @@ import { AgentPanel } from '@/components/kingdom/AgentPanel'
 import { KingdomLiveProvider, useKingdomLive } from '@/lib/kingdom-live-context'
 import { useKingdomStore } from '@/lib/kingdom-store'
 import { SinnerKingRadio } from '@/components/sinnerking-radio/SinnerKingRadio'
+import { MissionClock } from '@/components/kingdom/MissionClock'
+import { SystemLog } from '@/components/kingdom/SystemLog'
+import { useBrandonPresenceDetector } from '@/hooks/useBrandonPresenceDetector'
+import {
+  startPatternEngine,
+  stopPatternEngine,
+  setPatternEngineIntensity,
+  setPatternEngineBrandon,
+} from '@/lib/pattern-engine'
 
 // ---------------------------------------------------------------------------
 // WebGL availability check (runs synchronously on client mount)
@@ -198,6 +207,35 @@ function KingdomLiveSync() {
 }
 
 // ---------------------------------------------------------------------------
+// PatternEngineBridge — feeds external values into the pattern engine singleton
+// and manages its lifecycle. Must render inside <KingdomLiveProvider>.
+// ---------------------------------------------------------------------------
+
+function PatternEngineBridge() {
+  const { data } = useKingdomLive()
+  const storeBrandonPresent = useKingdomStore((s) => s.brandonPresent)
+  const localBrandonPresent = useBrandonPresenceDetector()
+  const effectiveBrandonPresent = storeBrandonPresent || localBrandonPresent
+
+  useEffect(() => {
+    startPatternEngine()
+    return () => stopPatternEngine()
+  }, [])
+
+  useEffect(() => {
+    if (data?.tokens?.intensity) {
+      setPatternEngineIntensity(data.tokens.intensity as 'quiet' | 'low' | 'med' | 'high')
+    }
+  }, [data?.tokens?.intensity])
+
+  useEffect(() => {
+    setPatternEngineBrandon(effectiveBrandonPresent)
+  }, [effectiveBrandonPresent])
+
+  return null
+}
+
+// ---------------------------------------------------------------------------
 // Export — gates on WebGL before mounting Canvas
 // ---------------------------------------------------------------------------
 
@@ -238,12 +276,17 @@ export function KingdomMapClient() {
     <KingdomErrorBoundary>
       <KingdomLiveProvider>
         <KingdomLiveSync />
+        <PatternEngineBridge />
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
           <KingdomScene3D className="w-full h-full" />
-          {/* Right-side HUD stack — flex column so height changes never overlap */}
+          {/* Mission clock — top-right corner, above HUD stack */}
+          <MissionClock />
+          {/* System log — bottom-left corner */}
+          <SystemLog />
+          {/* Right-side HUD stack — shifted down to clear MissionClock */}
           <div style={{
             position:      'absolute',
-            top:           24,
+            top:           60,
             right:         24,
             zIndex:        20,
             display:       'flex',

@@ -17,8 +17,9 @@ export default function NovelsPage() {
       <p className="text-kingdom-bone-dim mb-16 max-w-lg">
         The long-form work. They took years. They&apos;re still here. Still breathing.
       </p>
-      <div className="panel p-8 text-center font-mono text-sm text-kingdom-bone-ghost">
-        [ Connect Ghost CMS — tag:novels ]
+      <div className="panel p-8 text-center">
+        <div className="font-mono text-kingdom-bone-ghost text-sm">The long-form work is sealed.</div>
+        <div className="mt-2 font-mono text-xs text-kingdom-violet/30">It took years to write. It will find you.</div>
       </div>
     </main>
   )

@@ -127,6 +127,8 @@ interface LifetimeApiResponse {
 // ---------------------------------------------------------------------------
 
 const INTERVAL_MS        = 15_000
+// 45s = 1.5× the 30s kingdom-live-push.sh interval — one full push cycle + 50% grace period.
+// If we've missed 1.5 pushes without a success, we call the data stale rather than silently wrong.
 const STALE_THRESHOLD_MS = 45_000
 
 const EMPTY_TOKEN_WINDOW: TokenWindow    = { tokens: 0, cost_usd: 0 }

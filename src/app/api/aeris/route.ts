@@ -99,6 +99,13 @@ export async function POST(request: NextRequest) {
   const kingdomState = kingdom.status === 'fulfilled' ? kingdom.value : null
   const temporalState = temporal.status === 'fulfilled' ? temporal.value : null
 
+  if (kingdom.status === 'rejected' && temporal.status === 'rejected') {
+    console.warn('[aeris] both context sources failed — Æris has no situational awareness', {
+      kingdom: kingdom.reason,
+      temporal: temporal.reason,
+    })
+  }
+
   // Create streaming response
   const encoder = new TextEncoder()
 

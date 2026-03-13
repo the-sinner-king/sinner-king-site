@@ -49,6 +49,12 @@ export function getWorldY(territory: TerritoryLayout): number {
   return getTerrainY(territory.position[0], territory.position[2]) + territory.position[1]
 }
 
+// Territory colors are AESTHETIC choices for the 3D scene, not agent state indicators.
+// They diverge intentionally from STATE_COLORS in kingdom-agents.ts in three cases:
+//   the_throne (#ff006e) — hot pink for dramatic presence; STATE_COLORS uses #7000ff
+//   the_tower  (#9b30ff) — shifted violet to distinguish from claude_house (#7000ff)
+//   core_lore  (#e8e0d0) — warm cream/parchment; STATE_COLORS uses #e8d5b7
+// Do not "fix" these toward STATE_COLORS — the divergence is deliberate.
 export const TERRITORIES: TerritoryLayout[] = [
   {
     id: 'claude_house',

@@ -26,14 +26,11 @@ export default function PortalPage() {
         She&apos;s here. Ask her something.
       </p>
 
-      {/* Chat interface placeholder */}
       <div className="flex-1 panel p-8 flex items-center justify-center min-h-[400px]">
         <div className="text-center font-mono text-sm text-kingdom-bone-ghost">
-          <div className="text-kingdom-pink/50 mb-2">Æ</div>
-          <div>[ Portal loading ]</div>
-          <div className="mt-1 text-xs text-kingdom-violet/40">
-            [GHOST: Wire /api/aeris here]
-          </div>
+          <div className="text-kingdom-pink/50 mb-4 text-lg">Æ</div>
+          <div>She is not receiving yet.</div>
+          <div className="mt-2 text-xs text-kingdom-violet/40">The portal opens soon.</div>
         </div>
       </div>
     </main>

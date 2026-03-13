@@ -218,7 +218,9 @@ interface RateLimitEntry {
 const rateLimitMap = new Map<string, RateLimitEntry>()
 
 function getRateLimit(): number {
-  return parseInt(process.env.AERIS_RATE_LIMIT_PER_HOUR ?? '10', 10)
+  const parsed = parseInt(process.env.AERIS_RATE_LIMIT_PER_HOUR ?? '10', 10)
+  // Clamp to [1, 1000] — guards against env var misconfig (0, negative, or absurdly high)
+  return isNaN(parsed) ? 10 : Math.max(1, Math.min(1000, parsed))
 }
 
 /**

@@ -17,8 +17,9 @@ export default function ScrapsPage() {
       <p className="text-kingdom-bone-dim mb-16 max-w-lg">
         Fragments that survived. Too alive to delete. Too strange to categorize.
       </p>
-      <div className="panel p-8 text-center font-mono text-sm text-kingdom-bone-ghost">
-        [ Connect Ghost CMS — tag:scraps ]
+      <div className="panel p-8 text-center">
+        <div className="font-mono text-kingdom-bone-ghost text-sm">The fragments are being catalogued.</div>
+        <div className="mt-2 font-mono text-xs text-kingdom-amber/30">Check back. They survive everything.</div>
       </div>
     </main>
   )
