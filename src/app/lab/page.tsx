@@ -20,6 +20,15 @@ export const metadata: Metadata = {
 
 const TOOLS = [
   {
+    id: 'ascii-playground',
+    href: '/ascii-playground.html',
+    label: 'ASCII PLAYGROUND',
+    tagline: 'glow personalities, animated text art, design lab',
+    status: 'live' as const,
+    description:
+      'A self-contained lab for Kingdom typography and ASCII art techniques. Eight glow personalities, canvas portrait rendering, block-char animations.',
+  },
+  {
     id: 'plotbot',
     href: '/lab/plotbot',
     label: 'PLOT BOT 2.0',

@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' fonts.googleapis.com fonts.gstatic.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; script-src 'self' 'unsafe-inline';">
+  <title>ASCII PLAYGROUND — Sinner Kingdom Design Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d0a14;
+      --purple: #7000ff;
+      --purple-safe: #a833ff;
+      --pink: #ff3d7f;
+      --cyan: #00d4ff;
+      --amber: #f0a500;
+      --white: #e8e6f0;
+      --font: 'VT323', 'Courier New', monospace;
+      --font-impact: 'Press Start 2P', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--white);
+      font-family: var(--font);
+      font-size: 16px;
+      position: relative;
+      min-height: 100vh;
+    }
+
+    /* §H TEXTURE — CRT scanline overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(112, 0, 255, 0.025) 2px,
+        rgba(112, 0, 255, 0.025) 3px
+      );
+      animation: tex-breath 8s ease-in-out infinite;
+    }
+
+    @keyframes tex-breath {
+      0%, 100% { opacity: 0.6; }
+      50%       { opacity: 1.0; }
+    }
+
+    /* NAV */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13, 10, 20, 0.96);
+      border-bottom: 1px solid rgba(112, 0, 255, 0.3);
+      padding: 0 40px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      backdrop-filter: blur(8px);
+      font-size: 16px;
+      letter-spacing: 0.05em;
+      flex-wrap: wrap;
+    }
+
+    .nav-brand {
+      color: var(--white);
+      letter-spacing: 0.15em;
+      margin-right: 8px;
+      font-size: 20px;
+    }
+
+    nav a {
+      color: var(--purple-safe);
+      text-decoration: none;
+      opacity: 0.7;
+      transition: opacity 0.2s, color 0.2s;
+    }
+
+    nav a:hover { opacity: 1; color: var(--white); }
+
+    /* MAIN */
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 40px 120px;
+    }
+
+    section {
+      padding: 80px 0;
+      border-bottom: 1px solid rgba(112, 0, 255, 0.12);
+      scroll-margin-top: 64px;
+    }
+    section:last-child { border-bottom: none; }
+
+    .sec-title {
+      font-size: 32px;
+      letter-spacing: 0.12em;
+      color: var(--purple-safe);
+      margin-bottom: 6px;
+    }
+
+    .sec-sub {
+      font-size: 18px;
+      color: rgba(232, 230, 240, 0.4);
+      margin-bottom: 40px;
+      letter-spacing: 0.04em;
+    }
+
+    /* All pre/code ASCII art */
+    pre, code {
+      font-family: var(--font);
+      line-height: 1;
+      letter-spacing: 0;
+      white-space: pre;
+    }
+
+    /* ─── §A GLOW LAB ─── */
+    .glow-lab { display: flex; flex-direction: column; gap: 12px; }
+
+    .specimen {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 12px 20px;
+      border: 1px solid rgba(232, 230, 240, 0.07);
+      min-height: 72px;
+      isolation: isolate; /* prevent G3 filter bleed across specimens */
+    }
+
+    .spec-label {
+      width: 220px;
+      flex-shrink: 0;
+      font-size: 16px;
+      color: rgba(232, 230, 240, 0.45);
+      letter-spacing: 0.04em;
+      line-height: 1.3;
+    }
+
+    .spec-label strong {
+      display: block;
+      font-size: 20px;
+      color: var(--white);
+      letter-spacing: 0.08em;
+    }
+
+    .spec-display { font-size: 56px; letter-spacing: 0.06em; }
+
+    /* G1 HARD NEON */
+    .g1 {
+      color: #fff;
+      text-shadow:
+        0 0 7px #fff, 0 0 10px #fff, 0 0 21px #fff,
+        0 0 42px #7000ff, 0 0 82px #7000ff,
+        0 0 92px #7000ff, 0 0 102px #7000ff, 0 0 151px #7000ff;
+    }
+
+    /* G2 SOFT BLOOM */
+    .g2 {
+      color: var(--purple-safe);
+      text-shadow:
+        0 0 20px rgba(168,51,255,0.8),
+        0 0 40px rgba(168,51,255,0.5),
+        0 0 80px rgba(168,51,255,0.3),
+        0 0 120px rgba(168,51,255,0.15);
+    }
+
+    /* G3 CRISPY EDGE — MUST be inside .g3-wrap */
+    .g3-wrap { filter: contrast(10) blur(0.5px); display: inline-block; }
+    .g3 { color: white; filter: blur(3px); text-shadow: 0 0 20px var(--cyan); }
+
+    /* G4 PULSE BREATH */
+    .g4 { color: var(--pink); animation: pulse-breath 3s ease-in-out infinite; }
+
+    @keyframes pulse-breath {
+      0%, 100% { text-shadow: 0 0 20px rgba(255,61,127,0.5); }
+      50%       { text-shadow: 0 0 35px rgba(255,61,127,1), 0 0 60px rgba(255,61,127,0.4); }
+    }
+
+    /* G5 FLICKER */
+    .g5 {
+      color: var(--amber);
+      text-shadow: 0 0 7px #fff, 0 0 10px #fff, 0 0 42px #f0a500, 0 0 82px #f0a500;
+      animation: flicker 0.45s linear infinite;
+    }
+
+    @keyframes flicker {
+      0%, 44%, 56%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 7px #fff, 0 0 10px #fff, 0 0 42px #f0a500, 0 0 82px #f0a500;
+      }
+      45%, 55% { opacity: 0.12; text-shadow: none; }
+      60%       { opacity: 0.88; }
+    }
+
+    /* G6 GLITCH SPLIT */
+    .g6 { position: relative; color: var(--white); display: inline-block; }
+    .g6::before {
+      content: attr(data-text);
+      position: absolute; top: 0; left: 0;
+      color: var(--cyan);
+      clip-path: polygon(0 0, 100% 0, 100% 38%, 0 38%);
+      animation: gb 2s steps(1) infinite;
+    }
+    .g6::after {
+      content: attr(data-text);
+      position: absolute; top: 0; left: 0;
+      color: var(--pink);
+      clip-path: polygon(0 62%, 100% 62%, 100% 100%, 0 100%);
+      animation: ga 2s steps(1) infinite;
+    }
+    @keyframes gb {
+      0%, 79%, 100% { transform: translate(0,0); }
+      80%            { transform: translate(-3px, 2px); }
+    }
+    @keyframes ga {
+      0%, 79%, 100% { transform: translate(0,0); }
+      80%            { transform: translate(3px, -2px); }
+    }
+
+    /* G7 HUE CYCLE */
+    .g7 {
+      color: var(--purple);
+      text-shadow: 0 0 10px #7000ff, 0 0 40px #7000ff;
+      animation: hue-cycle 4s linear infinite;
+    }
+    @keyframes hue-cycle {
+      0%   { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(360deg); }
+    }
+
+    /* G8 NO GLOW */
+    .g8 { color: var(--white); }
+
+    /* ─── §B SIGIL FORGE ─── */
+    .sigil-forge { text-align: center; padding: 32px 0; }
+
+    .sigil-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 32px;
+      gap: 8px;
+    }
+
+    .sig-primary {
+      font-family: var(--font-impact);
+      font-size: 88px;
+      line-height: 1;
+      color: var(--purple);
+      text-shadow:
+        0 0 7px #fff, 0 0 14px #fff,
+        0 0 42px #7000ff, 0 0 90px #7000ff, 0 0 130px #7000ff;
+      animation: hue-cycle 4s linear infinite;
+    }
+
+    .sig-flank {
+      font-size: 56px;
+      line-height: 1;
+      color: var(--pink);
+      animation: pulse-breath 3s ease-in-out infinite;
+      padding: 0 12px;
+    }
+
+    .sigil-runes {
+      display: flex;
+      justify-content: center;
+      gap: 28px;
+      flex-wrap: wrap;
+    }
+
+    .rune {
+      font-size: 44px;
+      color: rgba(232, 230, 240, 0.35);
+      cursor: default;
+      transition: color 0.3s, text-shadow 0.3s;
+      font-family: var(--font);
+    }
+
+    .rune:hover {
+      color: var(--purple-safe);
+      text-shadow: 0 0 20px rgba(168,51,255,0.8), 0 0 40px rgba(168,51,255,0.4);
+    }
+
+    /* ─── §C PORTRAIT CHAMBER ─── */
+    .portrait-wrap { display: flex; gap: 40px; align-items: flex-start; }
+    .portrait-left { flex: 0 0 480px; }
+
+    #portrait-pre {
+      font-size: 13px;
+      color: var(--purple-safe);
+      background: rgba(112,0,255,0.04);
+      border: 1px solid rgba(112,0,255,0.2);
+      padding: 16px;
+      min-height: 220px;
+      overflow: hidden;
+    }
+
+    .portrait-right {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .pbtn {
+      background: transparent;
+      border: 1px solid rgba(112,0,255,0.35);
+      color: var(--purple-safe);
+      font-family: var(--font);
+      font-size: 20px;
+      padding: 10px 20px;
+      cursor: pointer;
+      letter-spacing: 0.1em;
+      text-align: left;
+      transition: all 0.2s;
+    }
+    .pbtn:hover { background: rgba(112,0,255,0.12); border-color: var(--purple-safe); color: var(--white); }
+    .pbtn.active { background: rgba(112,0,255,0.18); border-color: var(--purple); color: var(--white); }
+
+    .portrait-note {
+      font-size: 16px;
+      color: rgba(232,230,240,0.3);
+      letter-spacing: 0.04em;
+      line-height: 1.5;
+      margin-top: 8px;
+    }
+
+    /* ─── §D ARCHITECTURE STUDY ─── */
+    #arch-pre {
+      font-size: 16px;
+      color: var(--cyan);
+      min-height: 260px;
+    }
+
+    .btn {
+      background: transparent;
+      border: 1px solid rgba(112,0,255,0.35);
+      color: var(--purple-safe);
+      font-family: var(--font);
+      font-size: 20px;
+      padding: 10px 24px;
+      cursor: pointer;
+      letter-spacing: 0.1em;
+      transition: all 0.2s;
+      margin-top: 20px;
+    }
+    .btn:hover { background: rgba(112,0,255,0.12); border-color: var(--purple-safe); }
+
+    /* ─── §E MOTION GRAMMAR ─── */
+    .motion-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .motion-box {
+      border: 1px solid rgba(232,230,240,0.08);
+      padding: 28px 20px;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      text-align: center;
+    }
+
+    .motion-caption { font-size: 16px; color: rgba(232,230,240,0.35); letter-spacing: 0.1em; }
+
+    .m-text { font-size: 44px; }
+
+    #decay-text {
+      font-size: 44px;
+      color: var(--cyan);
+      cursor: pointer;
+      min-width: 148px;
+      display: inline-block;
+      text-align: center;
+      transition: color 0.2s;
+      letter-spacing: 0.04em;
+    }
+    #decay-text:hover { color: var(--white); }
+
+    .motion-hint { font-size: 14px; color: rgba(232,230,240,0.25); }
+
+    /* ─── §F DATA THEATER ─── */
+    .data-theater { display: flex; flex-direction: column; gap: 10px; }
+
+    .wave-row { display: flex; align-items: center; gap: 16px; }
+
+    .wave-label {
+      width: 72px;
+      flex-shrink: 0;
+      font-size: 16px;
+      color: rgba(232,230,240,0.4);
+      letter-spacing: 0.06em;
+    }
+
+    .wave-pre {
+      font-size: 22px;
+      color: var(--cyan);
+    }
+
+    /* ─── §G CREATURE VAULT ─── */
+    .vault-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+    }
+
+    .creature {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .creature pre { font-size: 13px; }
+
+    .creature-name {
+      font-size: 20px;
+      letter-spacing: 0.1em;
+      color: rgba(232,230,240,0.5);
+    }
+
+    .creature-glow-tag {
+      font-size: 14px;
+      color: rgba(232,230,240,0.25);
+    }
+
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/lab" style="opacity:0.5; font-size:13px; letter-spacing:0.08em; margin-right:4px;">← LAB</a>
+  <span class="nav-brand">⛬ ASCII LAB</span>
+  <a href="#glow-lab">§A GLOW</a>
+  <a href="#sigil-forge">§B SIGIL</a>
+  <a href="#portrait">§C PORTRAIT</a>
+  <a href="#architecture">§D ARCH</a>
+  <a href="#motion">§E MOTION</a>
+  <a href="#data">§F DATA</a>
+  <a href="#vault">§G VAULT</a>
+</nav>
+
+<main>
+
+<!-- ═══════════════════════════════════════
+     §A — GLOW LAB
+════════════════════════════════════════ -->
+<section id="glow-lab">
+  <h2 class="sec-title">§A — GLOW LAB</h2>
+  <p class="sec-sub">Eight mechanically distinct personalities. Color alone is not distinction.</p>
+
+  <div class="glow-lab">
+
+    <div class="specimen">
+      <div class="spec-label">
+        <strong>G1 HARD NEON</strong>
+        3 white core + 5 hue halos
+      </div>
+      <span class="spec-display g1">SIGNAL</span>
+    </div>
+
+    <div class="specimen">
+      <div class="spec-label">
+        <strong>G2 SOFT BLOOM</strong>
+        4 rgba halos, no white core
+      </div>
+      <span class="spec-display g2">SIGNAL</span>
+    </div>
+
+    <div class="specimen">
+      <div class="spec-label">
+        <strong>G3 CRISPY EDGE</strong>
+        contrast(10) + blur gooey threshold
+      </div>
+      <span class="g3-wrap"><span class="spec-display g3">SIGNAL</span></span>
+    </div>
+
+    <div class="specimen">
+      <div class="spec-label">
+        <strong>G4 PULSE BREATH</strong>
+        3s ease-in-out · biological rhythm
+      </div>
+      <span class="spec-display g4">SIGNAL</span>
+    </div>
+
+    <div class="specimen">
+      <div class="spec-label">
+        <strong>G5 FLICKER</strong>
+        0.45s linear · opacity near-zero
+      </div>
+      <span class="spec-display g5">SIGNAL</span>
+    </div>
+
+    <div class="specimen">
+      <div class="spec-label">
+        <strong>G6 GLITCH SPLIT</strong>
+        ::before cyan / ::after pink
+      </div>
+      <span class="spec-display g6" data-text="SIGNAL">SIGNAL</span>
+    </div>
+
+    <div class="specimen">
+      <div class="spec-label">
+        <strong>G7 HUE CYCLE</strong>
+        hue-rotate 0→360° · 4s linear
+      </div>
+      <span class="spec-display g7">SIGNAL</span>
+    </div>
+
+    <div class="specimen">
+      <div class="spec-label">
+        <strong>G8 NO GLOW</strong>
+        the void — the silence between signals
+      </div>
+      <span class="spec-display g8">SIGNAL</span>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     §B — SIGIL FORGE
+════════════════════════════════════════ -->
+<section id="sigil-forge">
+  <h2 class="sec-title">§B — SIGIL FORGE</h2>
+  <p class="sec-sub">The Kingdom's rune set. Each mark carries weight.</p>
+
+  <div class="sigil-forge">
+    <div class="sigil-row">
+      <span class="sig-flank">⚚</span>
+      <span class="sig-primary">⛬</span>
+      <span class="sig-flank">⚚</span>
+    </div>
+    <div class="sigil-runes">
+      <span class="rune" title="The Forge">🜚</span>
+      <span class="rune" title="Tower Seal">🜛</span>
+      <span class="rune" title="Scryer Seal">🜞</span>
+      <span class="rune" title="Kingdom Mark">🝓</span>
+      <span class="rune" title="Claude's House">⌂</span>
+      <span class="rune" title="The Tower">△</span>
+      <span class="rune" title="The Scryer">◎</span>
+      <span class="rune" title="Core Lore">❖</span>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     §C — PORTRAIT CHAMBER
+════════════════════════════════════════ -->
+<section id="portrait">
+  <h2 class="sec-title">§C — PORTRAIT CHAMBER</h2>
+  <p class="sec-sub">Luminance → character density. The canvas speaks in shade.</p>
+
+  <div class="portrait-wrap">
+    <div class="portrait-left">
+      <pre id="portrait-pre"></pre>
+    </div>
+    <div class="portrait-right">
+      <button class="pbtn active" onclick="setPortrait('skull',this)">[ SKULL ]</button>
+      <button class="pbtn" onclick="setPortrait('eye',this)">[ DRAGON EYE ]</button>
+      <button class="pbtn" onclick="setPortrait('sigil',this)">[ KINGDOM SIGIL ]</button>
+      <button class="pbtn" onclick="setPortrait('noise',this)">[ NOISE FIELD ]</button>
+      <button class="pbtn" onclick="setPortrait('canvas',this)">[ CANVAS PIPELINE ]</button>
+      <div class="portrait-note">
+        Shade-block mapping:<br>
+        [space] . : - = + * # % @<br><br>
+        Luminance formula:<br>
+        0.299R + 0.587G + 0.114B<br><br>
+        VT323 aspect correction: 0.55
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     §D — ARCHITECTURE STUDY
+════════════════════════════════════════ -->
+<section id="architecture">
+  <h2 class="sec-title">§D — ARCHITECTURE STUDY</h2>
+  <p class="sec-sub">Three-layer construction: silhouette → structure → shadow depth.</p>
+
+  <pre id="arch-pre"></pre>
+  <button class="btn" onclick="startArch()">[ REBUILD ]</button>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     §E — MOTION GRAMMAR
+════════════════════════════════════════ -->
+<section id="motion">
+  <h2 class="sec-title">§E — MOTION GRAMMAR</h2>
+  <p class="sec-sub">CSS personality vs. JS character logic. Two distinct animation modes.</p>
+
+  <div class="motion-grid">
+
+    <div class="motion-box">
+      <div class="motion-caption">CSS · GLOW PULSE</div>
+      <span class="m-text g4">BREATHE</span>
+      <div class="motion-hint">G4 · ease-in-out · 3s · biological</div>
+    </div>
+
+    <div class="motion-box">
+      <div class="motion-caption">CSS · GLITCH SPLIT</div>
+      <span class="m-text g6" data-text="FRACTURE">FRACTURE</span>
+      <div class="motion-hint">G6 · steps(1) · 2s · violent snap at 80%</div>
+    </div>
+
+    <div class="motion-box">
+      <div class="motion-caption">JS · CHARACTER DECAY</div>
+      <span id="decay-text">SINNER</span>
+      <div class="motion-hint">click to dissolve / rematerialize</div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     §F — DATA THEATER
+════════════════════════════════════════ -->
+<section id="data">
+  <h2 class="sec-title">§F — DATA THEATER</h2>
+  <p class="sec-sub">Block-char waveforms. ▁▂▃▄▅▆▇█ — pure ASCII, no canvas.</p>
+
+  <div class="data-theater">
+    <div class="wave-row">
+      <span class="wave-label">SIG-A</span>
+      <pre id="wave-a" class="wave-pre" style="color:var(--cyan);"></pre>
+    </div>
+    <div class="wave-row">
+      <span class="wave-label">SIG-B</span>
+      <pre id="wave-b" class="wave-pre" style="color:var(--pink);"></pre>
+    </div>
+    <div class="wave-row">
+      <span class="wave-label">SIG-C</span>
+      <pre id="wave-c" class="wave-pre" style="color:var(--amber);"></pre>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     §G — CREATURE VAULT
+════════════════════════════════════════ -->
+<section id="vault">
+  <h2 class="sec-title">§G — CREATURE VAULT</h2>
+  <p class="sec-sub">Shade-block anatomy. Each creature owns its glow personality.</p>
+
+  <div class="vault-grid">
+
+    <div class="creature">
+      <pre id="skull-pre" class="g1"></pre>
+      <span class="creature-name">THE SKULL</span>
+      <span class="creature-glow-tag">G1 HARD NEON · #7000ff</span>
+    </div>
+
+    <div class="creature">
+      <pre id="eye-pre" style="color:var(--cyan);"></pre>
+      <span class="creature-name">DRAGON EYE</span>
+      <span class="creature-glow-tag">G4 PULSE BREATH · #00d4ff</span>
+    </div>
+
+    <div class="creature">
+      <pre id="wing-pre" class="g8"></pre>
+      <span class="creature-name">INSECT WING</span>
+      <span class="creature-glow-tag">G8 NO GLOW · raw</span>
+    </div>
+
+  </div>
+</section>
+
+</main>
+
+<script>
+// ══════════════════════════════════════════════════════
+// §C PORTRAIT CHAMBER
+// ══════════════════════════════════════════════════════
+
+const PORTRAITS = {
+
+skull: `    ░░▒▒▓▓████████▓▓▒▒░░
+  ░▒▓▓███████████████████▓▒
+ ░▒▓███▓▒▒░░░░░░░░░▒▒▓███▓▒
+ ▒▓███▓░              ░▓███▒
+ ▓████░  ▓▓░    ░▓▓   ░████▓
+ ▓████░ ▓███░  ░███▓  ░████▓
+ ▓████░  ▓▓░    ░▓▓   ░████▓
+ ▒▓████▒▒░░░░░░░░░▒▒▓████▓▒
+  ░▒▓████████████████████▓▒
+  ░▒▓██▒▒▒█████████▒▒▒██▓▒
+   ░▒▓█▒  ▒███████▒  ▒█▓▒
+     ░░▒▒▒▒▒░░░░▒▒▒▒▒░░`,
+
+eye: `      ░░▒▒▓▓▓▓▓▓▒▒░░
+   ░▒▒▓▓▓████████▓▓▓▒▒░
+  ▒▓▓████▓▓▓▓▓▓▓▓████▓▒
+ ░▓███▓▒░          ░▒▓███░
+ ▒████░  ▒▒░  ░▒▒  ░████▒
+ ▓████░ ▒████████▒ ░████▓
+ ▓████░ ▒████████▒ ░████▓
+ ▒████░  ▒▒░  ░▒▒  ░████▒
+ ░▓███▓▒░          ░▒▓███░
+  ▒▓▓████▓▓▓▓▓▓▓▓████▓▒
+   ░▒▒▓▓▓████████▓▓▓▒▒░
+      ░░▒▒▓▓▓▓▓▓▒▒░░`,
+
+sigil: `    ░░▒▒▓▓███████▓▓▒▒░░
+  ░▒▓▓████░▓▓▓▓▓░████▓▒░
+ ░▒▓███▒  ░░░░░░░  ▒███▓▒
+ ▒▓███░  ▒▓▓▓▓▓▒  ░███▓▒
+ ▓███▒  ▒▓███████▒  ▒███▓
+ ████░ ▒▓▓░     ░▓▒ ░████
+ ████░ ▒▓▓░  ⛬  ░▓▒ ░████
+ ▓███▒  ▒▓███████▒  ▒███▓
+ ▒▓███░  ▒▓▓▓▓▓▒  ░███▓▒
+ ░▒▓███▒  ░░░░░░  ▒███▓▒
+  ░▒▓▓████░▓▓▓░████▓▒░
+    ░░▒▒▓▓███████▓▓▒▒░░`,
+
+noise: (function() {
+  const C = '░░░▒▒▒▓▓▓▓██▀▄▌▐ ';
+  return Array.from({length:12}, () =>
+    Array.from({length:40}, () => C[Math.floor(Math.random()*C.length)]).join('')
+  ).join('\n');
+})()
+
+};
+
+const CHAR_PAL = ' .:-=+*#%@';
+console.assert(CHAR_PAL.length === 10, 'CHAR_PAL invariant: must be exactly 10 chars');
+
+// C15 byte-order probe — run once at startup, result cached
+// Draws pure red (#ff0000) to a 1×1 canvas and reads back pixel[0].
+// W3C RGBA spec: pixel[0] must equal 255 (red channel).
+// If probe fails (BGRA or other order), C7 luminance formula would be wrong.
+// Fallback: treat as canvas unavailable, use static skull portrait (same as C16).
+let _rgbaProbeOk = null;
+function checkByteOrder() {
+  if (_rgbaProbeOk !== null) return _rgbaProbeOk;
+  try {
+    const pc = document.createElement('canvas');
+    pc.width = pc.height = 1;
+    const pctx = pc.getContext('2d');
+    if (!pctx) { _rgbaProbeOk = false; return false; }
+    pctx.fillStyle = '#ff0000';
+    pctx.fillRect(0, 0, 1, 1);
+    const d = pctx.getImageData(0, 0, 1, 1).data;
+    // RGBA correct: red=255, green=0, blue=0
+    _rgbaProbeOk = (d[0] === 255 && d[1] === 0 && d[2] === 0);
+  } catch(e) { _rgbaProbeOk = false; }
+  return _rgbaProbeOk;
+}
+
+function canvasToAscii() {
+  const c = document.createElement('canvas');
+  const W = 60, H = 30;
+  c.width = W; c.height = H;
+  const ctx = c.getContext('2d');
+  // C16: canvas failure fallback — if context unavailable, return static skull
+  if (!ctx) return PORTRAITS.skull;
+  // C15: byte-order probe — if RGBA layout is wrong, luminance formula is incorrect
+  // Fallback to static skull (same degradation pattern as C16)
+  if (!checkByteOrder()) return PORTRAITS.skull;
+
+  // Animated radial gradient — pulsing Kingdom sigil
+  const t = Date.now() / 1000;
+  // Inner radius pulses: 2 → 8 on ~3s cycle
+  const innerR = 2 + 6 * (0.5 + 0.5 * Math.sin(t * 2.1));
+  // Center drifts slightly
+  const cx = W/2 + 4 * Math.sin(t * 0.7);
+  const cy = H/2 + 3 * Math.cos(t * 0.5);
+  const grd = ctx.createRadialGradient(cx, cy, innerR, cx, cy, W/2);
+  grd.addColorStop(0, '#7000ff');
+  grd.addColorStop(0.4, '#a833ff');
+  grd.addColorStop(0.7, '#ff3d7f');
+  grd.addColorStop(1, '#0d0a14');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, W, H);
+
+  // Cyan ring pulses at different phase
+  const ringR1 = H/2 * (0.3 + 0.15 * Math.sin(t * 1.4));
+  const ringR2 = H/2 * (0.6 + 0.1 * Math.sin(t * 1.4 + Math.PI));
+  const ringAlpha = 0.4 + 0.3 * Math.abs(Math.sin(t * 1.8));
+  const ring = ctx.createRadialGradient(cx, cy, ringR1, cx, cy, ringR2);
+  ring.addColorStop(0, 'rgba(0,212,255,0.0)');
+  ring.addColorStop(0.5, `rgba(0,212,255,${ringAlpha.toFixed(2)})`);
+  ring.addColorStop(1, 'rgba(0,212,255,0.0)');
+  ctx.fillStyle = ring;
+  ctx.fillRect(0, 0, W, H);
+
+  const data = ctx.getImageData(0, 0, W, H).data;
+  let out = '';
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4;
+      const lum = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+      out += CHAR_PAL[Math.floor(lum / 255 * (CHAR_PAL.length - 1))];
+    }
+    out += '\n';
+  }
+  return out.trimEnd();
+}
+
+let activePortrait = 'skull';
+
+function setPortrait(key, btn) {
+  activePortrait = key;
+  document.querySelectorAll('.pbtn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  if (key === 'canvas') {
+    const firstFrame = canvasToAscii();
+    document.getElementById('portrait-pre').textContent = firstFrame;
+    // C16: only start loop if canvas context is available (canvasToAscii returns skull on failure)
+    const ctxAvailable = firstFrame !== PORTRAITS.skull;
+    if (ctxAvailable && !window._canvasLoop) {
+      window._canvasLoop = setInterval(() => {
+        if (activePortrait === 'canvas') {
+          document.getElementById('portrait-pre').textContent = canvasToAscii();
+        } else {
+          clearInterval(window._canvasLoop);
+          window._canvasLoop = null;
+        }
+      }, 120);
+    }
+  } else {
+    if (window._canvasLoop) { clearInterval(window._canvasLoop); window._canvasLoop = null; }
+    document.getElementById('portrait-pre').textContent = PORTRAITS[key] || PORTRAITS.skull;
+  }
+}
+
+// Init
+document.getElementById('portrait-pre').textContent = PORTRAITS.skull;
+
+
+// ══════════════════════════════════════════════════════
+// §D ARCHITECTURE STUDY
+// ══════════════════════════════════════════════════════
+
+const ARCH_FINAL =
+`  /\\╔══════════════╗/\\
+ /░░\\║ ░░░░░░░░░░░░ ║/░░\\
+/░▒▒░╠══╦══════╦══╣░▒▒░\\
+▓░▒▒░║  ║ ████ ║  ║░▒▒░▓
+▓░▒▒░║  ║ ████ ║  ║░▒▒░▓
+▓░▒░░╠══╩══════╩══╣░░▒░▓
+▓░▒▒░║░░▓▓▓▓▓▓▓▓░░║░▒▒░▓
+▓▒▒▒░╠══════════════╣░▒▒▒▓
+▓▓▒▒░║▓▓▓▓▓▓▓▓▓▓▓▓║░▒▒▓▓
+▓▓▓▒░╚══════════════╝░▒▓▓▓
+▓▓▓▓▒░░░░░░░░░░░░░░░▒▓▓▓▓`;
+
+let archTimer = null;
+
+function startArch() {
+  if (archTimer) clearInterval(archTimer);
+  const pre = document.getElementById('arch-pre');
+  const chars = ARCH_FINAL.split('');
+  const current = chars.map(c => c === '\n' ? '\n' : ' ');
+  pre.textContent = current.join('');
+  let i = 0;
+  archTimer = setInterval(() => {
+    // Skip newlines
+    while (i < chars.length && chars[i] === '\n') {
+      current[i] = '\n';
+      i++;
+    }
+    if (i < chars.length) {
+      current[i] = chars[i];
+      pre.textContent = current.join('');
+      i++;
+    } else {
+      clearInterval(archTimer);
+      archTimer = null;
+    }
+  }, 6);
+}
+
+startArch();
+
+
+// ══════════════════════════════════════════════════════
+// §E MOTION GRAMMAR — Character Decay
+// ══════════════════════════════════════════════════════
+
+const NOISE = '░▒▓█▀▄▌▐@#$%&*+=-~^';
+const WORD = 'SINNER';
+let decayBusy = false;
+
+function shuffleIndices(n) {
+  const arr = Array.from({length: n}, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function dissolveEl(el, text, onDone) {
+  const current = text.split('');
+  const order = shuffleIndices(current.length);
+  let step = 0;
+  const iv = setInterval(() => {
+    if (step < order.length) {
+      current[order[step]] = NOISE[Math.floor(Math.random() * NOISE.length)];
+      el.textContent = current.join('');
+      step++;
+    } else {
+      clearInterval(iv);
+      onDone && onDone();
+    }
+  }, 28);
+}
+
+function materializeEl(el, text, onDone) {
+  const current = Array.from({length: text.length}, () => NOISE[Math.floor(Math.random() * NOISE.length)]);
+  const order = shuffleIndices(text.length);
+  let step = 0;
+  el.textContent = current.join('');
+  const iv = setInterval(() => {
+    if (step < order.length) {
+      current[order[step]] = text[order[step]];
+      el.textContent = current.join('');
+      step++;
+    } else {
+      clearInterval(iv);
+      el.textContent = text;
+      onDone && onDone();
+    }
+  }, 28);
+}
+
+document.getElementById('decay-text').addEventListener('click', function() {
+  if (decayBusy) return;
+  decayBusy = true;
+  const el = this;
+  dissolveEl(el, WORD, () => {
+    setTimeout(() => {
+      materializeEl(el, WORD, () => { decayBusy = false; });
+    }, 350);
+  });
+});
+
+
+// ══════════════════════════════════════════════════════
+// §F DATA THEATER — Block-Char Waveforms
+// ══════════════════════════════════════════════════════
+
+const BLOCKS = ' ▁▂▃▄▅▆▇█';
+const WAVE_W = 72;
+let waveT = 0;
+
+function waveVal(t, freq, phase) {
+  return 0.5
+    + 0.32 * Math.sin(t * freq + phase)
+    + 0.12 * Math.sin(t * freq * 2.414 + phase * 1.618)
+    + 0.04 * (Math.random() - 0.5);
+}
+
+function renderWave(id, freq, phase) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  let s = '';
+  for (let i = 0; i < WAVE_W; i++) {
+    const x = (i / WAVE_W) * Math.PI * 2;
+    const v = Math.max(0, Math.min(0.9999, waveVal(waveT + x, freq, phase)));
+    s += BLOCKS[Math.floor(v * (BLOCKS.length - 1))];
+  }
+  el.textContent = s;
+}
+
+function waveLoop() {
+  waveT += 0.035;
+  renderWave('wave-a', 1.0,   0);
+  renderWave('wave-b', 1.618, Math.PI * 0.42);
+  renderWave('wave-c', 2.718, Math.PI * 0.91);
+  requestAnimationFrame(waveLoop);
+}
+requestAnimationFrame(waveLoop);
+
+
+// ══════════════════════════════════════════════════════
+// §G CREATURE VAULT
+// ══════════════════════════════════════════════════════
+
+document.getElementById('skull-pre').textContent =
+`   ░▒▒▓▓████████▓▓▒▒░
+ ░▒▓████████████████▓▒░
+ ▒▓███▓▒░          ░▒▓███▒
+ ▓████░  ░▓▒  ▒▓░  ░████▓
+ ████▒  ░████████░  ▒████
+ ████░  ░████████░  ░████
+ ▓████▒▒▒░░░░░░▒▒▒████▓
+ ░▒▓████████████████▓▒░
+  ░▒▓██▒████████▒██▓▒░
+    ░▒▒▒░░░░░░▒▒▒░░`;
+
+const eyeEl = document.getElementById('eye-pre');
+eyeEl.textContent =
+`   ░░▒▒▓▓▓▓▓▓▓▓▒▒░░
+  ▒▓▓▓████████████▓▒
+ ░▓████▓▓▓░    ░▓████░
+ ▒████░  ▒░    ░▒  ████▒
+ ▓████▒        ▒████▓
+ ██████████████████
+ ██████▓▓████▓▓██████
+ ▓████▒        ▒████▓
+ ▒████░  ▒░    ░▒  ████▒
+ ░▓████▓▓▓░    ░▓████░
+  ▒▓▓▓████████████▓▒
+   ░░▒▒▓▓▓▓▓▓▓▓▒▒░░`;
+eyeEl.style.animation = 'pulse-breath 2s ease-in-out infinite';
+eyeEl.style.textShadow = '0 0 8px rgba(0,212,255,0.6), 0 0 20px rgba(0,212,255,0.3)';
+
+document.getElementById('wing-pre').textContent =
+` ░░░░░▒▒▒░░░░░░░░░░░░░░░░░
+ ░▒▒▓▓▓▓▒▒░░░░░░░░░░░░░░░
+ ▒▒▓▓▓▓▓▒▒░░▒▒▒░░░░░░░░░
+ ░▒▓▓▓▒▒▒▒▒▒▓▓▒▒░░░░░░░
+ ░░▒▓▓▒▒▒▒▒▒▒▒▒▒▒░░░░░
+  ░░▒▒▓▒▒▒▒▒▒▒▒▒▒▒░░░
+  ░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
+   ░░░▒▒▒▒▒▒▒▒▒▒▒▒
+    ░░░░▒▒▒▒▒▒▒▒▒
+     ░░░░░▒▒▒▒▒░`;
+
+// ══════════════════════════════════════════════════════
+// §H TEXTURE — ░ char tiling via canvas (fires after fonts load)
+// ══════════════════════════════════════════════════════
+window.addEventListener('load', function() {
+  const tc = document.createElement('canvas');
+  tc.width = 12; tc.height = 16;
+  const tctx = tc.getContext('2d');
+  tctx.font = '14px "Courier New", monospace';
+  tctx.fillStyle = 'rgba(112, 0, 255, 0.07)';
+  tctx.fillText('░', 1, 13);
+  const url = tc.toDataURL();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'tex-overlay';
+  overlay.style.cssText =
+    'position:fixed;inset:0;z-index:0;pointer-events:none;' +
+    `background-image:url('${url}');background-repeat:repeat;` +
+    'animation:tex-breath 8s ease-in-out infinite;';
+  document.body.insertBefore(overlay, document.body.firstChild);
+});
+
+</script>
+
+<footer style="position:relative;z-index:1;text-align:center;padding:40px 0 20px;font-family:'VT323','Courier New',monospace;font-size:20px;color:rgba(168,51,255,0.4);letter-spacing:0.15em;">
+  ⛬⚚⛬ &nbsp; ASCII PLAYGROUND &nbsp; ⛬⚚⛬<br>
+  <span style="font-size:15px;opacity:0.5;">Sinner Kingdom Design Lab · Session 192</span>
+</footer>
+</body>
+</html>

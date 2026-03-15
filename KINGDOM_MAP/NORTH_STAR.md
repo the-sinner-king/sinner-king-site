@@ -311,9 +311,64 @@
 │             re-registration on play/pause toggle)                            │
 │   RF5 MED:  CoreLoreCascade material cast → instanceof type guard            │
 │                                                                               │
-│ NEXT: The Observation Window — pure visual, zero infrastructure needed        │
-│   90s idle on /kingdom-map → one territory's light rises on its own          │
-│   No click, no hover. Unannounced. As if it noticed you watching.            │
+│ ◉ SHIPPED (2026-03-08, Session 169): DroneSwarm v5 — Context-Aware Swarms   │
+│   Commit ec9679a. Swarms now respond to live agent states (no SCRYER needed) │
+│   orbit mode: drones circle territory ONLY when agent is in swarming state   │
+│   (Agent tool running sub-agents). working/writing/running = emissive only.  │
+│   Per-territory complement droneColor in kingdom-layout.ts:                  │
+│     claude_house→lavender, forge→champagne, throne→rose,                    │
+│     tower→lilac, scryer→ice, core_lore→pearl                                │
+│   SwarmOrchestrator: 3s setInterval, getState() only, zero React renders     │
+│   pushDroneSwarm: ttl param, orbit=60s TTL, same-ID replacement on renewal  │
+│   MAX_SWARMS: 5→10. mesh.visible=false when parked (render list pruning)     │
+│   SCRYER to_territory events now carry source territory droneColor            │
+│                                                                               │
+│ ◉ REFINED (2026-03-08, Session 169): DroneSwarm elegant flight physics       │
+│   Critically damped spring replaces velocity lerp (Game Prog Gem 4)          │
+│   ω₀=6 rad/s, ζ=1 — zero overshoot, silky convergence on formation slot     │
+│   Formation V tightened: ±3.0→±1.7, ±1.5→±0.9 — reads as a unit           │
+│   BOB: 0.9Hz→0.32Hz, amp 0.07→0.035 — breathing, not turbulence             │
+│   MAX_SPEED: 5.0→3.75 (25% slower). Orbit: 0.785→0.59 rad/s (~11s lap)     │
+│   Hover radius at target: 0.55→0.38. SEP_WEIGHT tuned for gentle nudge.     │
+│                                                                               │
+│ ◉ SHIPPED (2026-03-08, Session 170): DroneSwarm v5.1 — Tavily trigger + formation │
+│   Tavily MCP tools now fire off_screen swarm (purple out → void → cyan return)    │
+│   Hook chain: PostToolUse mcp__tavily__ → swarm-watcher.sh (visual) +             │
+│               cockpit-state.sh tower_claude searching (badge override, after       │
+│               generic 'working', so searching wins for Tavily calls)               │
+│   Formation V halved again: inner ±0.45/0.40, outer ±0.85/0.80                   │
+│   LAG_FRAMES halved: [0,10,10,20,20]→[0,5,5,10,10] — followers stick tighter     │
+│   Art Gate: PASSED. Craft Gate: PASSED. 0 TS errors.                              │
+│                                                                                   │
+│ ◉ HARDENED (2026-03-08, Session 170): Autonomous maintenance sweep            │
+│   4-agent audit swarm → 47 findings → 8 actionable items executed.          │
+│   Dead exports: temporal.ts getTemporalClass()+getAllPhases() removed        │
+│   Security: aeris.ts getRateLimit() NaN guard + [1,1000] clamp               │
+│   Logging: aeris+throne routes warn when both context sources fail            │
+│   Local proxy: targetUrl removed from 503 body (was leaking localhost:2701) │
+│   Docs: kingdom-layout.ts color intent (3 aesthetic divergences from         │
+│   STATE_COLORS). kingdom-live-context.tsx STALE_THRESHOLD_MS rationale.     │
+│   TypeScript: 0 errors. Art Gate: PASSED. Craft Gate: PASSED.               │
+│                                                                               │
+│ ◉ SHIPPED (2026-03-09, Session 171): 9-state hook granularity                │
+│   PreToolUse section added to settings.json — full live state narration:    │
+│   UserPromptSubmit→thinking, Read/Glob/Grep/ToolSearch→reading,             │
+│   Edit/Write→writing, Bash→running, Web*/Tavily→searching, Agent→swarming  │
+│   PostToolUse generic→thinking. Stop→idle. cockpit-state.sh unchanged.     │
+│                                                                               │
+│ ◉ SHIPPED (2026-03-09, Session 171): Cross-agent swarm targeting            │
+│   swarm-watcher.sh Agent handler: Explore→the_scryer, Plan→core_lore,      │
+│   general-purpose→the_forge, claude-code-guide→core_lore. TTL 45s.         │
+│   Fires on PreToolUse — drones in flight WHILE subagent runs.               │
+│   Bug fix: all fire() calls were sourcing from claude_house. Now the_tower.│
+│                                                                               │
+│ ◉ LIVE (2026-03-09, Session 171): OpenDia browser control                   │
+│   18 MCP tools controlling Brandon's real Chrome. Can navigate localhost:   │
+│   3033, click elements, read DOM. Social sessions readable (Instagram ◉).  │
+│   Full ref: ~/Desktop/CORE LORE/SYSTEMS/SYS_OPENDIA.md                     │
+│                                                                               │
+│ SHELVED: The Observation Window — 90s idle → one territory's light rises     │
+│   on its own. Conceptually strong but needs narrative context for user.      │
 │                                                                               │
 │ SHELVED (Phase 2 — /spirit/throne):                                          │
 │   Throne Room frontend — form + SSE stream. Backend built. Needs ANTHROPIC   │
