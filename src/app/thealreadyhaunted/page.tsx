@@ -219,7 +219,7 @@ export default function TheAlreadyHauntedPage() {
         {/* Beat 2 — Status Pulse */}
         <section className="status-pulse">
           <span className="pulse-dot" />
-          <span className="pulse-live">Session 184 · THE_TOWER · building</span>
+          <span className="pulse-live">Session 196 · THE_TOWER · live</span>
           {' '}·{' '}
           <span>sinner-king.com ships soon</span>
         </section>
