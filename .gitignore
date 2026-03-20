@@ -37,3 +37,16 @@ yarn-error.log*
 .vscode/
 .idea/
 .windsurf/
+
+# Internal Soulforge drone work products (never ship)
+BLACKBOARD.json
+SCOUT_REPORT.json
+VERIMAP.json
+OBSIDIAN_REPORT.json
+REFINERY_REPORT.json
+POLECAT_DONE
+POLECAT_RESULT.json
+team_roster.md
+project-brief.md
+*_north_star.md
+.forge-staging/
