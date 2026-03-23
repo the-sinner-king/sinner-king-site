@@ -1,5 +1,8 @@
 {
   "name": "kingdom-room",
-  "main": "party/kingdom-room.ts",
+  "parties": {
+    "main": "party/kingdom-room.ts",
+    "visitors": "party/visitor-room.ts"
+  },
   "compatibilityDate": "2024-01-01"
 }

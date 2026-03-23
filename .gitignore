@@ -38,6 +38,12 @@ yarn-error.log*
 .idea/
 .windsurf/
 
+# Wiki build artifacts (generated — never commit)
+public/wiki-manifest.json
+
+# Submodule contents (tracked via .gitmodules, not by parent repo)
+content/core-lore/
+
 # Internal Soulforge drone work products (never ship)
 BLACKBOARD.json
 SCOUT_REPORT.json
