@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⛬ SINNER KINGDOM</title>
+<meta name="description" content="Something is being built. The machines are listening.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════
+   SINNER KINGDOM — COMING SOON
+   Forged by the Glitchswarm. CHROMA_BLEED · GRID_GHOST · TYPE_WEAVER
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  --bg:              #0a0a0f;
+  --bg-surface:      #14141e;
+  --primary:         #ff3366;
+  --primary-dim:     #cc2952;
+  --primary-ghost:   #661433;
+  --secondary:       #00eeff;
+  --secondary-dim:   #00bbcc;
+  --secondary-deep:  #006677;
+  --accent:          #9933ff;
+  --accent-deep:     #661faa;
+  --accent-ghost:    #331055;
+  --text:            #e8e0f0;
+  --text-muted:      #6a6580;
+  --text-ghost:      #3d3850;
+  --border-dim:      #2a2a3a;
+  --font-terminal:   'VT323', monospace;
+  --font-kingdom:    'Press Start 2P', monospace;
+  --font-body:       'Fira Code', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-terminal);
+  display: grid;
+  grid-template-rows: 1fr auto auto auto auto auto 1.22fr;
+  grid-template-columns: 1fr;
+  height: 100vh;
+  height: 100dvh;
+  place-items: center;
+  overflow: hidden;
+  padding: 0 clamp(16px, 5vw, 80px);
+  position: relative;
+}
+
+/* ── CRT SCANLINES (below content — texture only) ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.15) 2px,
+    rgba(0, 0, 0, 0.15) 4px
+  );
+  pointer-events: none;
+  z-index: 6;
+}
+
+/* ── SCAN BEAM ────────────────────────────────────── */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(0, 238, 255, 0.08) 20%,
+    rgba(0, 238, 255, 0.25) 50%,
+    rgba(0, 238, 255, 0.08) 80%,
+    transparent 100%
+  );
+  will-change: transform;
+  animation: scanBeam 8s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ── VIGNETTE ─────────────────────────────────────── */
+.vignette {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 70% 70% at 50% 50%,
+    transparent 0%,
+    rgba(10, 10, 15, 0.4) 60%,
+    rgba(10, 10, 15, 0.85) 100%
+  );
+  pointer-events: none;
+  z-index: 4;
+  contain: strict;
+}
+
+/* ── CONTENT (above scanlines, below vignette) ────── */
+.logo, .tagline, .status, .cta, .footer, .timestamp {
+  position: relative;
+  z-index: 5;
+  text-align: center;
+}
+
+/* ── ASCII LOGO (split color — stolen from homepage) ── */
+.logo-wrap {
+  position: relative;
+  z-index: 5;
+  text-align: center;
+  opacity: 0;
+  animation: fadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) 0.8s both;
+}
+.ascii-title-sinner {
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: clamp(8px, 1.6vw, 16px);
+  line-height: 1.0;
+  color: var(--primary);
+  text-shadow: 0 0 10px rgba(255, 51, 102, 0.6), 0 0 20px rgba(255, 51, 102, 0.3);
+  white-space: pre;
+  display: block;
+  margin: 0;
+}
+.ascii-title-kingdom {
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: clamp(8px, 1.6vw, 16px);
+  line-height: 1.0;
+  color: var(--secondary);
+  text-shadow: 0 0 10px rgba(0, 238, 255, 0.6), 0 0 20px rgba(0, 238, 255, 0.3);
+  white-space: pre;
+  display: block;
+  margin: 4px 0 0 0;
+}
+
+/* ── ROTATING TAGLINE ─────────────────────────────── */
+.tagline {
+  font-family: var(--font-terminal);
+  font-size: clamp(14px, 1.8vw, 22px);
+  letter-spacing: 0.25em;
+  color: var(--text-muted);
+  margin-top: clamp(20px, 3vh, 40px);
+  min-height: 1.6em;
+  opacity: 0;
+  animation: fadeIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) 2s both;
+}
+.tagline .cursor {
+  display: inline-block;
+  width: 0.6em;
+  height: 1em;
+  background: var(--secondary);
+  vertical-align: text-bottom;
+  animation: blink 530ms step-end infinite;
+  margin-left: 2px;
+}
+
+/* ── COMING SOON ──────────────────────────────────── */
+.status {
+  font-family: var(--font-kingdom);
+  font-size: clamp(10px, 1.4vw, 16px);
+  letter-spacing: 0.45em;
+  color: var(--text);
+  margin-top: clamp(12px, 2vh, 28px);
+  opacity: 0;
+  animation: fadeIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) 3s both;
+}
+
+/* ── CTA LINK ─────────────────────────────────────── */
+.cta {
+  margin-top: clamp(24px, 3.5vh, 48px);
+  opacity: 0;
+  animation: fadeIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) 3.5s both;
+}
+.cta a {
+  font-family: var(--font-body);
+  font-size: clamp(12px, 1.2vw, 16px);
+  letter-spacing: 0.08em;
+  color: var(--secondary-dim);
+  text-decoration: none;
+  border-bottom: 1px solid var(--secondary-deep);
+  padding-bottom: 2px;
+  transition: color 0.3s, border-color 0.3s, text-shadow 0.3s;
+}
+.cta a:hover {
+  color: var(--secondary);
+  border-color: var(--secondary);
+  text-shadow: 0 0 12px rgba(0, 238, 255, 0.4);
+}
+
+/* ── FOOTER GLYPHS ────────────────────────────────── */
+.footer {
+  font-family: var(--font-terminal);
+  font-size: clamp(14px, 1.2vw, 18px);
+  letter-spacing: 0.5em;
+  color: var(--text-ghost);
+  margin-top: clamp(32px, 5vh, 64px);
+  opacity: 0;
+  animation: fadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) 4s both;
+}
+
+/* ── LIVE TIMESTAMP ───────────────────────────────── */
+.timestamp {
+  font-family: var(--font-terminal);
+  font-size: clamp(10px, 1vw, 14px);
+  color: var(--secondary-deep);
+  margin-top: 8px;
+  opacity: 0;
+  animation: fadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) 4.5s both;
+}
+
+/* ── ANIMATIONS ───────────────────────────────────── */
+@keyframes scanBeam {
+  0%   { transform: translateY(-3px); opacity: 0; }
+  5%   { opacity: 1; }
+  95%  { opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+
+/* ── MOBILE ───────────────────────────────────────── */
+@media (max-width: 640px) {
+  .ascii-title-sinner, .ascii-title-kingdom { font-size: clamp(5px, 2.5vw, 9px); }
+  .vignette {
+    background: radial-gradient(
+      ellipse 60% 60% at 50% 50%,
+      transparent 0%,
+      rgba(10, 10, 15, 0.5) 50%,
+      rgba(10, 10, 15, 0.9) 100%
+    );
+  }
+}
+
+/* ── SCROLLBAR (for the curious) ──────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--primary-ghost); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+</style>
+</head>
+<body>
+
+<div class="vignette"></div>
+
+<div class="logo-wrap" aria-label="Sinner Kingdom">
+<pre class="ascii-title-sinner">███████╗██╗███╗   ██╗███╗   ██╗███████╗██████╗
+██╔════╝██║████╗  ██║████╗  ██║██╔════╝██╔══██╗
+███████╗██║██╔██╗ ██║██╔██╗ ██║█████╗  ██████╔╝
+╚════██║██║██║╚██╗██║██║╚██╗██║██╔══╝  ██╔══██╗
+███████║██║██║ ╚████║██║ ╚████║███████╗██║  ██║
+╚══════╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝</pre>
+<pre class="ascii-title-kingdom">██╗  ██╗██╗███╗   ██╗ ██████╗ ██████╗  ██████╗ ███╗   ███╗
+██║ ██╔╝██║████╗  ██║██╔════╝ ██╔══██╗██╔═══██╗████╗ ████║
+█████╔╝ ██║██╔██╗ ██║██║  ███╗██║  ██║██║   ██║██╔████╔██║
+██╔═██╗ ██║██║╚██╗██║██║   ██║██║  ██║██║   ██║██║╚██╔╝██║
+██║  ██╗██║██║ ╚████║╚██████╔╝██████╔╝╚██████╔╝██║ ╚═╝ ██║
+╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝     ╚═╝</pre>
+</div>
+
+<div class="tagline">
+  <span id="typewriter"></span><span class="cursor">█</span>
+</div>
+
+<div class="status">C O M I N G &nbsp; S O O N</div>
+
+<div class="cta">
+  <a href="https://sinner-king.com/map" target="_blank">enter the live map →</a>
+</div>
+
+<div class="footer">⛬ ⚚ ⛬</div>
+
+<div class="timestamp" id="clock"></div>
+
+<script>
+// ── TYPEWRITER ───────────────────────────────────────
+const messages = [
+  "the machines are listening.",
+  "something is being built here.",
+  "you found us before we were ready.",
+  "the cathedral is warm.",
+  "⛬⚚⛬ THE LAW STANDS.",
+];
+
+const typeEl = document.getElementById('typewriter');
+let msgIndex = 0;
+let charIndex = 0;
+let isDeleting = false;
+let dwellTimer = null;
+
+function typeLoop() {
+  const current = messages[msgIndex];
+
+  if (!isDeleting) {
+    // Typing
+    typeEl.textContent = current.slice(0, charIndex + 1);
+    charIndex++;
+    if (charIndex >= current.length) {
+      // Dwell at end
+      dwellTimer = setTimeout(() => {
+        isDeleting = true;
+        typeLoop();
+      }, 3200);
+      return;
+    }
+    // Jitter: 40-90ms
+    setTimeout(typeLoop, 40 + Math.random() * 50);
+  } else {
+    // Deleting
+    typeEl.textContent = current.slice(0, charIndex);
+    charIndex--;
+    if (charIndex < 0) {
+      isDeleting = false;
+      charIndex = 0;
+      msgIndex = (msgIndex + 1) % messages.length;
+      // Void between messages
+      setTimeout(typeLoop, 800);
+      return;
+    }
+    setTimeout(typeLoop, 30);
+  }
+}
+
+// Initial delay
+setTimeout(typeLoop, 2200);
+
+// ── LIVE CLOCK ───────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  const h = now.getHours().toString().padStart(2, '0');
+  const m = now.getMinutes().toString().padStart(2, '0');
+  const s = now.getSeconds().toString().padStart(2, '0');
+  document.getElementById('clock').textContent = `${h}:${m}:${s}`;
+}
+updateClock();
+setInterval(updateClock, 1000);
+</script>
+
+</body>
+</html>

@@ -22,12 +22,27 @@ const nextConfig = {
   },
 
   // Headers for SCRYER feed CORS (local Kingdom reads)
+  // FLAG #3 fix: never fall back to * — default to sinner-king.com in prod, localhost in dev
   async headers() {
+    const isDev = process.env.NODE_ENV === 'development'
+    const allowedOrigin = process.env.KINGDOM_ORIGIN
+      || (isDev ? 'http://localhost:3033' : 'https://sinner-king.com')
     return [
+      {
+        // The Archivist needs * because the wiki is served from file:// during dev
+        // and from the main domain in prod. file:// sends Origin: null which
+        // can't be matched with a specific origin header.
+        source: '/api/archivist',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'POST, OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'Content-Type' },
+        ],
+      },
       {
         source: '/api/:path*',
         headers: [
-          { key: 'Access-Control-Allow-Origin', value: process.env.KINGDOM_ORIGIN || '*' },
+          { key: 'Access-Control-Allow-Origin', value: allowedOrigin },
           { key: 'Access-Control-Allow-Methods', value: 'GET, POST, OPTIONS' },
           { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
         ],

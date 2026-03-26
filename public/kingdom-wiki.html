@@ -529,6 +529,104 @@ h2.section-tech {
 .gw-lbl { font-size: 7px; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; }
 .gw-dot { color: rgba(255,179,0,0.15); font-size: 18px; }
 .home-invite { margin-bottom: 28px; }
+
+/* ══════════════════════════════════════════════
+   THE ARCHIVIST — INLINE PANEL
+══════════════════════════════════════════════ */
+.archivist-panel {
+  background: var(--bg2);
+  border: 1px solid rgba(0,243,255,0.25);
+  border-left: 3px solid var(--cyan);
+  padding: 22px 24px;
+  margin-bottom: 28px;
+  position: relative;
+}
+.archivist-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+}
+.archivist-glyph {
+  font-size: 20px; color: var(--cyan);
+  text-shadow: 0 0 12px rgba(0,243,255,0.4);
+}
+.archivist-title {
+  font-size: 11px; font-weight: 700; color: var(--cyan);
+  letter-spacing: 0.15em; text-transform: uppercase;
+}
+.archivist-status {
+  font-size: 8px; color: var(--green); letter-spacing: 0.1em;
+  margin-left: auto; text-transform: uppercase;
+}
+.archivist-welcome {
+  font-size: 12px; color: var(--muted); line-height: 1.7;
+  margin-bottom: 16px; max-width: 600px; font-style: italic;
+}
+.archivist-input-row {
+  display: flex; gap: 8px; align-items: stretch;
+}
+.archivist-input {
+  flex: 1;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(0,243,255,0.2);
+  color: var(--text);
+  font-family: inherit; font-size: 12px;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.archivist-input:focus { border-color: var(--cyan); }
+.archivist-input::placeholder { color: rgba(0,243,255,0.3); }
+.archivist-send {
+  background: rgba(0,243,255,0.1);
+  border: 1px solid rgba(0,243,255,0.3);
+  color: var(--cyan);
+  font-family: inherit; font-size: 10px;
+  padding: 10px 18px;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: background 0.2s, border-color 0.2s;
+}
+.archivist-send:hover { background: rgba(0,243,255,0.15); border-color: var(--cyan); }
+.archivist-send:disabled { opacity: 0.4; cursor: not-allowed; }
+.archivist-conversation {
+  margin-top: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.archivist-msg {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.archivist-msg.visitor {
+  background: rgba(255,179,0,0.05);
+  border-left: 2px solid rgba(255,179,0,0.3);
+  color: var(--amber);
+}
+.archivist-msg.archivist {
+  background: rgba(0,243,255,0.04);
+  border-left: 2px solid rgba(0,243,255,0.25);
+  color: var(--text);
+}
+.archivist-msg.archivist a {
+  color: var(--cyan); text-decoration: underline;
+  cursor: pointer;
+}
+.archivist-msg.archivist a:hover { color: var(--amber); }
+.archivist-msg.system {
+  color: var(--muted); font-style: italic; font-size: 10px;
+  padding: 6px 14px;
+}
+.archivist-typing {
+  color: var(--cyan); font-size: 10px; font-style: italic;
+  padding: 6px 0; letter-spacing: 0.05em;
+}
+.archivist-limit {
+  font-size: 8px; color: rgba(0,243,255,0.25);
+  text-align: right; margin-top: 8px; letter-spacing: 0.08em;
+}
 .invite-kicker { font-size:10px; color:var(--amber); letter-spacing:0.2em; text-transform:uppercase; margin-bottom:10px; }
 .invite-body { font-size:13px; color:var(--text); line-height:1.75; max-width:660px; margin-bottom:10px; }
 .invite-whisper { font-size:11px; color:var(--muted); line-height:1.65; max-width:560px; font-style:italic; }
@@ -798,6 +896,27 @@ h1.page-title { text-shadow: 0 0 12px rgba(255,179,0,0.2); }
     <p class="invite-body">He built it alone. No co-founder, no investors, no audience during the build — no one even asking what he was up to. Eighteen months of free time, nights, weekends, the hours between his kids going to bed and when he finally stopped. <em>"Alone. No buddies to share the excitement with. Nobody even asking me what I'm up to. Or why I'm so obsessed. No curiosity."</em> He kept going anyway. The pull was too strong to set aside.</p>
     <p class="invite-body">The result: a living AI operating system spanning five territories and twenty-three autonomous systems — executing missions, monitoring itself, indexing 9,601 chunks of its own memory, and writing a 6,000-token morning briefing before the first coffee. <strong>The King doesn't explain the system to it. The system remembers.</strong> That was always the point.</p>
     <p class="invite-whisper">This wiki is what the system wrote about itself. Browse around. There's a lot here.</p>
+  </div>
+
+  <!-- THE ARCHIVIST -->
+  <div class="archivist-panel" id="archivist-panel">
+    <div class="archivist-header">
+      <span class="archivist-glyph">◈</span>
+      <span class="archivist-title">The Archivist</span>
+      <span class="archivist-status" id="archivist-status">● AWAKE</span>
+    </div>
+    <div class="archivist-welcome" id="archivist-welcome">
+      You've found the archives. Most don't make it this far. I've been watching this Kingdom get built for over 200 sessions. Ask me anything — the machines, the stories, or the question of whether any of this is real.
+    </div>
+    <div class="archivist-input-row">
+      <input type="text" class="archivist-input" id="archivist-input"
+        placeholder="What draws you to the Kingdom?"
+        autocomplete="off"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();archivistSend()}">
+      <button class="archivist-send" id="archivist-send-btn" onclick="archivistSend()">ASK</button>
+    </div>
+    <div class="archivist-conversation" id="archivist-conversation"></div>
+    <div class="archivist-limit" id="archivist-limit"></div>
   </div>
 
   <!-- Section gateway cards -->
@@ -3346,6 +3465,104 @@ function updateHUD() {
 
 updateHUD();
 setInterval(updateHUD, 1000);
+
+// ══════════════════════════════════════════════
+// THE ARCHIVIST — Inline AI Guide
+// ══════════════════════════════════════════════
+
+const ARCHIVIST_API = window.location.hostname === 'localhost' || window.location.protocol === 'file:'
+  ? 'http://localhost:3033/api/archivist'
+  : '/api/archivist';
+const ARCHIVIST_MAX_EXCHANGES = 5;
+let archivistHistory = [];  // client-side display only — server tracks the real conversation
+let archivistSessionId = null;  // assigned by server on first response
+let archivistBusy = false;
+
+function archivistSend() {
+  const input = document.getElementById('archivist-input');
+  const msg = (input.value || '').trim();
+  if (!msg || archivistBusy) return;
+  if (archivistHistory.filter(m => m.role === 'user').length >= ARCHIVIST_MAX_EXCHANGES) {
+    archivistAddMsg('system', 'The Archivist has shared enough for now. Explore what was shown. Return when you have new questions.');
+    input.disabled = true;
+    document.getElementById('archivist-send-btn').disabled = true;
+    return;
+  }
+
+  input.value = '';
+  archivistAddMsg('visitor', msg);
+  archivistHistory.push({ role: 'user', content: msg });
+  archivistBusy = true;
+  document.getElementById('archivist-send-btn').disabled = true;
+
+  const typing = document.createElement('div');
+  typing.className = 'archivist-typing';
+  typing.id = 'archivist-typing';
+  typing.textContent = 'The Archivist is consulting the archives...';
+  document.getElementById('archivist-conversation').appendChild(typing);
+  scrollArchvist();
+
+  // Only send user messages to server — server maintains conversation state (Flag 3)
+  const payload = { messages: [{ role: 'user', content: msg }] };
+  if (archivistSessionId) payload.sessionId = archivistSessionId;
+
+  fetch(ARCHIVIST_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(r => {
+    if (!r.ok) throw new Error('The Archivist is resting. Try again later.');
+    return r.json();
+  })
+  .then(data => {
+    const t = document.getElementById('archivist-typing');
+    if (t) t.remove();
+    const reply = data.reply || 'The Archivist stares silently.';
+    if (data.sessionId) archivistSessionId = data.sessionId;
+    archivistHistory.push({ role: 'assistant', content: reply });
+    archivistAddMsg('archivist', reply);
+    archivistBusy = false;
+    document.getElementById('archivist-send-btn').disabled = false;
+    document.getElementById('archivist-input').focus();
+    updateArchivistLimit();
+  })
+  .catch(err => {
+    const t = document.getElementById('archivist-typing');
+    if (t) t.remove();
+    archivistAddMsg('system', err.message);
+    archivistBusy = false;
+    document.getElementById('archivist-send-btn').disabled = false;
+  });
+}
+
+function archivistAddMsg(type, text) {
+  const conv = document.getElementById('archivist-conversation');
+  const div = document.createElement('div');
+  div.className = 'archivist-msg ' + type;
+  // Flag 1 fix: Escape HTML FIRST, then convert only safe markdown links (https/http/relative)
+  const escaped = text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  div.innerHTML = escaped.replace(
+    /\[([^\]]+)\]\(((https?:\/\/|\/)[^)]+)\)/g,
+    '<a href="$2" target="_blank" rel="noopener">$1</a>'
+  );
+  conv.appendChild(div);
+  scrollArchvist();
+}
+
+function scrollArchvist() {
+  const conv = document.getElementById('archivist-conversation');
+  conv.scrollTop = conv.scrollHeight;
+}
+
+function updateArchivistLimit() {
+  const used = archivistHistory.filter(m => m.role === 'user').length;
+  const el = document.getElementById('archivist-limit');
+  if (el) el.textContent = used + ' / ' + ARCHIVIST_MAX_EXCHANGES + ' exchanges used';
+}
+
 </script>
 <!-- ═══ AI CONCIERGE MODAL ═══ -->
 <div id="concierge-overlay" onclick="if(event.target===this)closeConcierge()">

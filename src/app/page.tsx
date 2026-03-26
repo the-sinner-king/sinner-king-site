@@ -1,14 +1,28 @@
 /**
  * THE_TOWER — Homepage
  *
- * S172 baseline: Terminal Graveyard + 5 nav monitors + radio + dispatch ticker.
- * TerminalGraveyardScene preserved at same path (Aeris's design — do not delete).
+ * Serves the Coming Soon landing page.
+ * Previous homepage (Terminal Graveyard + HomepageLanding) preserved at /archive/homepage-v1
  */
 
-import { HomepageLanding } from '@/components/homepage/HomepageLanding'
-
-export const dynamic = 'force-dynamic'
+export const metadata = {
+  title: 'The Sinner Kingdom — Coming Soon',
+  description: 'A glitch cathedral disguised as a website. Coming soon.',
+}
 
 export default function HomePage() {
-  return <HomepageLanding />
+  return (
+    <div style={{ width: '100%', height: '100vh', margin: 0, padding: 0, overflow: 'hidden', background: '#0a0a0f' }}>
+      <iframe
+        src="/index.html"
+        style={{
+          width: '100%',
+          height: '100%',
+          border: 'none',
+          display: 'block',
+        }}
+        title="The Sinner Kingdom — Coming Soon"
+      />
+    </div>
+  )
 }
