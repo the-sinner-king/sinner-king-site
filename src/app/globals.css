@@ -227,3 +227,922 @@ code, pre, kbd {
     pointer-events: none;
   }
 }
+
+/* TerritoryNode badge animations — hoisted from per-instance <style> blocks */
+@keyframes badge-pulse {
+  0%,100% { transform: scale(0.92); opacity: 0.75; }
+  50%      { transform: scale(1.08); opacity: 1.0;  }
+}
+
+@keyframes badge-zzz {
+  0%   { transform: translateY(0)     scale(0.8); opacity: 0;    }
+  20%  { transform: translateY(-3px)  scale(1.0); opacity: 0.45; }
+  80%  { transform: translateY(-10px) scale(1.0); opacity: 0.3;  }
+  100% { transform: translateY(-14px) scale(0.7); opacity: 0;    }
+}
+
+/* TerritoryDetailFloat panel entrance — CRT terminal power-on
+   Phase 1 (0-12%):  Power flash — brightness spike, opacity ramps in, scale small
+   Phase 2 (12-45%): Scan reveal — clip-path sweeps top→bottom, brightness cools
+   Phase 3 (45-100%): Settle — scale spring (undershoot then rest), opacity → 1
+   Total: 0.55s. No opacity dip (old 18% dip removed — looked broken at 400ms).
+   clip-path requires overflow:hidden on the outer container (set in TerritoryDetailFloat). */
+@keyframes crt-scan-in {
+  0%   { opacity: 0;    transform: scale(0.92); filter: brightness(5) saturate(0);    clip-path: inset(0 0 100% 0); }
+  12%  { opacity: 0.6;  transform: scale(0.93); filter: brightness(2.5) saturate(0.1); clip-path: inset(0 0 85% 0); }
+  45%  { opacity: 0.95; transform: scale(0.98); filter: brightness(1.1) saturate(0.9); clip-path: inset(0 0 0% 0); }
+  72%  { opacity: 1;    transform: scale(1.005); filter: brightness(1) saturate(1);    clip-path: inset(0 0 0% 0); }
+  100% { opacity: 1;    transform: scale(1);    filter: brightness(1) saturate(1);    clip-path: inset(0 0 0% 0); }
+}
+
+/* Territory detail panel — delayed materialization coordinated with camera fly-in.
+   Soft fade + slide up from below. Glow intensifies as it solidifies.
+   Used with animation-delay: 1.2s and animation-fill-mode: both (invisible until delay). */
+@keyframes panel-materialize {
+  0%   { opacity: 0;   transform: translateY(20px) scale(0.96); filter: brightness(0.3) blur(4px); }
+  40%  { opacity: 0.7; transform: translateY(6px)  scale(0.99); filter: brightness(1.2) blur(1px); }
+  70%  { opacity: 0.95; transform: translateY(-2px) scale(1.005); filter: brightness(1.05) blur(0px); }
+  100% { opacity: 1;   transform: translateY(0)    scale(1);    filter: brightness(1) blur(0px); }
+}
+
+/* ============================================================
+   KINETIC v2 + CHROMA_BLEED — HUD animation vocabulary
+   Installed from kingdom-hud-lab staging (S203)
+   ============================================================ */
+
+/* ── State animations ── */
+@keyframes state-heartbeat {
+  0%   { transform: scale(1); }
+  6%   { transform: scale(1.07); }
+  12%  { transform: scale(0.98); }
+  18%  { transform: scale(1.045); }
+  26%  { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+@keyframes state-think {
+  0%   { opacity: 0.78; transform: translateY(0) scale(1); }
+  35%  { opacity: 0.95; transform: translateY(-0.6px) scale(1.008); }
+  65%  { opacity: 1;    transform: translateY(-0.8px) scale(1.012); }
+  100% { opacity: 0.78; transform: translateY(0) scale(1); }
+}
+@keyframes state-reading-eyes {
+  0%   { transform: translateX(0); }
+  10%  { transform: translateX(1.2px); }
+  22%  { transform: translateX(1.2px); }
+  32%  { transform: translateX(-0.9px); }
+  44%  { transform: translateX(-0.9px); }
+  54%  { transform: translateX(0.6px); }
+  62%  { transform: translateX(0.6px); }
+  72%  { transform: translateX(-1.1px); }
+  82%  { transform: translateX(-1.1px); }
+  92%  { transform: translateX(0); }
+  100% { transform: translateX(0); }
+}
+@keyframes state-write-pulse {
+  0%   { opacity: 1; }
+  8%   { opacity: 0.55; }
+  15%  { opacity: 0.95; }
+  22%  { opacity: 0.60; }
+  30%  { opacity: 1; }
+  42%  { opacity: 0.70; }
+  50%  { opacity: 0.92; }
+  60%  { opacity: 0.58; }
+  70%  { opacity: 1; }
+  100% { opacity: 1; }
+}
+@keyframes state-running {
+  0%   { transform: translate(0, 0); }
+  14%  { transform: translate(0.8px, 0.3px); }
+  28%  { transform: translate(-0.5px, -0.4px); }
+  42%  { transform: translate(0.3px, 0.6px); }
+  57%  { transform: translate(-0.7px, 0.2px); }
+  71%  { transform: translate(0.5px, -0.5px); }
+  85%  { transform: translate(-0.3px, 0.3px); }
+  100% { transform: translate(0, 0); }
+}
+@keyframes state-searching {
+  0%   { letter-spacing: 0.22em; opacity: 0.90; }
+  30%  { letter-spacing: 0.32em; opacity: 1.00; }
+  55%  { letter-spacing: 0.26em; opacity: 0.85; }
+  75%  { letter-spacing: 0.30em; opacity: 0.95; }
+  100% { letter-spacing: 0.22em; opacity: 0.90; }
+}
+@keyframes state-swarming {
+  0%   { transform: translate(0,0) scale(1) skewX(0deg); opacity: 1; }
+  7%   { transform: translate(1.2px,-0.8px) scale(1.04) skewX(0.4deg); opacity: 0.9; }
+  14%  { transform: translate(-0.9px,0.5px) scale(0.97) skewX(-0.6deg); opacity: 1; }
+  21%  { transform: translate(1.6px,0.9px) scale(1.06) skewX(0.8deg); opacity: 0.85; }
+  28%  { transform: translate(-1.3px,-1.1px) scale(0.95) skewX(-0.5deg); opacity: 0.95; }
+  35%  { transform: translate(0.7px,1.4px) scale(1.05) skewX(0.3deg); opacity: 1; }
+  42%  { transform: translate(-1.8px,0.3px) scale(1.02) skewX(-0.9deg); opacity: 0.88; }
+  50%  { transform: translate(1.1px,-1.3px) scale(0.96) skewX(0.6deg); opacity: 0.92; }
+  58%  { transform: translate(-0.6px,1.0px) scale(1.07) skewX(-0.3deg); opacity: 1; }
+  65%  { transform: translate(1.9px,-0.6px) scale(0.98) skewX(0.7deg); opacity: 0.87; }
+  73%  { transform: translate(-1.2px,-0.9px) scale(1.03) skewX(-0.5deg); opacity: 0.94; }
+  82%  { transform: translate(0.8px,1.2px) scale(0.96) skewX(0.4deg); opacity: 1; }
+  91%  { transform: translate(-1.5px,0.7px) scale(1.05) skewX(-0.7deg); opacity: 0.89; }
+  100% { transform: translate(0,0) scale(1) skewX(0deg); opacity: 1; }
+}
+
+/* ── CHROMA_BLEED glow animations ── */
+@keyframes signal-buzz {
+  0%,100% { text-shadow: 0 0 12px #00f3ff, 0 0 28px rgba(0,243,255,0.55), 0 0 48px rgba(0,243,255,0.20); }
+  25%     { text-shadow: 0 0 14px #00f3ff, 0 0 32px rgba(0,243,255,0.60), 0 0 52px rgba(0,243,255,0.25); }
+  50%     { text-shadow: 0 0 10px #00f3ff, 0 0 24px rgba(0,243,255,0.45), 0 0 44px rgba(0,243,255,0.15); }
+  75%     { text-shadow: 0 0 16px #00f3ff, 0 0 34px rgba(0,243,255,0.58), 0 0 56px rgba(0,243,255,0.22); }
+}
+@keyframes glyph-breathe {
+  0%   { opacity: 0.72; text-shadow: 0 0 4px rgba(0,243,255,0.30); }
+  45%  { opacity: 0.88; text-shadow: 0 0 10px rgba(0,243,255,0.60), 0 0 20px rgba(112,0,255,0.15); }
+  70%  { opacity: 0.76; text-shadow: 0 0 5px rgba(0,243,255,0.35); }
+  100% { opacity: 0.72; text-shadow: 0 0 4px rgba(0,243,255,0.30); }
+}
+@keyframes name-shimmer {
+  0%   { color: oklch(0.440 0.040 280); text-shadow: none; }
+  30%  { color: #ff3d85; text-shadow: 0 0 10px rgba(255,61,133,0.50), 0 0 20px rgba(255,61,133,0.20); }
+  50%  { color: #ff006e; text-shadow: 0 0 14px rgba(255,0,110,0.65), 0 0 28px rgba(130,74,80,0.25); }
+  70%  { color: #ff3d85; text-shadow: 0 0 8px rgba(255,61,133,0.35); }
+  100% { color: oklch(0.440 0.040 280); text-shadow: none; }
+}
+@keyframes border-flicker {
+  0%    { opacity: 1; }
+  0.8%  { opacity: 0.72; }
+  1.6%  { opacity: 0.95; }
+  2.2%  { opacity: 0.60; }
+  3.0%  { opacity: 1; }
+  3.5%  { opacity: 0.88; }
+  4.0%  { opacity: 1; }
+  100%  { opacity: 1; }
+}
+@keyframes scanline-bleed {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+@keyframes hud-pulse-violet {
+  0%,100% { opacity: 1; box-shadow: 0 0 6px #7000ff; }
+  50%      { opacity: 0.7; box-shadow: 0 0 10px #7000ff; }
+}
+
+/* ── Animation utility classes ── */
+.hud-anim-heartbeat    { animation: state-heartbeat    1.8s cubic-bezier(0.36,0.07,0.19,0.97) infinite; }
+.hud-anim-think        { animation: state-think        4.2s cubic-bezier(0.45,0.05,0.55,0.95) infinite; }
+.hud-anim-reading-eyes { animation: state-reading-eyes 3.6s ease-in-out infinite; }
+.hud-anim-write-pulse  { animation: state-write-pulse  1.4s ease-in-out infinite; }
+.hud-anim-running      { animation: state-running      0.9s linear infinite; }
+.hud-anim-searching    { animation: state-searching    1.1s ease-in-out infinite; }
+.hud-anim-swarming     { animation: state-swarming     0.28s linear infinite; }
+.hud-anim-glyph        { animation: glyph-breathe      7s ease-in-out infinite; }
+.hud-anim-name         { animation: name-shimmer       4.5s ease-in-out infinite; }
+.hud-anim-border       { animation: border-flicker     10s linear infinite; }
+.hud-signal-buzz       { animation: signal-buzz        2.5s ease-in-out infinite; }
+
+/* ============================================================
+   BREATH PROTOCOL — AGENTS.log Color System
+   CHROMA_BLEED legislation. OKLCH axis grammar enforced.
+   Contrast validated against #0a0a0f (--void).
+
+   H-axis = agent identity. NEVER changes.
+   C-axis = activity intensity.
+   L-axis = presence. Only layer 2 (inner halo) animates.
+
+   Agent hue assignments (LOCKED):
+     FORGE  H=28  — amber forge fire
+     TOWER  H=195 — electric cyan
+     HOUSE  H=270 — violet archive depth
+     THRONE H=350 — hot pink sacred (THRONE LAW: never drifts)
+
+   Contrast log (working state vs #0a0a0f):
+     FORGE  oklch(0.68 0.18 28)   → 6.33:1  AA ✦
+     TOWER  oklch(0.72 0.20 195)  → 8.65:1  AAA ✦
+     HOUSE  oklch(0.66 0.22 270)  → 6.04:1  AA ✦
+     THRONE oklch(0.70 0.24 350)  → 6.55:1  AA ✦
+     HOUSE vespers oklch(0.64 0.14 270) → 5.74:1 AA ✦  (C pulled; violet bleeds lum)
+     THRONE vespers oklch(0.62 0.18 350) → 4.93:1 AA ✦ (corrected from spec 0.58)
+     DEEP_THINK underlayer oklch(0.60 0.22 225) → 5.25:1 AA ✦ (corrected from spec 0.55)
+   ============================================================ */
+
+/* ── CSS Custom Properties — per-agent state colors ── */
+:root {
+
+  /* ─ FORGE (H=28, amber forge fire) ─────────────────────── */
+  --forge-working-color:      oklch(0.68 0.18 28);
+  --forge-reading-color:      oklch(0.72 0.16 28);
+  --forge-writing-color:      oklch(0.70 0.20 28);
+  --forge-thinking-color:     oklch(0.64 0.14 28);
+  --forge-deep-think-color:   oklch(0.66 0.16 28);
+  --forge-listening-color:    oklch(0.62 0.10 28);
+  --forge-waiting-color:      oklch(0.63 0.11 28);
+  --forge-vespers-color:      oklch(0.60 0.12 28);
+  --forge-stalled-s1-color:   oklch(0.68 0.18 28);
+  --forge-stalled-s2-color:   oklch(0.65 0.18 28);
+  --forge-stalled-s3-color:   oklch(0.65 0.18 22);
+  --forge-compressing-color:  oklch(0.66 0.15 28);
+  --forge-error-color:        oklch(0.74 0.22 28);
+  --forge-offline-color:      oklch(0.30 0.04 28);
+  --forge-stale-color:        oklch(0.46 0.08 28);
+
+  /* 4-layer shadow: 2px core / 8px halo / 20px atm / 40px ambient */
+  --forge-working-shadow:
+    0 0 2px oklch(0.68 0.18 28 / 0.90),
+    0 0 8px oklch(0.68 0.18 28 / 0.40),
+    0 0 20px oklch(0.68 0.18 28 / 0.15),
+    0 0 40px oklch(0.68 0.18 28 / 0.05);
+  --forge-reading-shadow:
+    0 0 2px oklch(0.72 0.16 28 / 0.90),
+    0 0 8px oklch(0.72 0.16 28 / 0.35),
+    0 0 20px oklch(0.72 0.16 28 / 0.12),
+    0 0 40px oklch(0.72 0.16 28 / 0.04);
+  --forge-writing-shadow:
+    0 0 2px oklch(0.70 0.20 28 / 0.90),
+    0 0 8px oklch(0.70 0.20 28 / 0.42),
+    0 0 20px oklch(0.70 0.20 28 / 0.16),
+    0 0 40px oklch(0.70 0.20 28 / 0.06);
+  --forge-thinking-shadow:
+    0 0 2px oklch(0.64 0.14 28 / 0.90),
+    0 0 8px oklch(0.64 0.14 28 / 0.30),
+    0 0 20px oklch(0.64 0.14 28 / 0.10),
+    0 0 40px oklch(0.64 0.14 28 / 0.04);
+  --forge-deep-think-shadow:
+    0 0 2px oklch(0.66 0.16 28 / 0.90),
+    0 0 8px oklch(0.66 0.16 28 / 0.35),
+    0 0 20px oklch(0.66 0.16 28 / 0.12),
+    0 0 40px oklch(0.66 0.16 28 / 0.04);
+  --forge-listening-shadow:
+    0 0 2px oklch(0.62 0.10 28 / 0.90),
+    0 0 8px oklch(0.62 0.10 28 / 0.25),
+    0 0 20px oklch(0.62 0.10 28 / 0.08),
+    0 0 40px oklch(0.62 0.10 28 / 0.03);
+  --forge-waiting-shadow:
+    0 0 2px oklch(0.63 0.11 28 / 0.90),
+    0 0 8px oklch(0.63 0.11 28 / 0.25),
+    0 0 20px oklch(0.63 0.11 28 / 0.08),
+    0 0 40px oklch(0.63 0.11 28 / 0.03);
+  --forge-vespers-shadow:
+    0 0 2px oklch(0.60 0.12 28 / 0.60),
+    0 0 8px oklch(0.60 0.12 28 / 0.18),
+    0 0 20px oklch(0.60 0.12 28 / 0.06),
+    0 0 40px oklch(0.60 0.12 28 / 0.02);
+  --forge-stalled-s2-shadow:
+    0 0 2px oklch(0.65 0.18 28 / 0.90),
+    0 0 8px oklch(0.65 0.18 28 / 0.38),
+    0 0 20px oklch(0.65 0.18 28 / 0.14),
+    0 0 40px oklch(0.65 0.18 28 / 0.05);
+  --forge-stalled-s3-shadow:
+    0 0 2px oklch(0.65 0.18 22 / 0.90),
+    0 0 8px oklch(0.65 0.18 22 / 0.42),
+    0 0 20px oklch(0.65 0.18 22 / 0.16),
+    0 0 40px oklch(0.65 0.18 22 / 0.06);
+  --forge-compressing-shadow:
+    0 0 2px oklch(0.66 0.15 28 / 0.90),
+    0 0 8px oklch(0.66 0.15 28 / 0.32),
+    0 0 20px oklch(0.66 0.15 28 / 0.10),
+    0 0 40px oklch(0.66 0.15 28 / 0.04);
+  --forge-error-shadow:
+    0 0 2px oklch(0.74 0.22 28 / 0.90),
+    0 0 8px oklch(0.74 0.22 28 / 0.50),
+    0 0 20px oklch(0.74 0.22 28 / 0.20),
+    0 0 40px oklch(0.74 0.22 28 / 0.08);
+  --forge-stale-shadow:
+    0 0 2px oklch(0.46 0.08 28 / 0.60),
+    0 0 8px oklch(0.46 0.08 28 / 0.15),
+    0 0 20px oklch(0.46 0.08 28 / 0.05),
+    0 0 40px oklch(0.46 0.08 28 / 0.02);
+
+  /* ─ TOWER (H=195, electric cyan) ───────────────────────── */
+  --tower-working-color:      oklch(0.72 0.20 195);
+  --tower-reading-color:      oklch(0.64 0.16 195);
+  --tower-writing-color:      oklch(0.70 0.22 195);
+  --tower-thinking-color:     oklch(0.62 0.14 195);
+  --tower-deep-think-color:   oklch(0.64 0.16 195);
+  --tower-listening-color:    oklch(0.60 0.10 195);
+  --tower-waiting-color:      oklch(0.61 0.11 195);
+  --tower-vespers-color:      oklch(0.58 0.12 195);
+  --tower-stalled-s1-color:   oklch(0.72 0.20 195);
+  --tower-stalled-s2-color:   oklch(0.65 0.18 28);
+  --tower-stalled-s3-color:   oklch(0.65 0.18 22);
+  --tower-compressing-color:  oklch(0.66 0.16 195);
+  --tower-error-color:        oklch(0.75 0.22 195);
+  --tower-offline-color:      oklch(0.28 0.04 195);
+  --tower-stale-color:        oklch(0.44 0.08 195);
+
+  --tower-working-shadow:
+    0 0 2px oklch(0.72 0.20 195 / 0.90),
+    0 0 8px oklch(0.72 0.20 195 / 0.40),
+    0 0 20px oklch(0.72 0.20 195 / 0.15),
+    0 0 40px oklch(0.72 0.20 195 / 0.05);
+  --tower-reading-shadow:
+    0 0 2px oklch(0.64 0.16 195 / 0.90),
+    0 0 8px oklch(0.64 0.16 195 / 0.35),
+    0 0 20px oklch(0.64 0.16 195 / 0.12),
+    0 0 40px oklch(0.64 0.16 195 / 0.04);
+  --tower-writing-shadow:
+    0 0 2px oklch(0.70 0.22 195 / 0.90),
+    0 0 8px oklch(0.70 0.22 195 / 0.42),
+    0 0 20px oklch(0.70 0.22 195 / 0.16),
+    0 0 40px oklch(0.70 0.22 195 / 0.06);
+  --tower-thinking-shadow:
+    0 0 2px oklch(0.62 0.14 195 / 0.90),
+    0 0 8px oklch(0.62 0.14 195 / 0.28),
+    0 0 20px oklch(0.62 0.14 195 / 0.10),
+    0 0 40px oklch(0.62 0.14 195 / 0.04);
+  --tower-deep-think-shadow:
+    0 0 2px oklch(0.64 0.16 195 / 0.90),
+    0 0 8px oklch(0.64 0.16 195 / 0.32),
+    0 0 20px oklch(0.64 0.16 195 / 0.10),
+    0 0 40px oklch(0.64 0.16 195 / 0.04);
+  --tower-listening-shadow:
+    0 0 2px oklch(0.60 0.10 195 / 0.90),
+    0 0 8px oklch(0.60 0.10 195 / 0.22),
+    0 0 20px oklch(0.60 0.10 195 / 0.08),
+    0 0 40px oklch(0.60 0.10 195 / 0.03);
+  --tower-waiting-shadow:
+    0 0 2px oklch(0.61 0.11 195 / 0.90),
+    0 0 8px oklch(0.61 0.11 195 / 0.22),
+    0 0 20px oklch(0.61 0.11 195 / 0.08),
+    0 0 40px oklch(0.61 0.11 195 / 0.03);
+  --tower-vespers-shadow:
+    0 0 2px oklch(0.58 0.12 195 / 0.60),
+    0 0 8px oklch(0.58 0.12 195 / 0.18),
+    0 0 20px oklch(0.58 0.12 195 / 0.06),
+    0 0 40px oklch(0.58 0.12 195 / 0.02);
+  --tower-compressing-shadow:
+    0 0 2px oklch(0.66 0.16 195 / 0.90),
+    0 0 8px oklch(0.66 0.16 195 / 0.30),
+    0 0 20px oklch(0.66 0.16 195 / 0.10),
+    0 0 40px oklch(0.66 0.16 195 / 0.04);
+  --tower-error-shadow:
+    0 0 2px oklch(0.75 0.22 195 / 0.90),
+    0 0 8px oklch(0.75 0.22 195 / 0.50),
+    0 0 20px oklch(0.75 0.22 195 / 0.20),
+    0 0 40px oklch(0.75 0.22 195 / 0.08);
+  --tower-stale-shadow:
+    0 0 2px oklch(0.44 0.08 195 / 0.60),
+    0 0 8px oklch(0.44 0.08 195 / 0.15),
+    0 0 20px oklch(0.44 0.08 195 / 0.05),
+    0 0 40px oklch(0.44 0.08 195 / 0.02);
+
+  /* ─ HOUSE (H=270, violet archive depth) ────────────────── */
+  --house-working-color:      oklch(0.66 0.22 270);
+  --house-reading-color:      oklch(0.60 0.18 270);
+  --house-writing-color:      oklch(0.64 0.24 270);
+  --house-thinking-color:     oklch(0.60 0.16 270);
+  --house-deep-think-color:   oklch(0.62 0.18 270);
+  --house-listening-color:    oklch(0.58 0.12 270);
+  --house-waiting-color:      oklch(0.59 0.13 270);
+  --house-vespers-color:      oklch(0.64 0.14 270);
+  /* vespers corrected: 5.74:1 — C=0.14 compensates violet's low perceived lum */
+  --house-stalled-s1-color:   oklch(0.66 0.22 270);
+  --house-stalled-s2-color:   oklch(0.65 0.18 28);
+  --house-stalled-s3-color:   oklch(0.65 0.18 22);
+  --house-compressing-color:  oklch(0.62 0.18 270);
+  --house-error-color:        oklch(0.72 0.26 270);
+  --house-offline-color:      oklch(0.28 0.06 270);
+  --house-stale-color:        oklch(0.44 0.10 270);
+
+  --house-working-shadow:
+    0 0 2px oklch(0.66 0.22 270 / 0.90),
+    0 0 8px oklch(0.66 0.22 270 / 0.40),
+    0 0 20px oklch(0.66 0.22 270 / 0.15),
+    0 0 40px oklch(0.66 0.22 270 / 0.05);
+  --house-reading-shadow:
+    0 0 2px oklch(0.60 0.18 270 / 0.90),
+    0 0 8px oklch(0.60 0.18 270 / 0.32),
+    0 0 20px oklch(0.60 0.18 270 / 0.10),
+    0 0 40px oklch(0.60 0.18 270 / 0.04);
+  --house-writing-shadow:
+    0 0 2px oklch(0.64 0.24 270 / 0.90),
+    0 0 8px oklch(0.64 0.24 270 / 0.42),
+    0 0 20px oklch(0.64 0.24 270 / 0.16),
+    0 0 40px oklch(0.64 0.24 270 / 0.06);
+  --house-thinking-shadow:
+    0 0 2px oklch(0.60 0.16 270 / 0.90),
+    0 0 8px oklch(0.60 0.16 270 / 0.28),
+    0 0 20px oklch(0.60 0.16 270 / 0.09),
+    0 0 40px oklch(0.60 0.16 270 / 0.03);
+  --house-deep-think-shadow:
+    0 0 2px oklch(0.62 0.18 270 / 0.90),
+    0 0 8px oklch(0.62 0.18 270 / 0.32),
+    0 0 20px oklch(0.62 0.18 270 / 0.10),
+    0 0 40px oklch(0.62 0.18 270 / 0.04);
+  --house-listening-shadow:
+    0 0 2px oklch(0.58 0.12 270 / 0.90),
+    0 0 8px oklch(0.58 0.12 270 / 0.22),
+    0 0 20px oklch(0.58 0.12 270 / 0.07),
+    0 0 40px oklch(0.58 0.12 270 / 0.02);
+  --house-waiting-shadow:
+    0 0 2px oklch(0.59 0.13 270 / 0.90),
+    0 0 8px oklch(0.59 0.13 270 / 0.22),
+    0 0 20px oklch(0.59 0.13 270 / 0.07),
+    0 0 40px oklch(0.59 0.13 270 / 0.02);
+  --house-vespers-shadow:
+    0 0 2px oklch(0.64 0.14 270 / 0.55),
+    0 0 8px oklch(0.64 0.14 270 / 0.16),
+    0 0 20px oklch(0.64 0.14 270 / 0.05),
+    0 0 40px oklch(0.64 0.14 270 / 0.02);
+  --house-compressing-shadow:
+    0 0 2px oklch(0.62 0.18 270 / 0.90),
+    0 0 8px oklch(0.62 0.18 270 / 0.30),
+    0 0 20px oklch(0.62 0.18 270 / 0.10),
+    0 0 40px oklch(0.62 0.18 270 / 0.04);
+  --house-error-shadow:
+    0 0 2px oklch(0.72 0.26 270 / 0.90),
+    0 0 8px oklch(0.72 0.26 270 / 0.50),
+    0 0 20px oklch(0.72 0.26 270 / 0.20),
+    0 0 40px oklch(0.72 0.26 270 / 0.08);
+  --house-stale-shadow:
+    0 0 2px oklch(0.44 0.10 270 / 0.55),
+    0 0 8px oklch(0.44 0.10 270 / 0.14),
+    0 0 20px oklch(0.44 0.10 270 / 0.05),
+    0 0 40px oklch(0.44 0.10 270 / 0.02);
+
+  /* ─ THRONE (H=350, hot pink sacred — THRONE LAW) ───────── */
+  /* THRONE LAW: H=350 at ALL L/C values. Never 195. Never drifts. */
+  --throne-working-color:     oklch(0.70 0.24 350);
+  --throne-reading-color:     oklch(0.65 0.22 350);
+  --throne-writing-color:     oklch(0.72 0.26 350);
+  --throne-thinking-color:    oklch(0.62 0.18 350);
+  --throne-deep-think-color:  oklch(0.64 0.20 350);
+  --throne-listening-color:   oklch(0.60 0.14 350);
+  --throne-waiting-color:     oklch(0.61 0.15 350);
+  --throne-vespers-color:     oklch(0.62 0.18 350);
+  /* vespers corrected: 4.93:1 — C held higher; pink bleeds lum fast */
+  --throne-stalled-s1-color:  oklch(0.70 0.24 350);
+  --throne-stalled-s2-color:  oklch(0.65 0.18 28);
+  --throne-stalled-s3-color:  oklch(0.65 0.18 22);
+  --throne-compressing-color: oklch(0.66 0.20 350);
+  --throne-error-color:       oklch(0.76 0.28 350);
+  --throne-offline-color:     oklch(0.28 0.06 350);
+  --throne-stale-color:       oklch(0.44 0.10 350);
+
+  --throne-working-shadow:
+    0 0 2px oklch(0.70 0.24 350 / 0.90),
+    0 0 8px oklch(0.70 0.24 350 / 0.40),
+    0 0 20px oklch(0.70 0.24 350 / 0.15),
+    0 0 40px oklch(0.70 0.24 350 / 0.05);
+  --throne-reading-shadow:
+    0 0 2px oklch(0.65 0.22 350 / 0.90),
+    0 0 8px oklch(0.65 0.22 350 / 0.35),
+    0 0 20px oklch(0.65 0.22 350 / 0.12),
+    0 0 40px oklch(0.65 0.22 350 / 0.04);
+  --throne-writing-shadow:
+    0 0 2px oklch(0.72 0.26 350 / 0.90),
+    0 0 8px oklch(0.72 0.26 350 / 0.42),
+    0 0 20px oklch(0.72 0.26 350 / 0.16),
+    0 0 40px oklch(0.72 0.26 350 / 0.06);
+  --throne-thinking-shadow:
+    0 0 2px oklch(0.62 0.18 350 / 0.90),
+    0 0 8px oklch(0.62 0.18 350 / 0.28),
+    0 0 20px oklch(0.62 0.18 350 / 0.09),
+    0 0 40px oklch(0.62 0.18 350 / 0.03);
+  --throne-deep-think-shadow:
+    0 0 2px oklch(0.64 0.20 350 / 0.90),
+    0 0 8px oklch(0.64 0.20 350 / 0.32),
+    0 0 20px oklch(0.64 0.20 350 / 0.10),
+    0 0 40px oklch(0.64 0.20 350 / 0.04);
+  --throne-listening-shadow:
+    0 0 2px oklch(0.60 0.14 350 / 0.90),
+    0 0 8px oklch(0.60 0.14 350 / 0.22),
+    0 0 20px oklch(0.60 0.14 350 / 0.07),
+    0 0 40px oklch(0.60 0.14 350 / 0.02);
+  --throne-waiting-shadow:
+    0 0 2px oklch(0.61 0.15 350 / 0.90),
+    0 0 8px oklch(0.61 0.15 350 / 0.22),
+    0 0 20px oklch(0.61 0.15 350 / 0.07),
+    0 0 40px oklch(0.61 0.15 350 / 0.02);
+  --throne-vespers-shadow:
+    0 0 2px oklch(0.62 0.18 350 / 0.55),
+    0 0 8px oklch(0.62 0.18 350 / 0.16),
+    0 0 20px oklch(0.62 0.18 350 / 0.05),
+    0 0 40px oklch(0.62 0.18 350 / 0.02);
+  --throne-compressing-shadow:
+    0 0 2px oklch(0.66 0.20 350 / 0.90),
+    0 0 8px oklch(0.66 0.20 350 / 0.30),
+    0 0 20px oklch(0.66 0.20 350 / 0.10),
+    0 0 40px oklch(0.66 0.20 350 / 0.04);
+  --throne-error-shadow:
+    0 0 2px oklch(0.76 0.28 350 / 0.90),
+    0 0 8px oklch(0.76 0.28 350 / 0.50),
+    0 0 20px oklch(0.76 0.28 350 / 0.20),
+    0 0 40px oklch(0.76 0.28 350 / 0.08);
+  --throne-stale-shadow:
+    0 0 2px oklch(0.44 0.10 350 / 0.55),
+    0 0 8px oklch(0.44 0.10 350 / 0.14),
+    0 0 20px oklch(0.44 0.10 350 / 0.05),
+    0 0 40px oklch(0.44 0.10 350 / 0.02);
+
+  /* ─ Shared: STALLED override colors (named exception to hue-lock) ─ */
+  /* STALLED communicates system failure, not agent identity.           */
+  --stalled-s2-color:  oklch(0.65 0.18 28);  /* 5.62:1 AA ✦ */
+  --stalled-s3-color:  oklch(0.65 0.18 22);  /* 5.60:1 AA ✦ */
+  --stalled-s2-shadow:
+    0 0 2px oklch(0.65 0.18 28 / 0.90),
+    0 0 8px oklch(0.65 0.18 28 / 0.38),
+    0 0 20px oklch(0.65 0.18 28 / 0.14),
+    0 0 40px oklch(0.65 0.18 28 / 0.05);
+  --stalled-s3-shadow:
+    0 0 2px oklch(0.65 0.18 22 / 0.90),
+    0 0 8px oklch(0.65 0.18 22 / 0.44),
+    0 0 20px oklch(0.65 0.18 22 / 0.18),
+    0 0 40px oklch(0.65 0.18 22 / 0.07);
+
+  /* ─ DEEP_THINK aquamarine underlayer ───────────────────── */
+  /* H=225: between cyan(195) and blue(255). No agent owns this hue. */
+  /* 7s, out-of-phase breath. Bleeds through below agent primary.    */
+  /* Corrected from spec 0.55 → 0.60 for 5.25:1 AA compliance.      */
+  --deep-think-underlayer-color:  oklch(0.60 0.22 225);
+  --deep-think-underlayer-shadow:
+    0 0 4px oklch(0.60 0.22 225 / 0.50),
+    0 0 16px oklch(0.60 0.22 225 / 0.25),
+    0 0 32px oklch(0.60 0.22 225 / 0.10);
+
+  /* ─ Brandon presence dot — pure white, no chroma ───────── */
+  --brandon-dot-color: oklch(0.98 0.00 0);  /* 18.65:1 AAA ✦ */
+}
+
+/* ── Breath Protocol @keyframes ────────────────────────────────────────────── */
+
+/* L0 FLAT: OFFLINE/VESPERS base — no animation defined, silence is deliberate */
+
+/* L1 FAINT: 12s, 5% amplitude — IDLE, STALE. Barely moves. Heartbeat at rest. */
+@keyframes breathL1 {
+  0%   { opacity: 0.82; }
+  50%  { opacity: 0.87; }
+  100% { opacity: 0.82; }
+}
+
+/* L2 BREATH: 6s — WORKING base. The creature is alive. */
+@keyframes breathL2 {
+  0%   { opacity: 0.80; }
+  40%  { opacity: 0.92; }
+  60%  { opacity: 0.94; }
+  100% { opacity: 0.80; }
+}
+
+/* L3 ACTIVE: 3.2s — heavy computation, presence pressing forward */
+@keyframes breathL3 {
+  0%   { opacity: 0.78; }
+  30%  { opacity: 0.96; }
+  55%  { opacity: 1.00; }
+  80%  { opacity: 0.90; }
+  100% { opacity: 0.78; }
+}
+
+/* L4 PEAK: 400ms burst — overshoot moment only. Not a loop. */
+@keyframes breathL4 {
+  0%   { opacity: 1.00; filter: brightness(1.15); }
+  60%  { opacity: 0.95; filter: brightness(1.08); }
+  100% { opacity: 0.85; filter: brightness(1.00); }
+}
+
+/* Inner halo keyframe — Layer 2 ONLY animates. Synced to state's breath level. */
+/* Applied via animation-duration override per state class. */
+@keyframes breathHalo {
+  0%   { text-shadow-opacity: 0.40; } /* CSS limitation: use filter proxy below */
+  50%  { filter: brightness(1.12); }
+  100% { filter: brightness(1.00); }
+}
+
+/* DEEP_THINK underlayer — 7s, out of phase with agent primary breath */
+@keyframes deepThinkUnderlayer {
+  0%   { opacity: 0.00; }
+  15%  { opacity: 0.18; }
+  45%  { opacity: 0.32; }
+  70%  { opacity: 0.22; }
+  85%  { opacity: 0.10; }
+  100% { opacity: 0.00; }
+}
+
+/* Vespers breathing dots — three dots, never synced */
+@keyframes vespersDot1 {
+  0%, 100% { opacity: 0.20; }
+  50%       { opacity: 0.55; }
+}
+@keyframes vespersDot2 {
+  0%, 100% { opacity: 0.15; }
+  50%       { opacity: 0.48; }
+}
+@keyframes vespersDot3 {
+  0%, 100% { opacity: 0.18; }
+  50%       { opacity: 0.52; }
+}
+
+/* STALLED jitter — stage 2 nervous shake */
+@keyframes stalledJitter {
+  0%   { transform: translateX(0); }
+  20%  { transform: translateX(1.5px); }
+  40%  { transform: translateX(-1.0px); }
+  60%  { transform: translateX(1.2px); }
+  80%  { transform: translateX(-0.8px); }
+  100% { transform: translateX(0); }
+}
+
+/* STALLED digit flicker — stage 3 charset scramble signal */
+@keyframes stalledFlicker {
+  0%   { opacity: 1.0; }
+  12%  { opacity: 0.4; }
+  24%  { opacity: 0.9; }
+  36%  { opacity: 0.3; }
+  50%  { opacity: 1.0; }
+  63%  { opacity: 0.5; }
+  78%  { opacity: 0.8; }
+  100% { opacity: 1.0; }
+}
+
+/* BOOTING — 2s entrance scan */
+@keyframes booting {
+  0%   { opacity: 0.0; letter-spacing: 0.40em; }
+  40%  { opacity: 0.6; letter-spacing: 0.18em; }
+  70%  { opacity: 0.9; letter-spacing: 0.08em; }
+  100% { opacity: 1.0; letter-spacing: 0.02em; }
+}
+
+/* CALLED event surge — L-axis burst, hue preserved */
+@keyframes calledSurge {
+  0%   { filter: brightness(1.00); }
+  15%  { filter: brightness(1.30); }
+  100% { filter: brightness(1.00); }
+}
+
+/* ── State CSS classes — .state--[name] on .hud-agent parent ──────────────── */
+/* Pattern:
+   .state--[name]                    → sets breath animation speed on the row
+   .state--[name] .hud-agent__status → text color + 4-layer shadow
+   .state--[name] .hud-agent__face   → same hue, L pulled back 0.06, C -0.02
+   Agent identity: apply .agent--forge / .agent--tower / .agent--house / .agent--throne
+*/
+
+/* WORKING — focused, present, hot. L2 BREATH 6s. */
+.state--working { animation: breathL2 6s ease-in-out infinite; }
+
+.agent--forge.state--working .hud-agent__status,
+.agent--forge .state--working .hud-agent__status {
+  color: var(--forge-working-color);
+  text-shadow: var(--forge-working-shadow);
+}
+.agent--forge.state--working .hud-agent__face,
+.agent--forge .state--working .hud-agent__face {
+  color: oklch(0.62 0.16 28);
+  text-shadow: var(--forge-working-shadow);
+}
+
+.agent--tower.state--working .hud-agent__status,
+.agent--tower .state--working .hud-agent__status {
+  color: var(--tower-working-color);
+  text-shadow: var(--tower-working-shadow);
+}
+.agent--tower.state--working .hud-agent__face,
+.agent--tower .state--working .hud-agent__face {
+  color: oklch(0.66 0.18 195);
+  text-shadow: var(--tower-working-shadow);
+}
+
+.agent--house.state--working .hud-agent__status,
+.agent--house .state--working .hud-agent__status {
+  color: var(--house-working-color);
+  text-shadow: var(--house-working-shadow);
+}
+.agent--house.state--working .hud-agent__face,
+.agent--house .state--working .hud-agent__face {
+  color: oklch(0.60 0.20 270);
+  text-shadow: var(--house-working-shadow);
+}
+
+.agent--throne.state--working .hud-agent__status,
+.agent--throne .state--working .hud-agent__status {
+  color: var(--throne-working-color);
+  text-shadow: var(--throne-working-shadow);
+}
+.agent--throne.state--working .hud-agent__face,
+.agent--throne .state--working .hud-agent__face {
+  color: oklch(0.64 0.22 350);
+  text-shadow: var(--throne-working-shadow);
+}
+
+/* READING — quiet absorption, one eye narrowed. L2 BREATH 6s, lower C. */
+.state--reading { animation: breathL2 6s ease-in-out infinite; }
+
+.agent--forge.state--reading .hud-agent__status { color: var(--forge-reading-color); text-shadow: var(--forge-reading-shadow); }
+.agent--forge.state--reading .hud-agent__face   { color: oklch(0.66 0.14 28);  text-shadow: var(--forge-reading-shadow); }
+.agent--tower.state--reading .hud-agent__status { color: var(--tower-reading-color); text-shadow: var(--tower-reading-shadow); }
+.agent--tower.state--reading .hud-agent__face   { color: oklch(0.58 0.14 195); text-shadow: var(--tower-reading-shadow); }
+.agent--house.state--reading .hud-agent__status { color: var(--house-reading-color); text-shadow: var(--house-reading-shadow); }
+.agent--house.state--reading .hud-agent__face   { color: oklch(0.54 0.16 270); text-shadow: var(--house-reading-shadow); }
+.agent--throne.state--reading .hud-agent__status { color: var(--throne-reading-color); text-shadow: var(--throne-reading-shadow); }
+.agent--throne.state--reading .hud-agent__face   { color: oklch(0.59 0.20 350); text-shadow: var(--throne-reading-shadow); }
+
+/* WRITING — deliberate, committed. L3 ACTIVE 3.2s. Highest C in working cluster. */
+.state--writing { animation: breathL3 3.2s ease-in-out infinite; }
+
+.agent--forge.state--writing .hud-agent__status { color: var(--forge-writing-color); text-shadow: var(--forge-writing-shadow); }
+.agent--forge.state--writing .hud-agent__face   { color: oklch(0.64 0.18 28);  text-shadow: var(--forge-writing-shadow); }
+.agent--tower.state--writing .hud-agent__status { color: var(--tower-writing-color); text-shadow: var(--tower-writing-shadow); }
+.agent--tower.state--writing .hud-agent__face   { color: oklch(0.64 0.20 195); text-shadow: var(--tower-writing-shadow); }
+.agent--house.state--writing .hud-agent__status { color: var(--house-writing-color); text-shadow: var(--house-writing-shadow); }
+.agent--house.state--writing .hud-agent__face   { color: oklch(0.58 0.22 270); text-shadow: var(--house-writing-shadow); }
+.agent--throne.state--writing .hud-agent__status { color: var(--throne-writing-color); text-shadow: var(--throne-writing-shadow); }
+.agent--throne.state--writing .hud-agent__face   { color: oklch(0.66 0.24 350); text-shadow: var(--throne-writing-shadow); }
+
+/* THINKING — suspended, searching. L2 BREATH 6s. */
+.state--thinking { animation: breathL2 6s ease-in-out infinite; }
+
+.agent--forge.state--thinking .hud-agent__status { color: var(--forge-thinking-color); text-shadow: var(--forge-thinking-shadow); }
+.agent--forge.state--thinking .hud-agent__face   { color: oklch(0.58 0.12 28);  text-shadow: var(--forge-thinking-shadow); }
+.agent--tower.state--thinking .hud-agent__status { color: var(--tower-thinking-color); text-shadow: var(--tower-thinking-shadow); }
+.agent--tower.state--thinking .hud-agent__face   { color: oklch(0.56 0.12 195); text-shadow: var(--tower-thinking-shadow); }
+.agent--house.state--thinking .hud-agent__status { color: var(--house-thinking-color); text-shadow: var(--house-thinking-shadow); }
+.agent--house.state--thinking .hud-agent__face   { color: oklch(0.54 0.14 270); text-shadow: var(--house-thinking-shadow); }
+.agent--throne.state--thinking .hud-agent__status { color: var(--throne-thinking-color); text-shadow: var(--throne-thinking-shadow); }
+.agent--throne.state--thinking .hud-agent__face   { color: oklch(0.56 0.16 350); text-shadow: var(--throne-thinking-shadow); }
+
+/* DEEP_THINK — heavy, rare. L3 ACTIVE 3.2s + aquamarine underlayer. */
+.state--deep_think { animation: breathL3 3.2s ease-in-out infinite; position: relative; }
+
+.agent--forge.state--deep_think .hud-agent__status { color: var(--forge-deep-think-color); text-shadow: var(--forge-deep-think-shadow); }
+.agent--forge.state--deep_think .hud-agent__face   { color: oklch(0.60 0.14 28);  text-shadow: var(--forge-deep-think-shadow); }
+.agent--tower.state--deep_think .hud-agent__status { color: var(--tower-deep-think-color); text-shadow: var(--tower-deep-think-shadow); }
+.agent--tower.state--deep_think .hud-agent__face   { color: oklch(0.58 0.14 195); text-shadow: var(--tower-deep-think-shadow); }
+.agent--house.state--deep_think .hud-agent__status { color: var(--house-deep-think-color); text-shadow: var(--house-deep-think-shadow); }
+.agent--house.state--deep_think .hud-agent__face   { color: oklch(0.56 0.16 270); text-shadow: var(--house-deep-think-shadow); }
+.agent--throne.state--deep_think .hud-agent__status { color: var(--throne-deep-think-color); text-shadow: var(--throne-deep-think-shadow); }
+.agent--throne.state--deep_think .hud-agent__face   { color: oklch(0.58 0.18 350); text-shadow: var(--throne-deep-think-shadow); }
+
+/* DEEP_THINK aquamarine underlayer pseudo-element */
+/* Sits z-index:-1 behind .hud-agent__face. 7s, out-of-phase.          */
+/* H=225 — between cyan(195) and blue(255). No agent owns this hue.    */
+.state--deep_think .hud-agent__face {
+  isolation: isolate;
+}
+.state--deep_think .hud-agent__face::before {
+  content: attr(data-face);  /* mirrors the face glyph character */
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  color: var(--deep-think-underlayer-color);
+  text-shadow: var(--deep-think-underlayer-shadow);
+  animation: deepThinkUnderlayer 7s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* LISTENING — minimal, quiet attention [· ·]. L1 FAINT 12s. */
+.state--listening { animation: breathL1 12s ease-in-out infinite; }
+
+.agent--forge.state--listening .hud-agent__status { color: var(--forge-listening-color); text-shadow: var(--forge-listening-shadow); }
+.agent--forge.state--listening .hud-agent__face   { color: oklch(0.56 0.08 28);  text-shadow: var(--forge-listening-shadow); }
+.agent--tower.state--listening .hud-agent__status { color: var(--tower-listening-color); text-shadow: var(--tower-listening-shadow); }
+.agent--tower.state--listening .hud-agent__face   { color: oklch(0.54 0.08 195); text-shadow: var(--tower-listening-shadow); }
+.agent--house.state--listening .hud-agent__status { color: var(--house-listening-color); text-shadow: var(--house-listening-shadow); }
+.agent--house.state--listening .hud-agent__face   { color: oklch(0.52 0.10 270); text-shadow: var(--house-listening-shadow); }
+.agent--throne.state--listening .hud-agent__status { color: var(--throne-listening-color); text-shadow: var(--throne-listening-shadow); }
+.agent--throne.state--listening .hud-agent__face   { color: oklch(0.54 0.12 350); text-shadow: var(--throne-listening-shadow); }
+
+/* WAITING — patient, alert [· ·]. Same face as LISTENING, different sub-label. L1 FAINT 12s. */
+.state--waiting { animation: breathL1 12s ease-in-out infinite; }
+
+.agent--forge.state--waiting .hud-agent__status { color: var(--forge-waiting-color); text-shadow: var(--forge-waiting-shadow); }
+.agent--forge.state--waiting .hud-agent__face   { color: oklch(0.57 0.09 28);  text-shadow: var(--forge-waiting-shadow); }
+.agent--tower.state--waiting .hud-agent__status { color: var(--tower-waiting-color); text-shadow: var(--tower-waiting-shadow); }
+.agent--tower.state--waiting .hud-agent__face   { color: oklch(0.55 0.09 195); text-shadow: var(--tower-waiting-shadow); }
+.agent--house.state--waiting .hud-agent__status { color: var(--house-waiting-color); text-shadow: var(--house-waiting-shadow); }
+.agent--house.state--waiting .hud-agent__face   { color: oklch(0.53 0.11 270); text-shadow: var(--house-waiting-shadow); }
+.agent--throne.state--waiting .hud-agent__status { color: var(--throne-waiting-color); text-shadow: var(--throne-waiting-shadow); }
+.agent--throne.state--waiting .hud-agent__face   { color: oklch(0.55 0.13 350); text-shadow: var(--throne-waiting-shadow); }
+
+/* VESPERS — monastic, earned after 4+ min idle. Face is [- -].        */
+/* Glow at L0 with very faint breath. Dots pulse out of phase.          */
+/* L0 FLAT with ghost breath — near-static, not a loop in the eye.      */
+.state--vespers { animation: breathL1 12s ease-in-out infinite; opacity: 0.65; }
+.state--vespers .hud-agent__face { opacity: 0.45; }
+
+.agent--forge.state--vespers .hud-agent__status { color: var(--forge-vespers-color); text-shadow: var(--forge-vespers-shadow); }
+.agent--forge.state--vespers .hud-agent__face   { color: oklch(0.54 0.10 28);  text-shadow: var(--forge-vespers-shadow); }
+.agent--tower.state--vespers .hud-agent__status { color: var(--tower-vespers-color); text-shadow: var(--tower-vespers-shadow); }
+.agent--tower.state--vespers .hud-agent__face   { color: oklch(0.52 0.10 195); text-shadow: var(--tower-vespers-shadow); }
+.agent--house.state--vespers .hud-agent__status { color: var(--house-vespers-color); text-shadow: var(--house-vespers-shadow); }
+.agent--house.state--vespers .hud-agent__face   { color: oklch(0.58 0.12 270); text-shadow: var(--house-vespers-shadow); }
+.agent--throne.state--vespers .hud-agent__status { color: var(--throne-vespers-color); text-shadow: var(--throne-vespers-shadow); }
+.agent--throne.state--vespers .hud-agent__face   { color: oklch(0.56 0.16 350); text-shadow: var(--throne-vespers-shadow); }
+
+/* VESPERS breathing dots — three elements with class .vespers-dot--1/2/3 */
+.vespers-dot--1 { animation: vespersDot1 4.1s ease-in-out infinite; }
+.vespers-dot--2 { animation: vespersDot2 5.7s ease-in-out infinite; }
+.vespers-dot--3 { animation: vespersDot3 3.8s ease-in-out infinite; }
+
+/* STALLED — nervous, escalating. 3 stages. */
+/* Stage 1: normal, no override */
+.state--stalled { animation: breathL2 6s ease-in-out infinite; }
+
+/* Stage 2: amber shift, ±1.5px jitter. STALLED overrides hue — named exception. */
+.state--stalled.stalled-s2 .hud-agent__status,
+.state--stalled.stalled-s2 .hud-agent__face {
+  color: var(--stalled-s2-color);
+  text-shadow: var(--stalled-s2-shadow);
+  animation: stalledJitter 0.18s linear infinite;
+}
+
+/* Stage 3: orange-red, digit flicker. */
+.state--stalled.stalled-s3 .hud-agent__status,
+.state--stalled.stalled-s3 .hud-agent__face {
+  color: var(--stalled-s3-color);
+  text-shadow: var(--stalled-s3-shadow);
+  animation: stalledFlicker 0.22s linear infinite;
+}
+
+/* COMPRESSING — mechanical, steady [◉ ◉]. L2 BREATH 6s, C slightly lower. */
+.state--compressing { animation: breathL2 6s ease-in-out infinite; }
+
+.agent--forge.state--compressing .hud-agent__status { color: var(--forge-compressing-color); text-shadow: var(--forge-compressing-shadow); }
+.agent--forge.state--compressing .hud-agent__face   { color: oklch(0.60 0.13 28);  text-shadow: var(--forge-compressing-shadow); }
+.agent--tower.state--compressing .hud-agent__status { color: var(--tower-compressing-color); text-shadow: var(--tower-compressing-shadow); }
+.agent--tower.state--compressing .hud-agent__face   { color: oklch(0.60 0.14 195); text-shadow: var(--tower-compressing-shadow); }
+.agent--house.state--compressing .hud-agent__status { color: var(--house-compressing-color); text-shadow: var(--house-compressing-shadow); }
+.agent--house.state--compressing .hud-agent__face   { color: oklch(0.56 0.16 270); text-shadow: var(--house-compressing-shadow); }
+.agent--throne.state--compressing .hud-agent__status { color: var(--throne-compressing-color); text-shadow: var(--throne-compressing-shadow); }
+.agent--throne.state--compressing .hud-agent__face   { color: oklch(0.60 0.18 350); text-shadow: var(--throne-compressing-shadow); }
+
+/* ERROR — stark, absolute [! !]. L3 ACTIVE 3.2s. Maximum C. No ambiguity. */
+.state--error { animation: breathL3 3.2s ease-in-out infinite; }
+
+.agent--forge.state--error .hud-agent__status { color: var(--forge-error-color); text-shadow: var(--forge-error-shadow); }
+.agent--forge.state--error .hud-agent__face   { color: oklch(0.68 0.20 28);  text-shadow: var(--forge-error-shadow); }
+.agent--tower.state--error .hud-agent__status { color: var(--tower-error-color); text-shadow: var(--tower-error-shadow); }
+.agent--tower.state--error .hud-agent__face   { color: oklch(0.69 0.20 195); text-shadow: var(--tower-error-shadow); }
+.agent--house.state--error .hud-agent__status { color: var(--house-error-color); text-shadow: var(--house-error-shadow); }
+.agent--house.state--error .hud-agent__face   { color: oklch(0.66 0.24 270); text-shadow: var(--house-error-shadow); }
+.agent--throne.state--error .hud-agent__status { color: var(--throne-error-color); text-shadow: var(--throne-error-shadow); }
+.agent--throne.state--error .hud-agent__face   { color: oklch(0.70 0.26 350); text-shadow: var(--throne-error-shadow); }
+
+/* OFFLINE — total silence. No text-shadow. No breath. No glyph. Deliberate. */
+.state--offline {
+  opacity: 0.35;
+  animation: none !important;
+}
+.state--offline .hud-agent__status {
+  color: var(--forge-offline-color); /* will be overridden by agent class below */
+  text-shadow: none !important;
+  animation: none !important;
+}
+.state--offline .hud-agent__face {
+  text-shadow: none !important;
+  animation: none !important;
+}
+.agent--forge.state--offline .hud-agent__status,
+.agent--forge.state--offline .hud-agent__face  { color: var(--forge-offline-color); }
+.agent--tower.state--offline .hud-agent__status,
+.agent--tower.state--offline .hud-agent__face  { color: var(--tower-offline-color); }
+.agent--house.state--offline .hud-agent__status,
+.agent--house.state--offline .hud-agent__face  { color: var(--house-offline-color); }
+.agent--throne.state--offline .hud-agent__status,
+.agent--throne.state--offline .hud-agent__face { color: var(--throne-offline-color); }
+
+/* STALE — hollow, decaying [◌ ◌]. L1 FAINT 12s. */
+.state--stale { animation: breathL1 12s ease-in-out infinite; opacity: 0.55; }
+
+.agent--forge.state--stale .hud-agent__status { color: var(--forge-stale-color); text-shadow: var(--forge-stale-shadow); }
+.agent--forge.state--stale .hud-agent__face   { color: oklch(0.40 0.06 28);  text-shadow: var(--forge-stale-shadow); }
+.agent--tower.state--stale .hud-agent__status { color: var(--tower-stale-color); text-shadow: var(--tower-stale-shadow); }
+.agent--tower.state--stale .hud-agent__face   { color: oklch(0.38 0.06 195); text-shadow: var(--tower-stale-shadow); }
+.agent--house.state--stale .hud-agent__status { color: var(--house-stale-color); text-shadow: var(--house-stale-shadow); }
+.agent--house.state--stale .hud-agent__face   { color: oklch(0.38 0.08 270); text-shadow: var(--house-stale-shadow); }
+.agent--throne.state--stale .hud-agent__status { color: var(--throne-stale-color); text-shadow: var(--throne-stale-shadow); }
+.agent--throne.state--stale .hud-agent__face   { color: oklch(0.38 0.08 350); text-shadow: var(--throne-stale-shadow); }
+
+/* BOOTING — 2s sequence. Transitions to real state on complete. */
+.state--booting .hud-agent__status,
+.state--booting .hud-agent__face {
+  animation: booting 2s ease-out forwards;
+}
+
+/* ── CALLED event — temporary .called-surge class ───────────────────────────── */
+/* L-axis surge +0.20L for call duration. 0.3s ease-in / 1.2s ease-out.          */
+/* Hue preserved. Does NOT reset TENURE BAR.                                      */
+.called-surge {
+  animation: calledSurge 1.5s ease-out forwards;
+}
+.called-surge .hud-agent__status,
+.called-surge .hud-agent__face {
+  filter: brightness(1.3);
+  transition: filter 0.3s ease-in;
+}
+/* Remove the class after animation: handled in JS. */
+/* Exit transition set here so browser interpolates the brightness drop. */
+.hud-agent__status,
+.hud-agent__face {
+  transition: filter 1.2s ease-out, color 0.4s ease, text-shadow 0.4s ease;
+}
+
+/* ── Scanline bleed divider — traveling cyan→pink light ── */
+.hud-divider {
+  height: 1px;
+  border: none;
+  margin: 0;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(0,243,255,0.60),
+    rgba(255,0,110,0.40),
+    rgba(0,243,255,0.60),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: scanline-bleed 8s linear infinite;
+  box-shadow: 0 0 8px rgba(0,243,255,0.20), 0 0 16px rgba(255,0,110,0.08);
+}

@@ -15,18 +15,24 @@
  *     Timing: fires at every 5-minute wall-clock boundary
  *     Meaning: GOLDFISH captures the screen, data flows to THE_SCRYER for ingestion
  *
- *   SCRYER WATCH RING (60s scan cycle)
- *     Visual: thin cyan torus expanding outward from THE_SCRYER, fades in 1.5s
+ *   SCRYER WATCH RING (60s scan cycle) — S196 redesign
+ *     Visual: fast burst ring (1→3× in 0.6s) followed by 24 particle fragments
+ *             that bloom from the ring edge, drift outward + float upward,
+ *             shrinking and dissolving over 2.5s.
+ *     Voice: "The Scryer sees." — a breath exhaled, not an alarm.
  *     Color: #00f3ff (scryer cyan)
  *     Timing: fires at every 60s wall-clock boundary
- *     Meaning: THE_SCRYER completes a watch cycle, scans all territory signals
+ *     Meaning: THE_SCRYER completes a watch cycle, scan data returns to the void
  *
  * Architecture:
  * - R3F component — lives inside the Canvas, not the DOM
  * - useFrame handles timing: checks clock boundaries via ref, no setInterval
  * - Refs track last-fired time — no state, no re-renders from useFrame
  * - GOLDFISH: queued via ref in useFrame, drained to store in useEffect (50ms)
- * - SCRYER ring: one THREE.Mesh, scale + opacity animated in useFrame, zero allocations
+ * - SCRYER ring: one THREE.Mesh, scale + opacity animated in useFrame
+ * - SCRYER particles: Float32Array positions computed analytically (frame-rate
+ *   independent). spawnPositions + velocities pre-allocated — zero allocs in
+ *   useFrame. Position set via spawn + velocity * easeOut(t), needsUpdate = true.
  *
  * Bug fixes applied:
  * - Boundary refs init to current boundary (not 0) — prevents immediate fire on mount
@@ -45,27 +51,50 @@ import { TERRITORY_MAP, getWorldY } from '@/lib/kingdom-layout'
 
 type PushableEvent = Omit<SignalEvent, 'expiresAt'>
 
-const GOLDFISH_INTERVAL_MS = 5 * 60 * 1000  // 5 minutes
-const SCRYER_INTERVAL_MS   = 60 * 1000       // 60 seconds
-const RING_DURATION_MS     = 1500             // expand + fade over 1.5s
+// ─── Timing constants ───────────────────────────────────────────────────────
+const GOLDFISH_INTERVAL_MS  = 5 * 60 * 1000  // 5 minutes
+const SCRYER_INTERVAL_MS    = 60 * 1000       // 60 seconds
+
+// Ring: fast burst — snaps out like a camera flash
+const RING_DURATION_MS      = 800             // full fade in 0.8s (was 1500ms)
+const RING_MAX_SCALE        = 3.0             // 1→3× (was 4×)
+
+// Particles: slow dissolution — scan data returning to the void
+const PARTICLE_COUNT        = 24
+const PARTICLE_DURATION_MS  = 2500            // drift + fade over 2.5s
+const PARTICLE_SPAWN_RADIUS = 2.7             // ≈ ring base(0.9) × max scale(3)
+const PARTICLE_MAX_DRIFT    = 0.5             // max outward travel in world units
+const PARTICLE_MAX_RISE     = 0.35            // max upward travel in world units
 
 export function SystemHeartbeat() {
   const pushSignalEvent = useKingdomStore((s) => s.pushSignalEvent)
 
-  // Initialize to current boundary — prevents immediate fire on mount.
-  // On first useFrame, goldBoundary === lastGoldfishBoundary.current, so no event fires.
+  // Initialize to current boundary — prevents immediate fire on mount
   const now0 = Date.now()
   const lastGoldfishBoundary = useRef(Math.floor(now0 / GOLDFISH_INTERVAL_MS) * GOLDFISH_INTERVAL_MS)
   const lastScryerBoundary   = useRef(Math.floor(now0 / SCRYER_INTERVAL_MS)   * SCRYER_INTERVAL_MS)
 
-  // Event queue — useFrame enqueues, useEffect drains to Zustand store.
-  // Keeps Zustand set() outside the R3F render loop.
+  // Event queue — useFrame enqueues, useEffect drains to Zustand store
   const eventQueueRef = useRef<PushableEvent[]>([])
 
-  // SCRYER ring animation state — all in refs, never allocate in useFrame
+  // ── Ring refs ──────────────────────────────────────────────────────────────
   const ringRef    = useRef<THREE.Mesh>(null)
   const ringActive = useRef(false)
   const ringStart  = useRef(0)
+
+  // ── Particle refs — all pre-allocated, zero allocs in useFrame ─────────────
+  const pointsRef      = useRef<THREE.Points>(null)
+  const geomRef        = useRef<THREE.BufferGeometry>(null)
+  const matRef         = useRef<THREE.PointsMaterial>(null)
+  // spawnPositions: where each particle starts when the ring fires
+  const spawnPositions = useRef(new Float32Array(PARTICLE_COUNT * 3))
+  // velocities: normalized drift direction vectors (outward XZ + upward Y)
+  // Each component is in world-units — controls total displacement at t=1
+  const velocities     = useRef(new Float32Array(PARTICLE_COUNT * 3))
+  // positions: current world-space positions, computed analytically in useFrame
+  const positions      = useRef(new Float32Array(PARTICLE_COUNT * 3))
+  const particleActive = useRef(false)
+  const particleStart  = useRef(0)
 
   const scryerTerritory = TERRITORY_MAP['the_scryer']
   const forgeTerritory  = TERRITORY_MAP['the_forge']
@@ -82,12 +111,10 @@ export function SystemHeartbeat() {
   useFrame(() => {
     const now = Date.now()
 
-    // ── GOLDFISH: bone-white signal from the_forge every 5 minutes ───────────
-    // Synchronized to wall clock — all clients fire at the same boundary.
+    // ── GOLDFISH: bone-white signal from the_forge every 5 minutes ─────────
     const goldBoundary = Math.floor(now / GOLDFISH_INTERVAL_MS) * GOLDFISH_INTERVAL_MS
     if (goldBoundary > lastGoldfishBoundary.current && forgeTerritory) {
       lastGoldfishBoundary.current = goldBoundary
-      // Queue — drained to store in useEffect above, never calling set() here
       eventQueueRef.current.push({
         id:        `goldfish-${goldBoundary}`,
         type:      'system',
@@ -96,56 +123,147 @@ export function SystemHeartbeat() {
       })
     }
 
-    // ── SCRYER watch ring: expanding torus every 60 seconds ──────────────────
+    // ── SCRYER watch ring + particle spawn ─────────────────────────────────
     const scryerBoundary = Math.floor(now / SCRYER_INTERVAL_MS) * SCRYER_INTERVAL_MS
     if (scryerBoundary > lastScryerBoundary.current && scryerTerritory) {
       lastScryerBoundary.current = scryerBoundary
       ringActive.current = true
       ringStart.current  = now
+
+      // Spawn particle positions — runs once per 60s, Math.random() is fine here
+      // Particles at Y + 0.05, just below OvmindRing (Y + 0.06)
+      const wx = scryerTerritory.position[0]
+      const wy = getWorldY(scryerTerritory) + 0.05
+      const wz = scryerTerritory.position[2]
+
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        // Evenly distributed around the ring + small angular jitter
+        const angle = (i / PARTICLE_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.3
+        // Slight radial spread so particles aren't a perfect circle
+        const r = PARTICLE_SPAWN_RADIUS + (Math.random() - 0.5) * 0.5
+
+        spawnPositions.current[i * 3 + 0] = wx + Math.cos(angle) * r
+        spawnPositions.current[i * 3 + 1] = wy
+        spawnPositions.current[i * 3 + 2] = wz + Math.sin(angle) * r
+
+        // Velocity = drift direction × total displacement (world units, not per-frame)
+        // outward speed: 0.3–0.5 units total travel; upward: 0.15–0.35 units total
+        const outSpeed = PARTICLE_MAX_DRIFT * (0.6 + Math.random() * 0.8)
+        const upSpeed  = PARTICLE_MAX_RISE  * (0.4 + Math.random() * 0.6)
+        velocities.current[i * 3 + 0] = Math.cos(angle) * outSpeed
+        velocities.current[i * 3 + 1] = upSpeed
+        velocities.current[i * 3 + 2] = Math.sin(angle) * outSpeed
+      }
+
+      // Snap to spawn positions before first frame renders
+      positions.current.set(spawnPositions.current)
+      if (geomRef.current) {
+        (geomRef.current.attributes.position as THREE.BufferAttribute).needsUpdate = true
+      }
+
+      particleActive.current = true
+      particleStart.current  = now
     }
 
-    // Animate ring (expand + fade) — no allocations
+    // ── Animate ring: fast burst ───────────────────────────────────────────
     if (ringRef.current) {
       if (!ringActive.current) {
         ringRef.current.visible = false
       } else {
-        const elapsed = now - ringStart.current
-        const t = Math.min(1.0, elapsed / RING_DURATION_MS)
-
+        const t = Math.min(1.0, (now - ringStart.current) / RING_DURATION_MS)
         if (t >= 1.0) {
           ringActive.current = false
           ringRef.current.visible = false
         } else {
           ringRef.current.visible = true
-          // Expand from 1× to 4× radius
-          const scale = 1.0 + t * 3.0
-          ringRef.current.scale.setScalar(scale)
-          // Fade: bright at start, gone by end
+          ringRef.current.scale.setScalar(1.0 + t * (RING_MAX_SCALE - 1.0))
           ;(ringRef.current.material as THREE.MeshBasicMaterial).opacity =
-            Math.max(0, (1.0 - t) * 0.55)
+            Math.max(0, (1.0 - t) * 0.6)
         }
+      }
+    }
+
+    // ── Animate particles: drift + float + dissolve ─────────────────────────
+    // Positions computed analytically — frame-rate independent.
+    // f(pt) = ease-out quadratic: fast start, coasts to rest.
+    if (particleActive.current && matRef.current && geomRef.current && pointsRef.current) {
+      const pt = Math.min(1.0, (now - particleStart.current) / PARTICLE_DURATION_MS)
+
+      if (pt >= 1.0) {
+        particleActive.current = false
+        pointsRef.current.visible = false
+        matRef.current.opacity = 0
+      } else {
+        pointsRef.current.visible = true
+
+        // Ease-out quadratic: f = t(2−t). Starts at 0, ends at 1. Fast→slow.
+        const f = pt * (2.0 - pt)
+
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+          positions.current[i * 3 + 0] = spawnPositions.current[i * 3 + 0] + velocities.current[i * 3 + 0] * f
+          positions.current[i * 3 + 1] = spawnPositions.current[i * 3 + 1] + velocities.current[i * 3 + 1] * f
+          positions.current[i * 3 + 2] = spawnPositions.current[i * 3 + 2] + velocities.current[i * 3 + 2] * f
+        }
+        ;(geomRef.current.attributes.position as THREE.BufferAttribute).needsUpdate = true
+
+        // Opacity: stays bright for first half, then dissolves — smooth cubic feel
+        matRef.current.opacity = Math.max(0, (1.0 - pt * pt) * 0.72)
+        // Size: shrinks as particles dissolve — from 0.07 down to ~0.02
+        matRef.current.size = Math.max(0.015, 0.07 * (1.0 - pt * 0.75))
       }
     }
   })
 
   if (!scryerTerritory) return null
 
+  const ringPos: [number, number, number] = [
+    scryerTerritory.position[0],
+    getWorldY(scryerTerritory),
+    scryerTerritory.position[2],
+  ]
+
   return (
-    <mesh
-      ref={ringRef}
-      position={[scryerTerritory.position[0], getWorldY(scryerTerritory), scryerTerritory.position[2]]}
-      rotation={[-Math.PI / 2, 0, 0]}
-      visible={false}
-    >
-      {/* Thin torus: radius=0.9, tube=0.03 — 8 radial segments for smooth ring */}
-      <torusGeometry args={[0.9, 0.03, 8, 64]} />
-      <meshBasicMaterial
-        color="#00f3ff"
-        transparent
-        opacity={0}
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-      />
-    </mesh>
+    <>
+      {/* ── Burst ring ─────────────────────────────────────────────────────── */}
+      <mesh
+        ref={ringRef}
+        position={ringPos}
+        rotation={[-Math.PI / 2, 0, 0]}
+        visible={false}
+      >
+        <torusGeometry args={[0.9, 0.03, 8, 64]} />
+        <meshBasicMaterial
+          color="#00f3ff"
+          transparent
+          opacity={0}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/*
+       * ── Particle dissolution cloud ───────────────────────────────────────
+       * Points mesh at world origin — positions in buffer are absolute world-space.
+       * Pre-allocated Float32Array mutated in-place each frame. Zero GC pressure.
+       */}
+      <points ref={pointsRef} visible={false}>
+        <bufferGeometry ref={geomRef}>
+          <bufferAttribute
+            attach="attributes-position"
+            args={[positions.current, 3]}
+          />
+        </bufferGeometry>
+        <pointsMaterial
+          ref={matRef}
+          color="#00f3ff"
+          size={0.07}
+          transparent
+          opacity={0}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          sizeAttenuation={true}
+        />
+      </points>
+    </>
   )
 }

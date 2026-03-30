@@ -36,6 +36,15 @@ import type { SignalEvent } from '@/lib/kingdom-store'
 import { TERRITORY_MAP, getWorldY } from '@/lib/kingdom-layout'
 
 // ---------------------------------------------------------------------------
+// RAVEN ARRIVAL EMITTER — module-level bridge between R3F canvas and DOM
+// Queued-ref pattern (BQ-02): accumulate arrivals in array, flush via setInterval
+// ---------------------------------------------------------------------------
+
+export type RavenArrival = { territoryId: string; position: [number, number, number] }
+
+export const ravenArrivalQueue: RavenArrival[] = []
+
+// ---------------------------------------------------------------------------
 // SIGNAL COLOR PALETTE — SignalPulse-specific, stays here
 // ---------------------------------------------------------------------------
 
@@ -56,7 +65,15 @@ const SIGNAL_COLORS: Record<SignalType, string> = {
 // ACTIVE PULSE DATA
 // ---------------------------------------------------------------------------
 
-const POOL_SIZE = 50
+const POOL_SIZE = 60
+
+// PERF: Sorted insertion — O(n) vs O(n log n) sort on every slot release.
+// Slots are integers 0..POOL_SIZE-1; binary search to find insert position.
+function insertFreeSlot(arr: number[], slot: number): void {
+  let lo = 0, hi = arr.length
+  while (lo < hi) { const mid = (lo + hi) >>> 1; if (arr[mid] < slot) lo = mid + 1; else hi = mid }
+  arr.splice(lo, 0, slot)
+}
 
 interface PulseInstance {
   id: string
@@ -66,7 +83,15 @@ interface PulseInstance {
   startTime: number    // performance.now() / 1000 — for animation math only
   expiresAtMs: number  // Date.now() + TTL — compared to Date.now() for expiry
   duration: number     // travel time in seconds
+  isRaven?: boolean
+  ravenTrailSlots?: [number, number, number]
+  ravenTrailStartTimes?: [number, number, number]
+  destTerritoryId?: string
 }
+
+// PERF: Raven trail opacity weights are constants — hoisted from useFrame body
+// to avoid allocating a new [number, number, number] on every raven pulse frame.
+const RAVEN_TRAIL_OPACITIES: readonly [number, number, number] = [0.6, 0.3, 0.1]
 
 // ---------------------------------------------------------------------------
 // SIGNAL PULSES COMPONENT
@@ -154,7 +179,8 @@ export function SignalPulses() {
       const sourceTerritory = event.territory ? TERRITORY_MAP[event.territory] : undefined
       if (!sourceTerritory) return
 
-      const targetTerritory = TERRITORY_MAP['the_scryer']
+      const ravenDestId = (event.type === 'raven' && event.territory) ? event.territory : 'the_scryer'
+      const targetTerritory = TERRITORY_MAP[ravenDestId] ?? TERRITORY_MAP['the_scryer']
       if (!targetTerritory) return
 
       const sourcePos = new THREE.Vector3(sourceTerritory.position[0], getWorldY(sourceTerritory), sourceTerritory.position[2])
@@ -173,12 +199,27 @@ export function SignalPulses() {
         startTime: nowPerf + idx * 0.15,
         expiresAtMs: event.expiresAt, // Date.now() + TTL from store
         duration,
+        destTerritoryId: ravenDestId,
       }
 
       // C2: Assign a stable mesh slot for this pulse's entire lifetime
       const slot = freeSlotsRef.current.shift()
       if (slot !== undefined) {
         slotMapRef.current.set(pulse.id, slot)
+      }
+
+      // Raven trail: claim 3 slots from the reserved 50–59 range
+      if (event.type === 'raven') {
+        const trailSlots = freeSlotsRef.current.filter((s) => s >= 50).slice(0, 3)
+        if (trailSlots.length === 3) {
+          freeSlotsRef.current = freeSlotsRef.current.filter((s) => !trailSlots.includes(s))
+          pulse.isRaven = true
+          pulse.ravenTrailSlots = trailSlots as [number, number, number]
+          pulse.ravenTrailStartTimes = [nowPerf + 0.15, nowPerf + 0.30, nowPerf + 0.45]
+          slotMapRef.current.set(`${pulse.id}-trail-0`, trailSlots[0])
+          slotMapRef.current.set(`${pulse.id}-trail-1`, trailSlots[1])
+          slotMapRef.current.set(`${pulse.id}-trail-2`, trailSlots[2])
+        }
       }
 
       pulsesRef.current.push(pulse)
@@ -192,10 +233,18 @@ export function SignalPulses() {
       const slot = slotMapRef.current.get(p.id)
       if (slot !== undefined) {
         meshPoolRef.current[slot].visible = false
-        freeSlotsRef.current.push(slot)
-        // Keep sorted so lowest index is always taken first (deterministic assignment)
-        freeSlotsRef.current.sort((a, b) => a - b)
+        insertFreeSlot(freeSlotsRef.current, slot)
         slotMapRef.current.delete(p.id)
+      }
+      // Release raven trail slots
+      for (let i = 0; i < 3; i++) {
+        const trailKey = `${p.id}-trail-${i}`
+        const trailSlot = slotMapRef.current.get(trailKey)
+        if (trailSlot !== undefined) {
+          if (trailSlot < meshPoolRef.current.length) meshPoolRef.current[trailSlot].visible = false
+          insertFreeSlot(freeSlotsRef.current, trailSlot)
+          slotMapRef.current.delete(trailKey)
+        }
       }
       pulseMapRef.current.delete(p.id)
     })
@@ -213,9 +262,18 @@ export function SignalPulses() {
       const slot = slotMapRef.current.get(p.id)
       if (slot !== undefined) {
         meshPoolRef.current[slot].visible = false
-        freeSlotsRef.current.push(slot)
-        freeSlotsRef.current.sort((a, b) => a - b)
+        insertFreeSlot(freeSlotsRef.current, slot)
         slotMapRef.current.delete(p.id)
+      }
+      // Release raven trail slots
+      for (let i = 0; i < 3; i++) {
+        const trailKey = `${p.id}-trail-${i}`
+        const trailSlot = slotMapRef.current.get(trailKey)
+        if (trailSlot !== undefined) {
+          if (trailSlot < meshPoolRef.current.length) meshPoolRef.current[trailSlot].visible = false
+          insertFreeSlot(freeSlotsRef.current, trailSlot)
+          slotMapRef.current.delete(trailKey)
+        }
       }
       pulseMapRef.current.delete(p.id)
     })
@@ -224,6 +282,9 @@ export function SignalPulses() {
     // C2: Iterate by stable slot assignment rather than positional array index.
     // A pulse's slot never changes during its lifetime — no teleport on expiry.
     for (const [pulseId, slot] of slotMapRef.current) {
+      // Trail slots are handled inline when we process the primary pulse key
+      if (pulseId.includes('-trail-')) continue
+
       const pulse = pulseMapRef.current.get(pulseId)  // O(1) — was O(n) .find()
       if (!pulse) continue
       if (slot >= meshPoolRef.current.length) continue
@@ -237,13 +298,43 @@ export function SignalPulses() {
 
       const mesh = meshPoolRef.current[slot]
       const mat = mesh.material as THREE.MeshBasicMaterial
-      // Set color and opacity on this mesh's own material — no shared mutation
       mat.color.set(SIGNAL_COLORS[pulse.type])
       mat.opacity = Math.min(1.0, fadeFactor)
 
       mesh.position.copy(scratchPos)
-      mesh.scale.setScalar(0.10 + fadeFactor * 0.075)
+      if (pulse.isRaven) {
+        mesh.scale.setScalar((0.10 + fadeFactor * 0.075) * 1.4)
+      } else {
+        mesh.scale.setScalar(0.10 + fadeFactor * 0.075)
+      }
       mesh.visible = fadeFactor > 0.01
+
+      // Raven arrival: push to queue when pulse completes — flushed by RavenArrivalFlash interval
+      if (pulse.isRaven && t >= 1.0 && elapsed - pulse.duration < 1 / 60) {
+        ravenArrivalQueue.push({
+          territoryId: pulse.destTerritoryId ?? 'the_scryer',
+          position: [pulse.targetPos.x, pulse.targetPos.y, pulse.targetPos.z],
+        })
+      }
+
+      // Raven trail ghosts — animate lagged t for each trail slot
+      if (pulse.isRaven && pulse.ravenTrailSlots && pulse.ravenTrailStartTimes) {
+        for (let i = 0; i < 3; i++) {
+          const trailSlot = pulse.ravenTrailSlots[i]
+          if (trailSlot >= meshPoolRef.current.length) continue
+          const trailElapsed = Math.max(0, now - pulse.ravenTrailStartTimes[i])
+          const trailT = Math.min(1, trailElapsed / pulse.duration)
+          const trailFade = Math.sin(trailT * Math.PI)
+          const trailMesh = meshPoolRef.current[trailSlot]
+          const trailMat = trailMesh.material as THREE.MeshBasicMaterial
+          trailMat.color.set(SIGNAL_COLORS['raven'])
+          trailMat.opacity = trailFade * RAVEN_TRAIL_OPACITIES[i]
+          scratchPos.lerpVectors(pulse.sourcePos, pulse.targetPos, trailT)
+          trailMesh.position.copy(scratchPos)
+          trailMesh.scale.setScalar((0.10 + trailFade * 0.075) * 1.4)
+          trailMesh.visible = trailFade > 0.01
+        }
+      }
     }
   })
 

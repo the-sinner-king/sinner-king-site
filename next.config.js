@@ -40,6 +40,15 @@ const nextConfig = {
         ],
       },
       {
+        // Audio files need CORS headers so the Web Audio API AnalyserNode can read them.
+        // crossOrigin="anonymous" on <audio> alone is insufficient — the server must also
+        // respond with Access-Control-Allow-Origin or the browser blocks context.createMediaElementSource().
+        source: '/audio/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+        ],
+      },
+      {
         source: '/api/:path*',
         headers: [
           { key: 'Access-Control-Allow-Origin', value: allowedOrigin },

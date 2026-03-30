@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, Space_Mono } from 'next/font/google'
 import './globals.css'
+import { VisitorBeacon } from '@/components/VisitorBeacon'
 
 // --- Fonts ---
 const inter = Inter({
@@ -77,6 +78,7 @@ export default function RootLayout({
         */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=VT323&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -131,6 +133,9 @@ export default function RootLayout({
             opacity-40
           "
         />
+
+        {/* Visitor presence beacon — passive, no UI */}
+        <VisitorBeacon />
 
         {/* Main content layer */}
         <div className="relative z-10">

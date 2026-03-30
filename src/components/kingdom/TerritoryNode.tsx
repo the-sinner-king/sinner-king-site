@@ -23,9 +23,10 @@ import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { useKingdomStore } from '@/lib/kingdom-store'
 import type { AgentState } from '@/lib/kingdom-agents'
-import { TERRITORY_TO_AGENT, STATE_COLORS } from '@/lib/kingdom-agents'
+import { TERRITORY_TO_AGENT, STATE_COLORS, PULSE_MS } from '@/lib/kingdom-agents'
 import { getWorldY } from '@/lib/kingdom-layout'
 import type { TerritoryLayout } from '@/lib/kingdom-layout'
+import { overmindBrightBoost } from './OvmindRing'
 
 // ---------------------------------------------------------------------------
 // BUILDING STATES
@@ -158,6 +159,9 @@ const SHAPE_PARAMS: Record<string, ShapeParams> = {
 }
 const DEFAULT_SHAPE_PARAMS: ShapeParams = { ringRadius: 0.9, ringY: 0, labelHeight: 1.2 }
 
+// Module-level HSL scratch object — reused every frame. Never allocate inside useFrame.
+const _hsl = { h: 0, s: 0, l: 0 }
+
 // ---------------------------------------------------------------------------
 // TERRITORY NODE
 // ---------------------------------------------------------------------------
@@ -175,6 +179,13 @@ export function TerritoryNode({ territory }: TerritoryNodeProps) {
   const labelRef         = useRef<HTMLDivElement>(null)
   const labelColorRef    = useRef<string>('')          // change-track: skip DOM write when unchanged
   const labelBorderRef   = useRef<string>('')          // change-track: skip DOM write when unchanged
+  const freshnessRef     = useRef<number>(1.0)         // target freshness multiplier (0.45–1.0)
+  const freshnessCurRef  = useRef<number>(1.0)         // current smoothed freshness value
+  const freshnessColorRef = useRef<number>(1.0)        // current saturation scale (mirrors opacity curve)
+  // PERF: cache lastSignal as pre-parsed ms — avoids Date.parse() on every frame (6×60fps=360/s).
+  // lastSignalStrRef tracks the raw string; only re-parse when it actually changes (~every 60s).
+  const lastSignalStrRef = useRef<string>('')
+  const lastSignalMsRef  = useRef<number>(0)
 
   // Derived selector — only re-renders THIS node when ITS selection state changes.
   // Without this, all 6 nodes re-render on every click (they all subscribed to selectedId).
@@ -201,6 +212,10 @@ export function TerritoryNode({ territory }: TerritoryNodeProps) {
   // These are stable for the life of the component (territory.color never changes at runtime).
   const colorAlpha40 = useMemo(() => `${territory.color}40`, [territory.color])
   const colorAlpha20 = useMemo(() => `${territory.color}20`, [territory.color])
+
+  // FIX C1: Stable THREE.Color from baseColor — read-only source for freshness desaturation.
+  // Never read material.color in useFrame (compounding drift). Always read from this object.
+  const _baseColorObj = useMemo(() => new THREE.Color(baseColor), [baseColor])
 
   // REGRESSION GUARD: deps are [baseColor, territory.color]. TERRITORY_BASE_COLORS is
   // intentionally module-static (never changes at runtime). territory.id is implicitly
@@ -254,12 +269,23 @@ export function TerritoryNode({ territory }: TerritoryNodeProps) {
   // isSelected is not in deps: we call getState() to get the live value at click time,
   // which avoids re-creating this function every time selection changes.
   const handleClick = useCallback(() => {
+    // Reset cursor immediately — panel opens and may occlude canvas, preventing onPointerLeave
+    document.body.style.cursor = 'auto'
     const { selectTerritory: sel, selectedId } = useKingdomStore.getState()
     sel(selectedId === territory.id ? null : territory.id)
   }, [territory.id])
 
+  // Unmount cleanup — reset cursor if component ever unmounts while hovered
+  useEffect(() => {
+    return () => { document.body.style.cursor = 'auto' }
+  }, [])
+
   useFrame(({ clock }, delta) => {
     if (!floatGroupRef.current) return
+
+    // Overmind brightness boost — module-level Map, no re-renders
+    const boost = overmindBrightBoost.get(territory.id)
+    const overmindMul = (boost && boost > Date.now()) ? 1.20 : 1.0
 
     const t      = clock.elapsedTime
     const offset = territory.position[0] * 0.7 + territory.position[2] * 0.3
@@ -298,23 +324,66 @@ export function TerritoryNode({ territory }: TerritoryNodeProps) {
     //   stable:  idle(0)→0.18(floor)  online(40)→0.20  reading(70)→0.35
     //   working: working(80)→1.12  swarming(100)→1.40 (neon dominates)
     const agentKey  = TERRITORY_TO_AGENT[territory.id]
+    // Prefer live-push agentStates activity; fall back to SCRYER territory.activity when agentStates
+    // is empty (polling mode, no PartyKit live-push). Without fallback: all agent territories
+    // show activity=0 and appear permanently dark even when SCRYER reports them active.
     const activity  = debugOverride
       ? debugOverride.activity
-      : agentKey ? (store.agentStates[agentKey]?.activity ?? 0) : 40
+      : agentKey
+        ? (store.agentStates[agentKey]?.activity ?? store.territoryMap.get(territory.id)?.activity ?? 0)
+        : (store.territoryMap.get(territory.id)?.activity ?? 40)
     const emissiveCeiling  = buildingState === 'working' ? 1.4 : 0.50
     const activityBase     = buildingState === 'offline'
       ? cfg.emissiveBase
       : Math.max(EMISSIVE_FLOOR, (activity / 100) * emissiveCeiling)
 
+    // Freshness decay — reads lastSignal from store via getState() (no hook, no re-render)
+    // NOTE: SCRYER writes lastSignal: NOW for every territory every cycle, so ageMinutes is
+    // always <2. For the ageMinutes<=2 case, use territory activity as a staleness proxy:
+    //   activity<=15 (offline) → 0.45  |  activity<=40 (idle) → 0.75  |  active → 1.0
+    // Temporal decay (>2 min) only fires when SCRYER genuinely stops writing — e.g. offline.
+    // FIX H2: use already-fetched `store` (above) instead of a second getState() call per frame.
+    // PERF: cache parsed ms in lastSignalMsRef — lastSignal changes ~every 60s, so 99.9% of frames
+    // we do a cheap string identity check instead of Date.parse(). Zero allocation either way.
+    const ts = store.territoryMap.get(territory.id)?.lastSignal ?? ''
+    if (ts !== lastSignalStrRef.current) {
+      lastSignalStrRef.current = ts
+      lastSignalMsRef.current  = ts ? Date.parse(ts) : 0
+    }
+    const ageMinutes = lastSignalMsRef.current > 0 ? (Date.now() - lastSignalMsRef.current) / 60000 : Infinity
+    const targetFreshness = ageMinutes > 30 ? 0.45
+      : ageMinutes > 10 ? 0.65
+      : ageMinutes > 2  ? 0.85
+      : activity <= 15  ? 0.45   // offline territory
+      : activity <= 40  ? 0.75   // idle territory
+      : 1.0                       // active territory
+    freshnessRef.current = targetFreshness
+    const reviveRate = 1 - Math.pow(0.001, delta * 60)
+    const decayRate  = 1 - Math.pow(0.997, delta * 60)
+    const freshnessRate = freshnessCurRef.current < freshnessRef.current ? reviveRate : decayRate
+    freshnessCurRef.current += (freshnessRef.current - freshnessCurRef.current) * freshnessRate
+    freshnessColorRef.current = freshnessCurRef.current
+
+    const freshenedBase = activityBase * freshnessCurRef.current
+
     // Breathing pulse — modifies shared material (all sub-meshes update)
     const breathe = cfg.breatheAmplitude > 0
       ? Math.sin(t * cfg.breatheFreq + offset * 0.5) * cfg.breatheAmplitude
       : 0
-    const targetIntensity = activityBase + breathe
+    const targetIntensity = (freshenedBase + breathe) * overmindMul
 
     // Frame-rate independent exponential approach — same convergence at any FPS
     const lerpFactor = 1 - Math.pow(EMISSIVE_LERP_BASE, delta * 60)
     material.emissiveIntensity += (targetIntensity - material.emissiveIntensity) * lerpFactor
+
+    // FIX C1: Color saturation decay — reads from _baseColorObj (original, never drifts).
+    // Old code read material.color each frame, compounding desaturation on every write.
+    if (freshnessColorRef.current < 0.999) {
+      _baseColorObj.getHSL(_hsl)  // read ORIGINAL base color — never drifts
+      material.color.setHSL(_hsl.h, _hsl.s * freshnessColorRef.current, _hsl.l)
+    } else {
+      material.color.copy(_baseColorObj)  // full freshness → restore exact original
+    }
 
     // Core Lore: always pulse regardless of status (truth never sleeps)
     if (territory.id === 'core_lore') {
@@ -427,7 +496,13 @@ export function TerritoryNode({ territory }: TerritoryNodeProps) {
 
   return (
     // Outer group: XZ position only (no Y — prevents double-count when floatGroup animates Y)
-    <group position={[territory.position[0], 0, territory.position[2]]}>
+    // Cursor handlers here cover all building types — stopPropagation prevents nested geometry
+    // from double-firing. onClick resets cursor in case panel occludes canvas (no leave event).
+    <group
+      position={[territory.position[0], 0, territory.position[2]]}
+      onPointerEnter={(e) => { e.stopPropagation(); document.body.style.cursor = 'pointer' }}
+      onPointerLeave={() => { document.body.style.cursor = 'auto' }}
+    >
       {/* Float group: Y animated in useFrame. All children drift together. */}
       <group ref={floatGroupRef}>
 
@@ -464,7 +539,11 @@ export function TerritoryNode({ territory }: TerritoryNodeProps) {
           position={[0, 0.8, 0]}
         />
 
-        {/* Label */}
+        {/* Label — agent state micro-badge system
+            Badge dot: uses PULSE_MS from kingdom-agents for per-state animation duration.
+            State text: shown for all active (non-idle, non-offline) states.
+            Zzz: floating Zs for offline agent territories (not core_lore/the_scryer).
+            FIX M1: @keyframes badge-pulse and badge-zzz hoisted to globals.css — no per-instance <style>. */}
         <Html
           position={[0, params.labelHeight, 0]}
           center
@@ -474,9 +553,9 @@ export function TerritoryNode({ territory }: TerritoryNodeProps) {
           <div
             ref={labelRef}
             style={{
-              fontFamily: 'monospace',
-              fontSize: '10px',
-              letterSpacing: '0.1em',
+              fontFamily: "'VT323', 'Courier New', monospace",
+              fontSize: '11px',
+              letterSpacing: '0.18em',
               color: '#6a5a70',
               background: 'rgba(13,2,33,0.75)',
               padding: '2px 6px',
@@ -486,21 +565,91 @@ export function TerritoryNode({ territory }: TerritoryNodeProps) {
               display: 'flex',
               alignItems: 'center',
               gap: 5,
+              position: 'relative',
+              // Subtle CRT scan-line through the label text
+              backgroundImage: 'linear-gradient(rgba(13,2,33,0.75) 49%, rgba(0,212,255,0.06) 50%, rgba(13,2,33,0.75) 51%)',
             }}
           >
-            {agentStateForBadge && (
-              <div style={{
-                width: 5,
-                height: 5,
-                borderRadius: '50%',
-                flexShrink: 0,
-                background: AGENT_STATE_COLORS[agentStateForBadge],
-                boxShadow: agentStateForBadge !== 'offline' && agentStateForBadge !== 'online'
-                  ? `0 0 4px ${AGENT_STATE_COLORS[agentStateForBadge]}88`
-                  : undefined,
-              }} />
-            )}
+            {/* State dot — offline=hollow ring, online=solid small, active=larger with glow+pulse */}
+            {agentStateForBadge && (() => {
+              const isOffline = agentStateForBadge === 'offline'
+              const isOnline  = agentStateForBadge === 'online'
+              const isActive  = !isOffline && !isOnline
+              const sc = AGENT_STATE_COLORS[agentStateForBadge]
+              return (
+                <div style={{
+                  width:        isOffline ? 4 : isOnline ? 5 : 7,
+                  height:       isOffline ? 4 : isOnline ? 5 : 7,
+                  borderRadius: '50%',
+                  flexShrink:   0,
+                  background:   isOffline ? 'transparent' : sc,
+                  border:       isOffline ? `1px solid ${sc}` : 'none',
+                  opacity:      isOffline ? 0.35 : 1,
+                  boxShadow:    isActive ? `0 0 5px ${sc}99, 0 0 10px ${sc}44` : undefined,
+                  transition:   'width 300ms ease-in-out, height 300ms ease-in-out',
+                  animation:    PULSE_MS[agentStateForBadge] > 0
+                    ? `badge-pulse ${PULSE_MS[agentStateForBadge]}ms ease-in-out infinite`
+                    : undefined,
+                }} />
+              )
+            })()}
+
             {territory.label}
+
+            {/* Active state text — JetBrains Mono, full opacity, glow treatment */}
+            {agentStateForBadge && agentStateForBadge !== 'offline' && agentStateForBadge !== 'online' && (
+              <span style={{
+                fontFamily:   "'JetBrains Mono', 'Courier New', monospace",
+                fontSize:     '7px',
+                color:        AGENT_STATE_COLORS[agentStateForBadge],
+                opacity:      1.0,
+                letterSpacing:'0.10em',
+                textShadow:   `0 0 4px ${AGENT_STATE_COLORS[agentStateForBadge]}88`,
+                background:   `${AGENT_STATE_COLORS[agentStateForBadge]}14`,
+                padding:      '0 2px',
+              }}>
+                {agentStateForBadge.toUpperCase()}
+              </span>
+            )}
+
+            {/* Zzz — offline agent territories only (core_lore/the_scryer have no agentKey → null badge) */}
+            {agentStateForBadge === 'offline' && (
+              <>
+                <span style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  left: '-2px',
+                  fontSize: '7px',
+                  color: AGENT_STATE_COLORS.offline,
+                  opacity: 0,
+                  pointerEvents: 'none',
+                  animation: 'badge-zzz 2s ease-in-out infinite',
+                  animationDelay: '0s',
+                }}>z</span>
+                <span style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  left: '6px',
+                  fontSize: '8px',
+                  color: AGENT_STATE_COLORS.offline,
+                  opacity: 0,
+                  pointerEvents: 'none',
+                  animation: 'badge-zzz 2s ease-in-out infinite',
+                  animationDelay: '0.65s',
+                }}>z</span>
+                <span style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  left: '14px',
+                  fontSize: '6px',
+                  color: AGENT_STATE_COLORS.offline,
+                  opacity: 0,
+                  pointerEvents: 'none',
+                  animation: 'badge-zzz 2s ease-in-out infinite',
+                  animationDelay: '1.3s',
+                }}>z</span>
+              </>
+            )}
           </div>
         </Html>
 

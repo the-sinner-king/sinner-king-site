@@ -6,61 +6,138 @@
  * Pirate radio station broadcasting from the Sinner Kingdom.
  * Synthwave AI covers of songs that shouldn't exist this way.
  *
- * NOT wired to any live route — this component exists but is not imported
- * anywhere until Brandon says go. Drop it on any page to activate.
+ * STATUS
+ *   Not wired to any live route — self-contained, drop onto any page to activate.
  *
- * Features:
- *   - Random track on load (surprise every visit)
- *   - ASCII frequency visualizer via Web Audio API AnalyserNode
+ * FEATURES
+ *   - Random track on load (surprise-every-visit via getRandomTrack())
+ *   - ASCII frequency visualizer driven by Web Audio API AnalyserNode
  *   - Download button: native <a href download>
- *   - Copy Prompt button: navigator.clipboard — steal the AI prompt
+ *   - Copy Prompt button: navigator.clipboard — visitor steals the Suno prompt
  *   - Play / pause / next / prev controls
+ *   - Auto-advance on track end
+ *   - Optional autoPlay prop with deferred gesture fallback
  *
- * Audio engine: native HTMLAudioElement + Web Audio API
- *   AudioContext created on first play click (avoids autoplay policy block)
- *   crossOrigin="anonymous" required for AnalyserNode on Vercel-served files
+ * WEB AUDIO PIPELINE
+ *   AudioContext → createMediaElementSource(audioEl) → AnalyserNode → ctx.destination
  *
- * ASCII visualizer:
- *   128-bin FFT → 50 columns → ASCII_CHARS height mapping
- *   RAF pauses when document is hidden (no wasted CPU)
- *   Colors cycle through territory palette per column
+ *   createMediaElementSource wires the <audio> element into the Web Audio graph.
+ *   The AnalyserNode sits in the middle — it passes audio through to ctx.destination
+ *   (speakers) while also exposing getByteFrequencyData() for the visualizer.
+ *   AudioContext must be created on first user gesture (browser autoplay policy).
+ *   Once created it persists for the component's lifetime — AudioContext is a heavy
+ *   OS-level resource and should never be recreated per-track or per-play.
+ *   CLEANUP REQUIREMENT: ctxRef.current.close() must be called on unmount.
+ *   Unclosed AudioContext leaks an OS audio pipeline — audible as a silent resource
+ *   drain on some systems, and flagged by browser DevTools as a resource leak.
+ *
+ * crossOrigin="anonymous" ON <audio>
+ *   Required for createMediaElementSource when audio is served from the same origin
+ *   but could be cross-origin in future (Vercel CDN). Without it the browser blocks
+ *   the AnalyserNode read as a CORS violation even for same-origin files.
+ *
+ * ASCII VISUALIZER
+ *   128-bin FFT (fftSize=256) → COL_COUNT columns via bin averaging →
+ *   ampToAscii() maps amplitude 0-255 to ASCII_CHARS index.
+ *   RAF pauses when document.hidden (tab not visible) — no wasted CPU on an
+ *   invisible canvas. Resumes when tab becomes visible again.
+ *
+ * hasAutoplayed REF (per-track scope)
+ *   Reset to false on every goToTrack() call so auto-advance works correctly.
+ *   A component-lifetime hasAutoplayed would block auto-advance after the first
+ *   track completes — each track needs its own independent autoplay attempt.
+ *   The ref is only set to true after play() actually resolves — not before —
+ *   so rapid switching before the first gesture doesn't permanently silence the radio.
+ *
+ * isPlayingRef (stable closure pattern)
+ *   The visibilitychange listener needs to know whether audio is currently playing
+ *   to decide whether to re-arm the RAF on tab-show. If isPlaying state were read
+ *   directly as a dep, the effect would re-run on every play/pause toggle, briefly
+ *   removing and re-attaching the listener with a gap between them. isPlayingRef
+ *   is mutated each render so it's always current without causing effect re-runs.
+ *
+ * SIDE EFFECTS
+ *   AudioContext (long-lived OS resource) — created on first play, closed on unmount.
+ *   requestAnimationFrame loop — started on play, cancelled on pause and unmount.
+ *   visibilitychange listener — created once, removed on unmount.
+ *   'ended' audio listener — added/removed when nextTrack changes (useCallback dep).
+ *   'timeupdate', 'durationchange', 'canplaythrough' listeners — mounted once.
  */
 
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { RADIO_TRACKS, getRandomTrack } from './radio-tracks'
 import type { RadioTrack } from './radio-tracks'
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
 
-const ASCII_CHARS = ' .:-=+*#%@'   // 10 levels — space (silence) → @ (peak)
-const CANVAS_W    = 260
-const CANVAS_H    = 72
-// 34 cols × ~7.6px each at CANVAS_W=260 — packed terminal look.
-const COL_COUNT   = 34
-const FONT_SIZE   = 8              // px — monospace
+/** ASCII amplitude scale: space = silence, @ = peak. 10 levels. */
+const ASCII_CHARS = ' .:-=+*#%@'
 
-// Territory colors — cycles across visualizer columns
+/** Visualizer canvas dimensions (px). */
+const CANVAS_W = 260
+const CANVAS_H = 72
+
+/**
+ * Number of frequency columns in the visualizer.
+ * 34 cols × ~7.6px each at CANVAS_W=260 — packed terminal look.
+ */
+const COL_COUNT = 34
+
+/** Monospace font size for visualizer characters (px). */
+const FONT_SIZE = 8
+
+/**
+ * Amplitude overdrive multiplier for the visualizer's gradient calculation.
+ * Without it, moderate signals (avg=128) only reach '=' even at peak — visually weak.
+ * ×2.5 ensures mid-amplitude signals display near-full bars at their apex.
+ */
+const VISUALIZER_OVERDRIVE = 2.5
+
+/**
+ * Web Audio FFT size. Must be a power of 2.
+ * fftSize=256 → 128 frequency bins. Minimum resolution giving meaningful
+ * frequency separation while keeping getByteFrequencyData calls cheap per frame.
+ */
+const FFT_SIZE = 256
+
+/**
+ * AnalyserNode smoothing — controls how quickly amplitude values decay between frames.
+ * 0.82: industry-standard "feels responsive but not jittery" value for music visualizers.
+ * Lower → reactive but flickery. Higher → smooth smear, transients invisible.
+ */
+const ANALYSER_SMOOTHING = 0.82
+
+/**
+ * How long the "COPIED" state persists on the Copy Prompt button (ms).
+ * Short enough to feel snappy, long enough to be readable.
+ */
+const COPY_FEEDBACK_DURATION_MS = 1500
+
+/**
+ * Territory palette — cycles across visualizer columns for the color-bleed effect.
+ * Each color represents a Kingdom domain.
+ */
 const TERRITORY_COLORS = [
-  '#7000ff',  // claude_house  purple
-  '#f0a500',  // the_forge     amber
-  '#ff006e',  // the_throne    pink
-  '#9b30ff',  // the_tower     violet
-  '#00f3ff',  // the_scryer    cyan
-  '#e8e0d0',  // core_lore     off-white
-]
+  '#7000ff',  // claude_house — purple
+  '#f0a500',  // the_forge   — amber
+  '#ff006e',  // the_throne  — pink
+  '#9b30ff',  // the_tower   — violet
+  '#00f3ff',  // the_scryer  — cyan
+  '#e8e0d0',  // core_lore   — off-white
+] as const
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
 
+/**
+ * Maps a raw FFT amplitude byte (0–255) to an ASCII character index.
+ * Clamped to valid ASCII_CHARS bounds.
+ */
 function ampToAscii(amplitude: number): string {
-  // amplitude: 0–255 from getByteFrequencyData
   const idx = Math.floor((amplitude / 255) * (ASCII_CHARS.length - 1))
   return ASCII_CHARS[Math.max(0, Math.min(ASCII_CHARS.length - 1, idx))]
 }
 
+/** Formats a duration in seconds as M:SS. Returns '--:--' for non-finite values. */
 function fmt(seconds: number): string {
   if (!isFinite(seconds)) return '--:--'
   const m = Math.floor(seconds / 60)
@@ -68,24 +145,33 @@ function fmt(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
+// ─── PROPS ───────────────────────────────────────────────────────────────────
 
 interface SinnerKingRadioProps {
-  /** If provided, start on this track ID instead of a random one */
+  /** Start on this specific track ID instead of a random one. */
   initialTrackId?: string
-  /** If true, attempt to play on first canplaythrough event (browser may block) */
+  /**
+   * Attempt to play on first canplaythrough event.
+   * Browser autoplay policy will likely block this — the component arms a deferred
+   * gesture listener (pointerdown / keydown / wheel) as a fallback.
+   */
   autoPlay?: boolean
 }
 
-export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKingRadioProps) {
+// ─── COMPONENT ───────────────────────────────────────────────────────────────
+
+export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKingRadioProps): React.ReactElement {
+  // DOM refs — never trigger re-renders
   const audioRef    = useRef<HTMLAudioElement>(null)
   const canvasRef   = useRef<HTMLCanvasElement>(null)
+
+  // Web Audio API refs — long-lived, cleaned up on unmount
   const analyserRef = useRef<AnalyserNode | null>(null)
-  const rafRef      = useRef<number>(0)
   const ctxRef      = useRef<AudioContext | null>(null)
   const sourceRef   = useRef<MediaElementAudioSourceNode | null>(null)
+
+  // RAF handle — used to cancel the visualizer loop on pause/unmount
+  const rafRef      = useRef<number>(0)
 
   const [currentTrack, setCurrentTrack] = useState<RadioTrack>(() => {
     if (initialTrackId) {
@@ -93,26 +179,28 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
     }
     return getRandomTrack()
   })
-  const [isPlaying,    setIsPlaying]    = useState(false)
-  // Stable ref — lets visibilitychange listener read current isPlaying without
-  // being in the effect deps (prevents listener re-creation on every play/pause toggle).
+  const [isPlaying,  setIsPlaying]  = useState(false)
+  const [duration,   setDuration]   = useState(0)
+  const [elapsed,    setElapsed]    = useState(0)
+  const [copied,     setCopied]     = useState(false)
+  const [audioReady, setAudioReady] = useState(false)
+
+  /**
+   * Stable ref that mirrors isPlaying state for use inside the visibilitychange
+   * listener without adding isPlaying to the listener's effect dependency array.
+   * See module-level JSDoc: "isPlayingRef (stable closure pattern)".
+   */
   const isPlayingRef = useRef(false)
   isPlayingRef.current = isPlaying
-  const [duration,     setDuration]     = useState(0)
-  const [elapsed,      setElapsed]      = useState(0)
-  const [copied,       setCopied]       = useState(false)
-  const [audioReady,   setAudioReady]   = useState(false)
 
-  // ---------------------------------------------------------------------------
-  // ASCII visualizer RAF loop
-  // ---------------------------------------------------------------------------
+  // ─── VISUALIZER RAF LOOP ──────────────────────────────────────────────────
 
-  const drawVisualizer = useCallback(() => {
+  const drawVisualizer = useCallback((): void => {
     const canvas   = canvasRef.current
     const analyser = analyserRef.current
     if (!canvas || !analyser) return
 
-    const ctx  = canvas.getContext('2d')
+    const ctx = canvas.getContext('2d')
     if (!ctx) return
 
     const data = new Uint8Array(analyser.frequencyBinCount)
@@ -126,42 +214,46 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
     const rowCount   = Math.floor(CANVAS_H / FONT_SIZE)
 
     for (let col = 0; col < COL_COUNT; col++) {
-      // Average amplitude across bins in this column's frequency range
+      // Average amplitude across all FFT bins that map to this column's frequency range.
       let sum = 0
       for (let b = 0; b < binsPerCol; b++) {
         sum += data[col * binsPerCol + b]
       }
       const avg     = sum / binsPerCol
-      const barRows = Math.floor((avg / 255) * rowCount)  // how many rows to fill
+      const barRows = Math.floor((avg / 255) * rowCount)
 
       const color = TERRITORY_COLORS[col % TERRITORY_COLORS.length]
       ctx.fillStyle   = color
-      ctx.shadowColor = color   // glow — each column's color bleeds out around its characters
+      // shadowColor/shadowBlur: each column's glow bleeds outward around its characters.
+      // Reset to 0 after the loop — otherwise clearRect on the next frame inherits the glow.
+      ctx.shadowColor = color
       ctx.shadowBlur  = 7
 
-      // Gradient: top of bar (smallest row index) gets hottest ASCII char.
-      // (rowCount - row) grows as row decreases → peak energy shown at bar apex.
-      // ×2.5 overdrive: ensures the apex char reaches '@' for moderate signals.
-      // Without it, avg=128 would only reach '=' even at peak — visually weak.
+      // Draw bottom-up (rowCount-1 is the bottom row, 0 is the top).
+      // The gradient: the topmost filled row (bar apex) gets the highest amplitude char.
+      // (rowCount - row) grows as row index decreases (closer to top) →
+      // higher char index at the apex. VISUALIZER_OVERDRIVE prevents visually weak bars
+      // for moderate signals.
       for (let row = rowCount - 1; row >= rowCount - barRows; row--) {
-        const char = ampToAscii((avg / rowCount) * (rowCount - row) * 2.5)
+        const char = ampToAscii((avg / rowCount) * (rowCount - row) * VISUALIZER_OVERDRIVE)
         ctx.fillText(char, col * colW, row * FONT_SIZE + FONT_SIZE)
       }
     }
-    ctx.shadowBlur = 0  // reset after loop — don't bleed into clearRect next frame
 
+    ctx.shadowBlur = 0  // reset — don't bleed into clearRect next frame
+
+    // Only re-arm the RAF if the tab is visible. visibilitychange handler re-arms
+    // when the user returns to the tab.
     if (!document.hidden) {
       rafRef.current = requestAnimationFrame(drawVisualizer)
     }
   }, [])
 
-  // Pause RAF when tab hidden, resume when visible.
-  // REGRESSION GUARD: isPlaying is read via ref — NOT in deps array. If isPlaying
-  // were a dep, this effect would re-run on every play/pause toggle, briefly
-  // leaving the page unlistened between listener removal and re-attachment.
-  // isPlayingRef.current is always current without causing re-registration.
+  // ─── VISIBILITY CHANGE — pause/resume RAF ────────────────────────────────
+
+  // REGRESSION GUARD: isPlaying NOT in deps. See module-level JSDoc.
   useEffect(() => {
-    const onVisibility = () => {
+    const onVisibility = (): void => {
       if (document.hidden) {
         cancelAnimationFrame(rafRef.current)
       } else if (isPlayingRef.current) {
@@ -172,34 +264,53 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [drawVisualizer])
 
-  // Clean up RAF on unmount
-  useEffect(() => () => { cancelAnimationFrame(rafRef.current) }, [])
+  // ─── CLEANUP ON UNMOUNT ───────────────────────────────────────────────────
 
-  // ---------------------------------------------------------------------------
-  // Audio context setup — called on first play (avoids autoplay block)
-  // ---------------------------------------------------------------------------
+  // AudioContext and RAF must both be cleaned up — AudioContext is a persistent OS
+  // resource. Failure to close leaks a silent audio pipeline.
+  useEffect(() => () => {
+    cancelAnimationFrame(rafRef.current)
+    sourceRef.current?.disconnect()
+    sourceRef.current  = null
+    analyserRef.current = null
+    void ctxRef.current?.close()
+    ctxRef.current = null
+  }, [])
 
-  const initAudioContext = useCallback(() => {
+  // ─── AUDIO CONTEXT INIT ───────────────────────────────────────────────────
+
+  /**
+   * Creates the AudioContext and wires the pipeline on first play click.
+   * Called lazily (not on mount) to comply with browser autoplay policy —
+   * AudioContext.resume() requires a user gesture on most browsers.
+   *
+   * Once created, the context is reused for all subsequent plays/tracks.
+   * createMediaElementSource() can only be called once per HTMLAudioElement;
+   * the guard `if (ctxRef.current)` prevents re-creation.
+   */
+  const initAudioContext = useCallback((): void => {
     if (ctxRef.current || !audioRef.current) return
 
-    // Safari still ships webkitAudioContext — one-liner polyfill.
-    const AudioCtx = window.AudioContext ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    // Safari ships webkitAudioContext — one-liner cross-browser polyfill.
+    const AudioCtx =
+      window.AudioContext ??
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+
     if (!AudioCtx) {
-      // Web Audio not available (very old browser, SSR escape hatch).
-      // Player still works for playback — visualizer canvas stays dark.
+      // Web Audio unavailable (very old browser). Player still works for playback;
+      // visualizer canvas stays dark.
       console.warn('[SinnerKingRadio] Web Audio API unavailable — visualizer disabled')
       return
     }
 
     const ctx      = new AudioCtx()
     const analyser = ctx.createAnalyser()
-    // fftSize 256 → 128 frequency bins. Minimum giving meaningful frequency
-    // resolution while keeping getByteFrequencyData calls cheap per frame.
-    analyser.fftSize = 256
-    // 0.82: standard "feels smooth but still responsive" value for music visualizers.
-    // Lower = more reactive jitter. Higher = slow smear. 0.82 tracks transients well.
-    analyser.smoothingTimeConstant = 0.82
+    analyser.fftSize              = FFT_SIZE
+    analyser.smoothingTimeConstant = ANALYSER_SMOOTHING
 
+    // Wire: audioElement → analyser → speakers.
+    // The analyser node is transparent to playback — it passes audio through
+    // while exposing frequency data via getByteFrequencyData().
     const source = ctx.createMediaElementSource(audioRef.current)
     source.connect(analyser)
     analyser.connect(ctx.destination)
@@ -209,17 +320,16 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
     sourceRef.current = source
   }, [])
 
-  // ---------------------------------------------------------------------------
-  // Playback controls
-  // ---------------------------------------------------------------------------
+  // ─── PLAYBACK CONTROLS ────────────────────────────────────────────────────
 
-  const play = useCallback(async () => {
+  const play = useCallback(async (): Promise<void> => {
     const audio = audioRef.current
     if (!audio) return
 
     initAudioContext()
 
-    // Resume suspended context (required by browser autoplay policy)
+    // AudioContext starts 'suspended' — browser autoplay policy requires resume()
+    // to be called from within a user gesture handler.
     if (ctxRef.current?.state === 'suspended') {
       await ctxRef.current.resume()
     }
@@ -229,57 +339,61 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
     rafRef.current = requestAnimationFrame(drawVisualizer)
   }, [initAudioContext, drawVisualizer])
 
-  const pause = useCallback(() => {
+  const pause = useCallback((): void => {
     audioRef.current?.pause()
     setIsPlaying(false)
     cancelAnimationFrame(rafRef.current)
   }, [])
 
-  const togglePlay = useCallback(() => {
-    isPlaying ? pause() : play()
+  const togglePlay = useCallback((): void => {
+    isPlaying ? pause() : void play()
   }, [isPlaying, play, pause])
 
-  const goToTrack = useCallback((track: RadioTrack) => {
+  /**
+   * Per-track autoplay guard (see module JSDoc: "hasAutoplayed REF").
+   * Scoped so auto-advance re-arms on each new track. Only set to true after
+   * play() resolves — not speculatively — so rapid switching doesn't silence the radio.
+   */
+  const hasAutoplayed = useRef(false)
+
+  const goToTrack = useCallback((track: RadioTrack): void => {
     pause()
     setCurrentTrack(track)
     setElapsed(0)
     setAudioReady(false)
-    // <audio src> is bound to `/audio/${currentTrack.filename}` in JSX —
-    // React updates the attribute on re-render when currentTrack changes.
+    hasAutoplayed.current = false  // arm autoplay for the new track
   }, [pause])
 
-  const nextTrack = useCallback(() => {
+  const nextTrack = useCallback((): void => {
     const idx = RADIO_TRACKS.findIndex((t) => t.id === currentTrack.id)
     goToTrack(RADIO_TRACKS[(idx + 1) % RADIO_TRACKS.length])
   }, [currentTrack.id, goToTrack])
 
-  const prevTrack = useCallback(() => {
+  const prevTrack = useCallback((): void => {
     const idx = RADIO_TRACKS.findIndex((t) => t.id === currentTrack.id)
     goToTrack(RADIO_TRACKS[(idx - 1 + RADIO_TRACKS.length) % RADIO_TRACKS.length])
   }, [currentTrack.id, goToTrack])
 
-  // Auto-advance on track end
+  // ─── AUTO-ADVANCE ON TRACK END ────────────────────────────────────────────
+
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
-    const onEnded = () => nextTrack()
+    const onEnded = (): void => nextTrack()
     audio.addEventListener('ended', onEnded)
     return () => audio.removeEventListener('ended', onEnded)
   }, [nextTrack])
 
-  // Autoplay — deferred on browser block.
-  // hasAutoplayed is only marked true after play() ACTUALLY SUCCEEDS — not before.
-  // This ensures rapid track-switching before the first gesture doesn't silently
-  // consume the "one shot" and leave the radio permanently muted.
-  // Gesture listeners are cleaned up if the effect re-runs before they fire.
-  const hasAutoplayed = useRef(false)
+  // ─── AUTOPLAY (deferred gesture fallback) ────────────────────────────────
+
   useEffect(() => {
     if (!autoPlay || !audioReady || hasAutoplayed.current) return
 
-    // Stash gesture listener ref so cleanup can remove it if effect re-runs
+    // Stash gesture listener ref so cleanup can remove it if the effect re-runs
+    // before any gesture fires (e.g. track switches while waiting for a gesture).
     let gestureHandler: (() => void) | null = null
 
-    const cleanup = () => {
+    const cleanup = (): void => {
       if (gestureHandler) {
         document.removeEventListener('pointerdown', gestureHandler)
         document.removeEventListener('keydown',     gestureHandler)
@@ -291,11 +405,10 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
     play()
       .then(() => { hasAutoplayed.current = true })
       .catch(() => {
-        // Browser blocked — arm deferred trigger on first user gesture
-        gestureHandler = () => {
-          play()
-            .then(() => { hasAutoplayed.current = true })
-            .catch(() => {})
+        // Browser blocked immediate autoplay — arm on first user gesture.
+        // Three event types cover the full gesture surface (touch, keyboard, scroll).
+        gestureHandler = (): void => {
+          void play().then(() => { hasAutoplayed.current = true })
           cleanup()
         }
         document.addEventListener('pointerdown', gestureHandler, { once: true })
@@ -306,16 +419,17 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
     return cleanup
   }, [autoPlay, audioReady, play])
 
-  // Sync time display
+  // ─── TIME SYNC ────────────────────────────────────────────────────────────
+
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
-    const onTime     = () => setElapsed(audio.currentTime)
-    const onDuration = () => setDuration(audio.duration)
-    const onReady    = () => setAudioReady(true)
-    audio.addEventListener('timeupdate',  onTime)
-    audio.addEventListener('durationchange', onDuration)
-    audio.addEventListener('canplaythrough', onReady)
+    const onTime     = (): void => setElapsed(audio.currentTime)
+    const onDuration = (): void => setDuration(audio.duration)
+    const onReady    = (): void => setAudioReady(true)
+    audio.addEventListener('timeupdate',      onTime)
+    audio.addEventListener('durationchange',  onDuration)
+    audio.addEventListener('canplaythrough',  onReady)
     return () => {
       audio.removeEventListener('timeupdate',     onTime)
       audio.removeEventListener('durationchange', onDuration)
@@ -323,26 +437,24 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
     }
   }, [])
 
-  // ---------------------------------------------------------------------------
-  // Copy prompt
-  // ---------------------------------------------------------------------------
+  // ─── COPY PROMPT ─────────────────────────────────────────────────────────
 
-  const copyPrompt = useCallback(async () => {
+  const copyPrompt = useCallback(async (): Promise<void> => {
     await navigator.clipboard.writeText(currentTrack.prompt)
     setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+    setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION_MS)
   }, [currentTrack.prompt])
 
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
+  // ─── RENDER ───────────────────────────────────────────────────────────────
 
   const trackIdx = RADIO_TRACKS.findIndex((t) => t.id === currentTrack.id)
 
   return (
     <>
-      {/* Next.js 14+ inline style tag: href = dedup key (prevents duplicate injection
-          across instances/routes), precedence = CSS cascade layer. Valid pattern. */}
+      {/*
+        href = dedup key — Next.js 14+ deduplicates injected <style> tags by href.
+        Prevents duplicate injection across multiple instances or route re-mounts.
+      */}
       <style href="skr-anim" precedence="default">{`
         @keyframes skr-in {
           from { opacity: 0; transform: translateY(8px); }
@@ -353,38 +465,43 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
           100% { background-position: 0 4px; }
         }
         .skr-btn {
-          background:    transparent;
-          border:        1px solid rgba(112,0,255,0.35);
-          color:         rgba(112,0,255,0.8);
-          font-family:   monospace;
-          font-size:     10px;
+          background:     transparent;
+          border:         1px solid rgba(112,0,255,0.35);
+          color:          rgba(112,0,255,0.8);
+          font-family:    monospace;
+          font-size:      10px;
           letter-spacing: 0.12em;
-          padding:       4px 8px;
-          cursor:        pointer;
-          transition:    border-color 0.15s, color 0.15s, box-shadow 0.15s;
+          padding:        4px 8px;
+          cursor:         pointer;
+          transition:     border-color 0.15s, color 0.15s, box-shadow 0.15s;
         }
         .skr-btn:hover {
-          border-color:  rgba(112,0,255,0.9);
-          color:         #7000ff;
-          box-shadow:    0 0 6px rgba(112,0,255,0.4);
+          border-color: rgba(112,0,255,0.9);
+          color:        #7000ff;
+          box-shadow:   0 0 6px rgba(112,0,255,0.4);
         }
         .skr-btn-action {
-          border-color:  rgba(0,211,255,0.4);
-          color:         rgba(0,211,255,0.8);
+          border-color: rgba(0,211,255,0.4);
+          color:        rgba(0,211,255,0.8);
         }
         .skr-btn-action:hover {
-          border-color:  rgba(0,211,255,0.9);
-          color:         #00d3ff;
-          box-shadow:    0 0 6px rgba(0,211,255,0.4);
+          border-color: rgba(0,211,255,0.9);
+          color:        #00d3ff;
+          box-shadow:   0 0 6px rgba(0,211,255,0.4);
         }
         .skr-btn-copied {
-          border-color:  rgba(0,243,255,0.9) !important;
-          color:         #00f3ff !important;
-          box-shadow:    0 0 10px rgba(0,243,255,0.6) !important;
+          border-color: rgba(0,243,255,0.9) !important;
+          color:        #00f3ff !important;
+          box-shadow:   0 0 10px rgba(0,243,255,0.6) !important;
         }
       `}</style>
 
-      {/* Hidden audio element — crossOrigin required for Web Audio API AnalyserNode */}
+      {/*
+        crossOrigin="anonymous": required for createMediaElementSource when files
+        may be served from a CDN. Without it the browser blocks AnalyserNode reads
+        as a CORS violation even for same-origin files.
+        preload="metadata": loads duration for display without buffering full audio.
+      */}
       <audio
         ref={audioRef}
         src={`/audio/${currentTrack.filename}`}
@@ -393,51 +510,57 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
       />
 
       <div style={{
-        display:        'flex',
-        flexDirection:  'column',
-        gap:            0,
-        fontFamily:     'monospace',
-        width:          CANVAS_W + 2,  // +2 for border
-        animation:      'skr-in 0.5s ease-out',
+        display:       'flex',
+        flexDirection: 'column',
+        gap:           0,
+        fontFamily:    'monospace',
+        width:         CANVAS_W + 2,  // +2 for left + right border
+        animation:     'skr-in 0.5s ease-out',
       }}>
 
         {/* Main panel */}
         <div style={{
-          background:    'rgba(3,0,10,0.96)',
-          border:        '1px solid rgba(112,0,255,0.5)',
-          boxShadow:     '0 0 20px rgba(112,0,255,0.15), inset 0 0 40px rgba(0,0,0,0.4)',
-          padding:       '10px 12px 12px',
-          position:      'relative',
-          overflow:      'hidden',
+          background:  'oklch(0.040 0.035 281)',
+          border:      '1px solid oklch(0.495 0.310 281 / 0.50)',
+          boxShadow:   '0 0 20px oklch(0.495 0.310 281 / 0.25), 0 0 44px oklch(0.495 0.310 281 / 0.12), 0 0 80px oklch(0.495 0.310 281 / 0.05), inset 0 0 40px oklch(0.040 0.035 281 / 0.50), inset 0 1px 0 oklch(0.495 0.310 281 / 0.08)',
+          padding:     '10px 12px 12px',
+          position:    'relative',
+          overflow:    'hidden',
         }}>
 
-          {/* Scanline overlay */}
+          {/* CRT scanline overlay — cosmetic, sits above content but passes pointer events */}
           <div style={{
-            position:   'absolute',
-            inset:      0,
-            background: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.08) 4px)',
+            position:      'absolute',
+            inset:         0,
+            background:    'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.08) 4px)',
             pointerEvents: 'none',
-            zIndex:     1,
+            zIndex:        1,
           }} />
 
           {/* Header */}
           <div style={{
             display:        'flex',
             justifyContent: 'space-between',
-            alignItems:     'baseline',
+            alignItems:     'center',
             paddingBottom:  6,
             marginBottom:   8,
-            borderBottom:   '1px solid rgba(112,0,255,0.2)',
             position:       'relative',
             zIndex:         2,
           }}>
-            <span style={{ color: '#7000ff', fontSize: 9, letterSpacing: '0.22em' }}>
+            <span style={{
+              color:         'oklch(0.560 0.250 281)',
+              fontSize:      9,
+              letterSpacing: '0.22em',
+              fontFamily:    '"JetBrains Mono", monospace',
+              textShadow:    '0 0 8px oklch(0.560 0.250 281 / 0.60)',
+            }}>
               SINNER_KING.RADIO
             </span>
-            <span style={{ color: 'rgba(112,0,255,0.4)', fontSize: 8, letterSpacing: '0.1em' }}>
+            <span style={{ color: 'oklch(0.495 0.310 281 / 0.50)', fontSize: 8, letterSpacing: '0.1em' }}>
               {trackIdx + 1}/{RADIO_TRACKS.length}
             </span>
           </div>
+          <div className="hud-divider" style={{ marginBottom: 8, position: 'relative', zIndex: 2 }} />
 
           {/* Track info */}
           <div style={{ position: 'relative', zIndex: 2, marginBottom: 8 }}>
@@ -469,26 +592,26 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
               width={CANVAS_W}
               height={CANVAS_H}
               style={{
-                display:     'block',
-                width:       '100%',
-                height:      CANVAS_H,
-                background:  'rgba(0,0,0,0.3)',
-                border:      '1px solid rgba(112,0,255,0.12)',
+                display:        'block',
+                width:          '100%',
+                height:         CANVAS_H,
+                background:     'rgba(0,0,0,0.3)',
+                border:         '1px solid rgba(112,0,255,0.12)',
                 imageRendering: 'pixelated',
               }}
             />
-            {/* Idle state overlay — shown when not playing */}
+            {/* Idle overlay — shown when paused; hides the empty canvas gracefully */}
             {!isPlaying && (
               <div style={{
-                position:      'absolute',
-                inset:         0,
-                display:       'flex',
-                alignItems:    'center',
+                position:       'absolute',
+                inset:          0,
+                display:        'flex',
+                alignItems:     'center',
                 justifyContent: 'center',
-                color:         'rgba(112,0,255,0.25)',
-                fontSize:      9,
-                letterSpacing: '0.2em',
-                pointerEvents: 'none',
+                color:          'rgba(112,0,255,0.25)',
+                fontSize:       9,
+                letterSpacing:  '0.2em',
+                pointerEvents:  'none',
               }}>
                 {audioReady ? 'PRESS ▶ TO TRANSMIT' : 'LOADING...'}
               </div>
@@ -506,8 +629,8 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
               <div style={{
                 height:     '100%',
                 width:      duration > 0 ? `${(elapsed / duration) * 100}%` : '0%',
-                background: 'linear-gradient(90deg, #7000ff88, #7000ff)',
-                boxShadow:  '0 0 4px #7000ff',
+                background: 'linear-gradient(90deg, oklch(0.495 0.310 281 / 0.50), oklch(0.560 0.250 281), oklch(0.640 0.300 350))',
+                boxShadow:  '0 0 6px oklch(0.560 0.250 281), 0 0 12px oklch(0.560 0.250 281 / 0.40)',
                 transition: 'width 0.25s linear',
               }} />
             </div>
@@ -577,7 +700,7 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
 
         </div>
 
-        {/* Track list — collapsed beneath main panel */}
+        {/* Track list — scrollable, collapsed beneath main panel */}
         <TrackList
           tracks={RADIO_TRACKS}
           currentId={currentTrack.id}
@@ -589,24 +712,22 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
   )
 }
 
-// ---------------------------------------------------------------------------
-// Track list sub-component
-// ---------------------------------------------------------------------------
+// ─── TRACK LIST ───────────────────────────────────────────────────────────────
 
-function TrackList({
-  tracks, currentId, onSelect,
-}: {
-  tracks:    typeof RADIO_TRACKS
+interface TrackListProps {
+  tracks:    readonly RadioTrack[]
   currentId: string
-  onSelect:  (track: (typeof RADIO_TRACKS)[0]) => void
-}) {
+  onSelect:  (track: RadioTrack) => void
+}
+
+function TrackList({ tracks, currentId, onSelect }: TrackListProps): React.ReactElement {
   return (
     <div style={{
-      background:   'rgba(3,0,10,0.88)',
-      border:       '1px solid rgba(112,0,255,0.25)',
-      borderTop:    'none',
-      maxHeight:    140,
-      overflowY:    'auto',
+      background:  'oklch(0.030 0.030 281)',
+      border:      '1px solid oklch(0.495 0.310 281 / 0.22)',
+      borderTop:   'none',
+      maxHeight:   140,
+      overflowY:   'auto',
     }}>
       {tracks.map((track, i) => {
         const active = track.id === currentId
@@ -615,19 +736,20 @@ function TrackList({
             key={track.id}
             onClick={() => onSelect(track)}
             style={{
-              display:        'flex',
-              alignItems:     'baseline',
-              gap:            8,
-              width:          '100%',
-              background:     active ? 'rgba(112,0,255,0.10)' : 'transparent',
-              border:         'none',
-              borderBottom:   '1px solid rgba(112,0,255,0.07)',
-              padding:        '5px 10px',
-              cursor:         'pointer',
-              textAlign:      'left',
-              transition:     'background 0.1s',
+              display:      'flex',
+              alignItems:   'baseline',
+              gap:          8,
+              width:        '100%',
+              background:   active ? 'oklch(0.640 0.300 350 / 0.08)' : 'transparent',
+              border:       'none',
+              borderBottom: '1px solid rgba(112,0,255,0.07)',
+              padding:      '5px 10px',
+              cursor:       'pointer',
+              textAlign:    'left',
+              transition:   'background 0.1s',
             }}
           >
+            {/* Track number or ▶ if active */}
             <span style={{
               color:         active ? '#7000ff' : 'rgba(112,0,255,0.3)',
               fontSize:      8,
@@ -648,6 +770,7 @@ function TrackList({
             }}>
               {track.title}
             </span>
+            {/* Abbreviated original artist (first word only) */}
             <span style={{
               color:         'rgba(112,0,255,0.25)',
               fontSize:      8,

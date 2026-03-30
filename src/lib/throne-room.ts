@@ -52,8 +52,17 @@ function isBanEnabled(): boolean {
 }
 
 function getSalt(): string {
-  // IMPORTANT: Set THRONE_ROOM_SALT in production or IPs are trivially rainbow-tableable
-  return process.env.THRONE_ROOM_SALT ?? 'sinner-kingdom-default-salt-change-me'
+  const salt = process.env.THRONE_ROOM_SALT
+  if (!salt) {
+    // A3 fix: default salt is a public string (checked into source). In production,
+    // any attacker can precompute SHA-256(default_salt + ipv4) for all ~4B IPv4s in hours.
+    // Log a warning so this surfaces in Vercel logs before go-live.
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('[throne-room] THRONE_ROOM_SALT is not set — IP hashes use public default salt. Set this env var before launch.')
+    }
+    return 'sinner-kingdom-default-salt-change-me'
+  }
+  return salt
 }
 
 // --- IP hashing ---
@@ -81,13 +90,25 @@ async function readLedger(): Promise<ThroneLedger> {
 }
 
 async function writeLedger(ledger: ThroneLedger): Promise<void> {
-  const ledgerPath = getLedgerPath()
-  const dir = path.dirname(ledgerPath)
-  await mkdir(dir, { recursive: true })
-  // Atomic write: temp file + rename prevents truncated JSON on SIGKILL mid-write
-  const tmpPath = `${ledgerPath}.tmp`
-  await writeFile(tmpPath, JSON.stringify(ledger, null, 2), 'utf-8')
-  await rename(tmpPath, ledgerPath)
+  // FLAG #1 fix: Vercel serverless has a read-only filesystem — writes silently no-op.
+  // Set THRONE_ROOM_LEDGER_PATH to a writable KV-backed path in production,
+  // or use THRONE_ROOM_IP_BAN_ENABLED=false until persistent storage is wired.
+  // In dev, this writes normally. On Vercel (no THRONE_ROOM_LEDGER_PATH), the
+  // env default resolves to a path that doesn't exist — mkdir will throw, caught here.
+  try {
+    const ledgerPath = getLedgerPath()
+    const dir = path.dirname(ledgerPath)
+    await mkdir(dir, { recursive: true })
+    // Atomic write: temp file + rename prevents truncated JSON on SIGKILL mid-write
+    const tmpPath = `${ledgerPath}.tmp`
+    await writeFile(tmpPath, JSON.stringify(ledger, null, 2), 'utf-8')
+    await rename(tmpPath, ledgerPath)
+  } catch (err) {
+    // On Vercel (read-only FS), this is expected. Log once for visibility.
+    if (process.env.THRONE_ROOM_LEDGER_VERBOSE === 'true') {
+      console.warn('[throne-room] writeLedger failed (read-only FS or missing path):', err)
+    }
+  }
 }
 
 // --- Public API ---

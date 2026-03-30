@@ -19,6 +19,14 @@
  *
  * This file owns: scene setup, lighting, ground mesh, connection beams,
  * CoreLoreCascade, SwarmOrchestrator, TerritoryDetailFloat, Canvas wrapper.
+ *
+ * TerritoryDetailFloat (S202 upgrade):
+ *   - Territory description line from kingdom-layout.ts
+ *   - Agent section for ALL territories with agents (was claude_house-only)
+ *   - Shows tool code, cwd_project, age_seconds from AgentStatus
+ *   - Mini signal feed: last 3 signals for this territory
+ *   - ESC closes panel; Tab/←/→ cycles territories (FlyToController follows)
+ *   - Heartbeat border pulse when agent is actively working
  */
 
 import { useRef, useMemo, useEffect } from 'react'
@@ -29,11 +37,12 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import * as THREE from 'three'
 import { useKingdomStore, usePartyKitSync } from '@/lib/kingdom-store'
 import type { AgentState } from '@/lib/kingdom-agents'
-import { TERRITORY_TO_AGENT, AGENT_REGISTRY } from '@/lib/kingdom-agents'
+import { TERRITORY_TO_AGENT, AGENT_REGISTRY, TOOL_CODES } from '@/lib/kingdom-agents'
 import { DroneSwarms } from './DroneSwarm'
 import { SignalPulses } from './SignalPulse'
 import { TimeStream } from './TimeStream'
 import { SystemHeartbeat } from './SystemHeartbeat'
+import { OvmindRing } from './OvmindRing'
 import { TERRITORIES, TERRITORY_MAP, EDGES, getWorldY } from '@/lib/kingdom-layout'
 import {
   TerritoryNode,
@@ -225,6 +234,9 @@ function SceneContents() {
       {/* System heartbeat layer — GOLDFISH (5min) + SCRYER watch ring (60s) */}
       <SystemHeartbeat />
 
+      {/* Overmind broadcast rings — expand from THE_SCRYER on overmind signal events */}
+      <OvmindRing />
+
       {/* Bloom — neon corona on active buildings, cyan grid intersection glow */}
       <KingdomBloom />
 
@@ -238,7 +250,7 @@ function SceneContents() {
         <TerritoryNode key={t.id} territory={t} />
       ))}
 
-      {/* Cinematic auto-orbit — engages after 8s idle, yields to any user input */}
+      {/* Cinematic auto-orbit — engages after 15s idle, yields to any user input */}
       <CinematicOrbit orbitRef={orbitRef} />
 
       {/* WASD pan */}
@@ -251,11 +263,16 @@ function SceneContents() {
       {/* BUGFIX: minPolarAngle/maxPolarAngle prevent camera orbiting underground.
           0.1*PI = 18° from zenith (bird's eye). 0.82*PI = 147.6° (just below horizon).
           Same fix applied to homepage OrbitControls in S184. */}
+      {/* enableDamping: scroll/drag coasts past stop point, decelerates to rest.
+          dampingFactor 0.08 — noticeable glide without feeling drunk.
+          Drei's OrbitControls handles its own update loop — no separate useFrame needed. */}
       <OrbitControls
         ref={orbitRef}
         enablePan={true}
         enableZoom={true}
         enableRotate={true}
+        enableDamping={true}
+        dampingFactor={0.08}
         minDistance={4}
         maxDistance={40}
         minPolarAngle={Math.PI * 0.1}
@@ -268,7 +285,7 @@ function SceneContents() {
       {/* Swarm orchestrator — monitors agent states, spawns orbit swarms on working/swarming */}
       <SwarmOrchestrator />
 
-      {/* Territory detail popup — floats in 3D space near clicked territory */}
+      {/* Territory detail panel — 3D-anchored via Html, floats above selected building */}
       <TerritoryDetailFloat />
     </>
   )
@@ -323,13 +340,11 @@ function CoreLoreCascade() {
     const meshes  = meshRefs.current
 
     // Read current agent states without subscribing (no re-render)
-    // PERF: direct key lookup — avoids Object.values() array allocation at 60fps
+    // PERF: AGENT_REGISTRY.some() avoids Object.values() array allocation at 60fps.
+    // Object.values(agentStates) allocates a temporary array every frame — unnecessary.
+    // AGENT_REGISTRY is module-scope constant; .some() short-circuits on first match.
     const { agentStates } = useKingdomStore.getState()
-    const anySearching    =
-      agentStates['forge_claude']?.state  === 'searching' ||
-      agentStates['tower_claude']?.state  === 'searching' ||
-      agentStates['claude_house']?.state  === 'searching' ||
-      agentStates['throne_claude']?.state === 'searching'
+    const anySearching = AGENT_REGISTRY.some(a => agentStates[a.key]?.state === 'searching')
 
     // Spawn new wave into the first free slot
     if (anySearching && now - lastSpawn.current >= CORE_WAVE_INTERVAL) {
@@ -483,7 +498,48 @@ function SwarmOrchestrator() {
 }
 
 // ---------------------------------------------------------------------------
-// TERRITORY DETAIL FLOAT (R3F Html — floats in 3D space near clicked territory)
+// TERRITORY DETAIL FLOAT — support constants
+// ---------------------------------------------------------------------------
+
+// Signal type → color. Mirrors SignalPulse.tsx SIGNAL_COLORS — kept in sync manually.
+// Defined here (not imported) to avoid bidirectional component dependency.
+const DETAIL_SIGNAL_COLORS: Record<string, string> = {
+  claude:  '#7000ff',
+  aeris:   '#ff006e',
+  brandon: '#f0a500',
+  system:  '#e8e0d0',
+  overmind: '#f0a500',
+  scryer:  '#00f3ff',
+  raven:   '#9b30ff',
+  unknown: '#404040',
+}
+
+// Show only the last path component of cwd_project — full paths are too long for the panel.
+function shortProject(cwd: string): string {
+  if (!cwd) return ''
+  const parts = cwd.split(/[/\\]/).filter(Boolean)
+  return parts[parts.length - 1] ?? cwd
+}
+
+// Format age_seconds as "Xm Ys" or "Xs".
+function formatAge(secs: number): string {
+  if (secs < 60) return `${secs}s`
+  return `${Math.floor(secs / 60)}m ${secs % 60}s`
+}
+
+// Format signal timestamp as "just now" / "Xs ago" / "Xm ago".
+function signalAge(ts: number): string {
+  const delta = Math.floor((Date.now() - ts) / 1000)
+  if (delta < 5)  return 'just now'
+  if (delta < 60) return `${delta}s ago`
+  return `${Math.floor(delta / 60)}m ago`
+}
+
+// Territory ordering for keyboard navigation — same order as TERRITORIES array.
+const TERRITORY_IDS_ORDERED = TERRITORIES.map((t) => t.id)
+
+// ---------------------------------------------------------------------------
+// TERRITORY DETAIL FLOAT (screen-space overlay — positioned outside Canvas)
 //
 // Replaces the old DOM overlay approach. Using drei <Html> anchored to the
 // territory's world position means the popup naturally sits near the building
@@ -496,9 +552,9 @@ function SwarmOrchestrator() {
 function TerritoryDetailFloat() {
   const selectedId      = useKingdomStore((s) => s.selectedId)
   const selectTerritory = useKingdomStore((s) => s.selectTerritory)
-  const currentActivity = useKingdomStore((s) => s.currentActivity)
-  const activeProject   = useKingdomStore((s) => s.activeProject)
   // Reactive building state — see REGRESSION GUARD above.
+  // REGRESSION GUARD: hooks must all be called before any early return.
+  // The detailBuildingState selector MUST remain reactive (no getState() in render).
   const detailBuildingState = useKingdomStore((s): BuildingState => {
     if (!selectedId) return 'stable'
     const override = s.debugOverrides[selectedId]
@@ -515,8 +571,8 @@ function TerritoryDetailFloat() {
     return deriveBuildingState(agentState)
   })
   const liveData = useKingdomStore((s) => selectedId ? s.territoryMap.get(selectedId) : undefined)
-  // Agent state for selected territory — shows live state for ALL territories with agents.
-  // Replaces the claude_house-only activity block. core_lore/the_scryer return null (no agent).
+  // Agent state for selected territory — ALL agent-inhabited territories (not just claude_house).
+  // core_lore and the_scryer have no agent key → return null → agent section hidden.
   // REGRESSION GUARD: subscribe to s.agentStates, derive key inline (never subscribe to getter fn).
   const agentStateDetail = useKingdomStore((s) => {
     if (!selectedId) return null
@@ -524,155 +580,261 @@ function TerritoryDetailFloat() {
     if (!key) return null
     return s.agentStates[key] ?? null
   })
+  // Recent signals for this territory — last 3 for mini feed.
+  // FIX: selector returned new array on every call (.filter().slice() = new ref always)
+  // → Zustand useSyncExternalStore saw "change" every render → infinite loop.
+  // Subscribe to the raw array (stable ref — Zustand replaces on update),
+  // then derive filtered result via useMemo (stable across renders unless deps change).
+  const recentSignalEvents = useKingdomStore((s) => s.recentSignalEvents)
+  const territorySignals = useMemo(
+    () => selectedId
+      ? recentSignalEvents.filter((e) => e.territory === selectedId).slice(0, 3)
+      : [],
+    [selectedId, recentSignalEvents]
+  )
+
+  // ESC to close, Tab/ArrowRight/ArrowLeft to cycle territories.
+  // Uses getState() inside handler — no stale closure on selectedId.
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const id = useKingdomStore.getState().selectedId
+      if (!id) return
+      if (e.key === 'Escape') {
+        useKingdomStore.getState().selectTerritory(null)
+        return
+      }
+      const idx = TERRITORY_IDS_ORDERED.indexOf(id)
+      if (idx === -1) return
+      if (e.key === 'Tab' || e.key === 'ArrowRight') {
+        e.preventDefault()
+        useKingdomStore.getState().selectTerritory(
+          TERRITORY_IDS_ORDERED[(idx + 1) % TERRITORY_IDS_ORDERED.length]
+        )
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        useKingdomStore.getState().selectTerritory(
+          TERRITORY_IDS_ORDERED[(idx - 1 + TERRITORY_IDS_ORDERED.length) % TERRITORY_IDS_ORDERED.length]
+        )
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   if (!selectedId) return null
 
   const layout = TERRITORY_MAP[selectedId]
   if (!layout) return null
 
-  const [px, , pz] = layout.position
-  // Float panel ~5 world units above the territory's XZ position.
-  // y=5 clears the tallest buildings and terrain variation on all islands.
-  const anchorY = 5
+  const isWorking = detailBuildingState === 'working'
+
+  // 3D-anchored panel: floats above the selected building in world space.
+  // Html from Drei projects the world position to screen, then CSS-positions the DOM element.
+  // center = translate(-50%, -50%) so the panel is centered on the anchor point.
+  // Anchor Y = terrain height + 6 units — well above any building geometry.
+  const anchorX = layout.position[0]
+  const anchorY = getWorldY(layout) + 6
+  const anchorZ = layout.position[2]
 
   return (
     <Html
-      position={[px, anchorY, pz]}
       center
+      position={[anchorX, anchorY, anchorZ]}
+      zIndexRange={[60, 0]}
       style={{ pointerEvents: 'auto' }}
-      zIndexRange={[50, 0]}
     >
-      {/* CRT flicker-in — animates on mount, resets on every territory change */}
-      <style>{`
-        @keyframes crt-popup-in {
-          0%   { opacity: 0;    transform: scale(0.93) translateY(10px); filter: brightness(4) saturate(0); }
-          8%   { opacity: 0.75; transform: scale(0.96) translateY(6px);  filter: brightness(2) saturate(0.1); }
-          18%  { opacity: 0.3;  transform: scale(0.97) translateY(4px);  filter: brightness(1.4) saturate(0.3); }
-          38%  { opacity: 0.92; transform: scale(0.99) translateY(1px);  filter: brightness(1.08) saturate(0.8); }
-          62%  { opacity: 1;    transform: scale(1.01) translateY(0);    filter: brightness(1) saturate(1); }
-          100% { opacity: 1;    transform: scale(1)    translateY(0);    filter: brightness(1) saturate(1); }
-        }
-      `}</style>
+
+      {/* Active heartbeat keyframe — border pulses when agent is working.
+          Inline style tag: territory color is dynamic, can't live in globals.css. */}
+      {isWorking && (
+        <style href={`detail-pulse-${selectedId}`} precedence="default">{`
+          @keyframes detail-border-pulse-${selectedId} {
+            0%, 100% { box-shadow: 0 0 24px ${layout.color}25, 0 6px 32px rgba(0,0,0,0.7); }
+            50%       { box-shadow: 0 0 44px ${layout.color}55, 0 6px 44px rgba(0,0,0,0.85); }
+          }
+        `}</style>
+      )}
+      {/* CRT terminal power-on: flash → scan reveal → settle (0.55s).
+          clip-path requires overflow:hidden on the outer container.
+          @keyframes crt-scan-in defined in globals.css. */}
       <div
         style={{
-          width: 240,
-          background: 'rgba(8,6,14,0.97)',
-          border: `1px solid ${layout.color}50`,
-          borderRadius: 4,
-          padding: '14px',
+          width: 460,
+          background: 'rgba(8,6,14,0.88)',
+          border: `1px solid ${layout.color}30`,
+          borderLeft: `3px solid ${layout.color}60`,
+          borderRadius: 8,
+          padding: '20px 24px 18px',
           fontFamily: 'monospace',
           color: '#e8e0d0',
-          backdropFilter: 'blur(12px)',
-          boxShadow: `0 0 24px ${layout.color}25, 0 6px 32px rgba(0,0,0,0.7)`,
+          textShadow: `0 0 8px ${layout.color}30, 0 0 2px rgba(200,180,255,0.15)`,
+          backdropFilter: 'blur(20px)',
+          boxShadow: `0 0 60px ${layout.color}18, 0 0 120px ${layout.color}06, 0 12px 60px rgba(0,0,0,0.85)`,
           userSelect: 'none',
-          animation: 'crt-popup-in 0.40s ease-out forwards',
+          overflow: 'hidden',
+          // Delayed entrance: wait 1.2s for camera to mostly arrive, then fade up
+          animation: isWorking
+            ? `panel-materialize 0.8s ease-out 1.2s both, detail-border-pulse-${selectedId} 2.2s ease-in-out 2.0s infinite`
+            : 'panel-materialize 0.8s ease-out 1.2s both',
         }}
       >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <div style={{ color: layout.color, fontSize: 11, letterSpacing: '0.15em', marginBottom: 4 }}>
-            TERRITORY
+        {/* ── HEADER ── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+          <div>
+            <div style={{ color: `${layout.color}90`, fontSize: 9, letterSpacing: '0.22em', marginBottom: 3 }}>
+              TERRITORY
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 'bold', letterSpacing: '0.10em', textShadow: `0 0 14px ${layout.color}80, 0 0 4px ${layout.color}40` }}>
+              {layout.label}
+            </div>
+            <div style={{ color: '#504848', fontSize: 9, letterSpacing: '0.05em', marginTop: 5, fontStyle: 'italic', lineHeight: 1.5 }}>
+              {layout.description}
+            </div>
           </div>
-          <div style={{ fontSize: 14, fontWeight: 'bold', letterSpacing: '0.08em' }}>
-            {layout.label}
-          </div>
+          <button
+            onClick={() => selectTerritory(null)}
+            style={{
+              background: 'none', border: 'none', color: '#504840',
+              cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: '0 0 0 8px',
+              flexShrink: 0,
+            }}
+          >
+            ×
+          </button>
         </div>
-        <button
-          onClick={() => selectTerritory(null)}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#504840',
-            cursor: 'pointer',
-            fontSize: 16,
-            lineHeight: 1,
-            padding: '0 0 0 8px',
-          }}
-        >
-          ×
-        </button>
-      </div>
 
-      <div style={{ height: 1, background: `${layout.color}20`, margin: '12px 0' }} />
-
-      {liveData && (() => {
-        const bCfg = BUILDING_STATE_CONFIG[detailBuildingState]
-        return (
-          <div style={{ fontSize: 11, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#504840' }}>ACTIVITY</span>
-              <span style={{ color: layout.color }}>{liveData.activity}%</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#504840' }}>STATE</span>
-              <span style={{ color: bCfg.stateLabelColor, letterSpacing: '0.08em' }}>
-                {bCfg.stateLabel}
-              </span>
-            </div>
-            {liveData.lastSignal && (
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#504840' }}>LAST SIGNAL</span>
-                <span style={{ color: '#a09888', fontSize: 10 }}>
-                  {new Date(liveData.lastSignal).toLocaleTimeString()}
-                </span>
+        {/* ── STATUS ── */}
+        {liveData && (() => {
+          const bCfg = BUILDING_STATE_CONFIG[detailBuildingState]
+          return (
+            <>
+              <div style={{ height: 1, background: `${layout.color}18`, margin: '0 0 8px' }} />
+              <div style={{ fontSize: 9, letterSpacing: '0.18em', color: `${layout.color}60`, marginBottom: 6 }}>STATUS</div>
+              <div style={{ fontSize: 11, display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 2 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#504840' }}>ACTIVITY</span>
+                  <span style={{ color: layout.color }}>{liveData.activity}%</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#504840' }}>STATE</span>
+                  <span style={{ color: bCfg.stateLabelColor, letterSpacing: '0.08em' }}>
+                    {bCfg.stateLabel}
+                  </span>
+                </div>
+                {liveData.lastSignal && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#504840' }}>LAST SIGNAL</span>
+                    <span style={{ color: '#504040', fontSize: 10 }}>
+                      {new Date(liveData.lastSignal).toLocaleTimeString()}
+                    </span>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        )
-      })()}
+            </>
+          )
+        })()}
 
-      {agentStateDetail && agentStateDetail.state !== 'offline' && (
-        <>
-          <div style={{ height: 1, background: `${layout.color}20`, margin: '12px 0' }} />
-          <div style={{ fontSize: 10, color: '#504840', lineHeight: 1.4, display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#504840' }}>AGENT</span>
-              <span style={{ color: AGENT_STATE_COLORS[agentStateDetail.state], letterSpacing: '0.08em' }}>
-                {agentStateDetail.state.toUpperCase()}
-              </span>
-            </div>
-            {selectedId === 'claude_house' && activeProject && (
-              <div>
-                <span style={{ color: layout.color }}>PROJECT</span>{' '}
-                <span style={{ color: '#a09888' }}>{activeProject}</span>
+        {/* ── AGENT — all territories with agents, not just claude_house ── */}
+        {agentStateDetail && agentStateDetail.state !== 'offline' && (() => {
+          const proj = shortProject(agentStateDetail.cwd_project)
+          const toolCode = agentStateDetail.tool ? (TOOL_CODES[agentStateDetail.tool] ?? null) : null
+          return (
+            <>
+              <div style={{ height: 1, background: `${layout.color}18`, margin: '8px 0' }} />
+              <div style={{ fontSize: 9, letterSpacing: '0.18em', color: `${layout.color}60`, marginBottom: 6 }}>AGENT</div>
+              <div style={{ fontSize: 11, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#504840' }}>STATE</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    {toolCode && (
+                      <span style={{ color: `${AGENT_STATE_COLORS[agentStateDetail.state]}70`, fontSize: 9, letterSpacing: '0.06em' }}>
+                        [{toolCode}]
+                      </span>
+                    )}
+                    <span style={{ color: AGENT_STATE_COLORS[agentStateDetail.state], letterSpacing: '0.08em' }}>
+                      {agentStateDetail.state.toUpperCase()}
+                    </span>
+                  </span>
+                </div>
+                {proj && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                    <span style={{ color: '#504840', flexShrink: 0 }}>PROJECT</span>
+                    <span style={{ color: '#806050', fontSize: 10, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {proj}
+                    </span>
+                  </div>
+                )}
+                {agentStateDetail.age_seconds > 0 && agentStateDetail.age_seconds < 9990 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#504840' }}>ACTIVE FOR</span>
+                    <span style={{ color: '#504040', fontSize: 10 }}>
+                      {formatAge(agentStateDetail.age_seconds)}
+                    </span>
+                  </div>
+                )}
               </div>
-            )}
-            {selectedId === 'claude_house' && currentActivity && (
-              <div style={{ color: '#a09888', fontStyle: 'italic' }}>{currentActivity}</div>
-            )}
-          </div>
-        </>
-      )}
+            </>
+          )
+        })()}
 
-      <div style={{ height: 1, background: `${layout.color}10`, margin: '12px 0' }} />
-      <div
-        style={{
-          fontSize: 9,
-          color: '#504840',
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 4,
-        }}
-      >
-        {layout.connections.map((cId) => {
-          const c = TERRITORY_MAP[cId]
-          return c ? (
-            <span
-              key={cId}
-              style={{
-                border: `1px solid ${c.color}30`,
-                padding: '1px 5px',
-                borderRadius: 2,
-                color: c.color,
-                cursor: 'pointer',
-              }}
-              onClick={() => selectTerritory(cId)}
-            >
-              {c.label}
-            </span>
-          ) : null
-        })}
-      </div>
+        {/* ── SIGNALS — last 3 signal events for this territory ── */}
+        {territorySignals.length > 0 && (
+          <>
+            <div style={{ height: 1, background: `${layout.color}18`, margin: '8px 0' }} />
+            <div style={{ fontSize: 9, letterSpacing: '0.18em', color: `${layout.color}60`, marginBottom: 6 }}>SIGNALS</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {territorySignals.map((sig) => (
+                <div key={sig.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{
+                    width: 4, height: 4, borderRadius: '50%', flexShrink: 0,
+                    background: DETAIL_SIGNAL_COLORS[sig.type] ?? '#404040',
+                  }} />
+                  <span style={{ color: '#504840', fontSize: 9, flex: 1, letterSpacing: '0.08em' }}>
+                    {sig.type.toUpperCase()}
+                  </span>
+                  <span style={{ color: '#302830', fontSize: 8, fontStyle: 'italic', flexShrink: 0 }}>
+                    {signalAge(sig.timestamp)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* ── CONNECTIONS ── */}
+        {layout.connections.length > 0 && (
+          <>
+            <div style={{ height: 1, background: `${layout.color}12`, margin: '8px 0' }} />
+            <div style={{ fontSize: 9, letterSpacing: '0.18em', color: `${layout.color}50`, marginBottom: 6 }}>TRANSMITS TO</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {layout.connections.map((cId) => {
+                const c = TERRITORY_MAP[cId]
+                return c ? (
+                  <span
+                    key={cId}
+                    onClick={() => selectTerritory(cId)}
+                    style={{
+                      border: `1px solid ${c.color}30`,
+                      padding: '1px 6px',
+                      borderRadius: 2,
+                      color: `${c.color}b0`,
+                      cursor: 'pointer',
+                      fontSize: 9,
+                      letterSpacing: '0.06em',
+                    }}
+                  >
+                    {c.label}
+                  </span>
+                ) : null
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Keyboard hint */}
+        <div style={{ marginTop: 10, fontSize: 8, color: '#352830', letterSpacing: '0.1em', textAlign: 'center' }}>
+          ESC · TAB / ← → TO CYCLE
+        </div>
       </div>
     </Html>
   )
@@ -710,9 +872,13 @@ export function KingdomScene3D({ className = '' }: KingdomScene3DProps) {
         gl={{
           antialias: false,
           alpha: true,      // transparent canvas — CSS sky gradient shows through WebGL
-          powerPreference: 'default',
+          powerPreference: 'high-performance',  // prefer discrete GPU on dual-GPU systems (no visual change)
         }}
         style={{ width: '100%', height: '100%' }}
+        onPointerMissed={() => {
+          // Click on empty space (not a territory) → deselect → camera flies back to overview
+          useKingdomStore.getState().selectTerritory(null)
+        }}
       >
         <SceneContents />
       </Canvas>

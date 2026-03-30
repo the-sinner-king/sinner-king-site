@@ -35,6 +35,11 @@ export interface WASDProps {
 // Module-level const: zero allocations in render/frame loops.
 export const CINEMATIC_TARGET = new THREE.Vector3(0, 0.5, 0)
 
+// Shared state: FlyToController writes, other components read.
+// - slowOrbitActive: prevents CinematicOrbit from engaging (B5 fix)
+// - flyProgress: 0→1 during fly-in, panel uses this to coordinate fade-in
+export const flyToState = { slowOrbitActive: false, flyProgress: 0 }
+
 // ---------------------------------------------------------------------------
 // CINEMATIC ORBIT
 // ---------------------------------------------------------------------------
@@ -93,33 +98,38 @@ export function CinematicOrbit({ orbitRef }: WASDProps) {
         if (orbitRef.current) {
           orbitRef.current.target.copy(CINEMATIC_TARGET)
           orbitRef.current.enabled = true
-          orbitRef.current.update()
+          // B2: Skip update() here — FlyToController's useFrame will be the first
+          // to touch the camera on the next frame, preventing the 1-2 frame orientation
+          // twitch caused by OrbitControls' damping engine reconciling stale spherical state.
         }
       }
     }
 
     // Drag detection — only fires when mouse moves while a button is held
     let pointerHeld = false
-    const onPointerDown = () => { pointerHeld = true }
-    const onPointerUp   = () => { pointerHeld = false }
-    const onPointerMove = () => { if (pointerHeld) pauseOrbit() }
+    const onPointerDown   = () => { pointerHeld = true }
+    const onPointerUp     = () => { pointerHeld = false }
+    const onPointerCancel = () => { pointerHeld = false }
+    const onPointerMove   = () => { if (pointerHeld) pauseOrbit() }
 
     // WASD only — not every keydown (close buttons, shortcuts, etc.)
     const onKeyDown = (e: KeyboardEvent) => {
       if (['w', 'a', 's', 'd'].includes(e.key.toLowerCase())) pauseOrbit()
     }
 
-    window.addEventListener('pointerdown', onPointerDown)
-    window.addEventListener('pointerup',   onPointerUp)
-    window.addEventListener('pointermove', onPointerMove)
-    window.addEventListener('wheel',       pauseOrbit, { passive: true })
-    window.addEventListener('keydown',     onKeyDown)
+    window.addEventListener('pointerdown',   onPointerDown)
+    window.addEventListener('pointerup',     onPointerUp)
+    window.addEventListener('pointercancel', onPointerCancel)
+    window.addEventListener('pointermove',   onPointerMove)
+    window.addEventListener('wheel',         pauseOrbit, { passive: true })
+    window.addEventListener('keydown',       onKeyDown)
     return () => {
-      window.removeEventListener('pointerdown', onPointerDown)
-      window.removeEventListener('pointerup',   onPointerUp)
-      window.removeEventListener('pointermove', onPointerMove)
-      window.removeEventListener('wheel',       pauseOrbit)
-      window.removeEventListener('keydown',     onKeyDown)
+      window.removeEventListener('pointerdown',   onPointerDown)
+      window.removeEventListener('pointerup',     onPointerUp)
+      window.removeEventListener('pointercancel', onPointerCancel)
+      window.removeEventListener('pointermove',   onPointerMove)
+      window.removeEventListener('wheel',         pauseOrbit)
+      window.removeEventListener('keydown',       onKeyDown)
     }
   }, [orbitRef])
 
@@ -131,6 +141,8 @@ export function CinematicOrbit({ orbitRef }: WASDProps) {
 
   useFrame(({ clock }, delta) => {
     if (Date.now() - cs.current.lastInteraction < IDLE_MS) return
+    // B5: Don't engage while FlyToController's slow orbit is active
+    if (flyToState.slowOrbitActive) return
 
     // Engage — read camera's current spherical coords so first frame has zero jump
     if (!cs.current.active) {
@@ -262,83 +274,235 @@ export function WASDControls({ orbitRef }: WASDProps) {
 }
 
 // ---------------------------------------------------------------------------
-// FLY-TO CONTROLLER
+// FLY-TO CONTROLLER (v2 — S207 Opus audit rewrite)
 //
-// When the user clicks a territory, smoothly lerps the camera and orbit pivot
-// toward that territory over ~1.5s. Converts the map from "dashboard you watch"
-// to "world you move through."
+// When the user clicks a territory, smoothly flies the camera and orbit pivot
+// toward that territory using a cubic ease-out curve (~1.8s).
 //
-// Architecture:
-//   - Subscribes to selectedId via useKingdomStore (React — triggers on click)
-//   - useEffect computes targetPos + targetLook when selectedId changes
-//   - useFrame lerps camera + orbitRef.target each frame until arrival
-//   - Does NOT fight CinematicOrbit: the territory click fires onPointerDown
-//     which pauseOrbit() catches first → OrbitControls re-enabled → fly runs.
-//     The guard `if (!orbitRef.current.enabled) return` handles any race.
-//   - No re-enable on deselect — user regains manual control immediately.
+// Fixes applied (Opus red flag audit S207):
+//   A1: OrbitControls disabled during FLYING — no damping fight
+//   A2: Cubic ease-out replaces aggressive exponential — smooth arc, not jump-then-ooze
+//   A3: No one-frame gap — slow orbit begins on same frame as convergence
+//   A4: Gaze leads position — look-target converges faster than camera for cinematic feel
+//   A5: Time-based progress — no world-space convergence threshold
+//   B1: Return-to-overview on deselect — camera flies back to overview position
+//   B5: CinematicOrbit guard — checks flyto slow orbit before engaging
 //
-// Camera destination: approach azimuth preserved from click moment. Back off
-// 10 units, elevate to worldY + 7. Orbit target = territory center + 0.5Y.
+// Four-phase lifecycle:
+//   FLYING   → cubic ease-out toward targetPos/targetLook (~1.8s)
+//   ORBITING → slow circular orbit around selected territory (~0.008 rad/s)
+//   RETURNING → cubic ease-out back to overview position (~1.8s) on deselect
+//   STOPPED  → user dragged/scrolled, or idle
 // ---------------------------------------------------------------------------
+
+const SLOW_ORBIT_SPD = 0.006  // rad/s — gentle orbit at ground level
+const FLY_DURATION   = 2.2    // seconds — slightly longer for dramatic low-angle approach
 
 export function FlyToController({ orbitRef }: WASDProps) {
   const { camera } = useThree()
 
   const fly = useRef({
-    active:     false,
+    phase: 'stopped' as 'flying' | 'orbiting' | 'returning' | 'stopped',
+    // Fly-in state
+    startPos:   new THREE.Vector3(),
+    startLook:  new THREE.Vector3(),
     targetPos:  new THREE.Vector3(),
     targetLook: new THREE.Vector3(),
+    startTime:  0,
+    // Return-to-overview state
+    overviewPos:  new THREE.Vector3(10, 14, 14),  // default overview camera position
+    overviewLook: new THREE.Vector3(0, 0.5, 0),   // CINEMATIC_TARGET
+    // Slow orbit
+    slowOrbit: {
+      theta:       0,
+      radius:      10,
+      pausedByUser: false,
+      arrivedAt:   0,  // timestamp when orbit phase began — orbit starts after 2s delay
+    },
+    orbitDisabledByUs: false,
   })
 
   // Scratch — zero alloc per frame
   const _horizOffset = useMemo(() => new THREE.Vector3(), [])
+  const _soOffset    = useMemo(() => new THREE.Vector3(), [])
 
   const selectedId = useKingdomStore((s) => s.selectedId)
 
+  // Pause slow orbit on drag/scroll
   useEffect(() => {
+    let pointerHeld = false
+    const onDown   = () => { pointerHeld = true }
+    const onUp     = () => { pointerHeld = false }
+    const onCancel = () => { pointerHeld = false }
+    const releaseOrbit = () => {
+      fly.current.slowOrbit.pausedByUser = true
+      if (orbitRef.current && fly.current.orbitDisabledByUs) {
+        orbitRef.current.enabled = true
+        fly.current.orbitDisabledByUs = false
+        flyToState.slowOrbitActive = false
+      }
+    }
+    const onMove = () => { if (pointerHeld) releaseOrbit() }
+
+    window.addEventListener('pointerdown',   onDown)
+    window.addEventListener('pointerup',     onUp)
+    window.addEventListener('pointercancel', onCancel)
+    window.addEventListener('pointermove',   onMove)
+    window.addEventListener('wheel',         releaseOrbit, { passive: true })
+    return () => {
+      window.removeEventListener('pointerdown',   onDown)
+      window.removeEventListener('pointerup',     onUp)
+      window.removeEventListener('pointercancel', onCancel)
+      window.removeEventListener('pointermove',   onMove)
+      window.removeEventListener('wheel',         releaseOrbit)
+    }
+  }, [])
+
+  useEffect(() => {
+    // Release OrbitControls ownership on any selection change
+    if (fly.current.orbitDisabledByUs && orbitRef.current) {
+      orbitRef.current.enabled = true
+      fly.current.orbitDisabledByUs = false
+      flyToState.slowOrbitActive = false
+    }
+
     if (!selectedId) {
-      fly.current.active = false
+      // B1: Deselect → fly back to overview (if we were close to a territory)
+      if (fly.current.phase === 'flying' || fly.current.phase === 'orbiting') {
+        fly.current.startPos.copy(camera.position)
+        fly.current.startLook.copy(fly.current.targetLook)
+        fly.current.targetPos.copy(fly.current.overviewPos)
+        fly.current.targetLook.copy(fly.current.overviewLook)
+        fly.current.startTime = -1  // sentinel: set on first frame
+        fly.current.phase = 'returning'
+        // Disable OrbitControls during return flight (A1)
+        if (orbitRef.current) {
+          orbitRef.current.enabled = false
+          fly.current.orbitDisabledByUs = true
+        }
+      } else {
+        fly.current.phase = 'stopped'
+      }
+      flyToState.slowOrbitActive = false
       return
     }
+
     const layout = TERRITORY_MAP[selectedId]
     if (!layout) return
 
     const [px, , pz] = layout.position
     const worldY     = getWorldY(layout)
 
-    // Orbit target — slightly above territory center
-    fly.current.targetLook.set(px, worldY + 0.5, pz)
+    // Look target — slightly above the building's top. Camera is LOW and tilts UP,
+    // so the look target must be above the building to create the "standing in front
+    // of a monument looking up" effect. The building looms above you.
+    const newLook = new THREE.Vector3(px, worldY + 2.5, pz)
 
-    // Camera position: preserve current approach azimuth, back off 10 units, up 7
+    // Save overview position on first fly (for return-to-overview)
+    if (fly.current.phase === 'stopped' || fly.current.phase === 'returning') {
+      fly.current.overviewPos.copy(camera.position)
+      fly.current.overviewLook.copy(orbitRef.current?.target ?? CINEMATIC_TARGET)
+    }
+
+    // A2: Record start positions for time-based easing
+    fly.current.startPos.copy(camera.position)
+    fly.current.startLook.copy(orbitRef.current?.target ?? CINEMATIC_TARGET)
+
+    // Camera destination: LOW ANGLE — near ground, looking UP at the building.
+    // Back off 7 units horizontally, camera at worldY + 1.2 (just above terrain).
+    // The look target at worldY+2.5 is ABOVE the camera → tilt-up framing.
+    // This creates the "standing in front of a monument" feeling.
     _horizOffset.set(camera.position.x - px, 0, camera.position.z - pz)
-    const horizDist = _horizOffset.length()
-    if (horizDist > 0.1) _horizOffset.normalize()
-    else _horizOffset.set(1, 0, 0)  // fallback if camera is directly overhead
+    if (_horizOffset.length() > 0.1) _horizOffset.normalize()
+    else _horizOffset.set(1, 0, 0)
 
-    fly.current.targetPos.set(
-      px + _horizOffset.x * 10,
-      worldY + 7,
-      pz + _horizOffset.z * 10,
-    )
-    fly.current.active = true
+    fly.current.targetPos.set(px + _horizOffset.x * 7, worldY + 1.2, pz + _horizOffset.z * 7)
+    fly.current.targetLook.copy(newLook)
+    fly.current.startTime = -1  // sentinel: set on first frame
+    fly.current.phase = 'flying'
+    fly.current.slowOrbit.pausedByUser = false
+    flyToState.slowOrbitActive = false
+
+    // A1: Disable OrbitControls immediately — no damping fight during flight
+    if (orbitRef.current) {
+      orbitRef.current.enabled = false
+      fly.current.orbitDisabledByUs = true
+    }
   }, [selectedId, camera, _horizOffset])
 
-  useFrame((_, delta) => {
-    if (!fly.current.active || !orbitRef.current) return
-    // Don't fight CinematicOrbit — it disables OrbitControls while active
-    if (!orbitRef.current.enabled) return
+  useFrame(({ clock }, delta) => {
+    if (!orbitRef.current) return
+    // Don't fight CinematicOrbit — unless we own the disable
+    if (!orbitRef.current.enabled && !fly.current.orbitDisabledByUs) return
 
-    // Exponential approach — 1 - 0.04^delta gives ~95% convergence in ~1.5s at 60fps
-    const t = 1 - Math.pow(0.04, delta)
+    const f = fly.current
 
-    camera.position.lerp(fly.current.targetPos, t)
-    orbitRef.current.target.lerp(fly.current.targetLook, t)
-    orbitRef.current.update()
+    // ── PHASE 1: FLYING / RETURNING ─────────────────────────────────────
+    if (f.phase === 'flying' || f.phase === 'returning') {
+      // Set start time on first frame (avoids stale clock from useEffect)
+      if (f.startTime < 0) f.startTime = clock.elapsedTime
 
-    // Stop when within 0.3 world units of target (imperceptible remainder)
-    if (camera.position.distanceToSquared(fly.current.targetPos) < 0.09) {
-      fly.current.active = false
+      const elapsed  = clock.elapsedTime - f.startTime
+      const progress = Math.min(elapsed / FLY_DURATION, 1.0)
+
+      // Expose progress so the detail panel can coordinate its entrance
+      flyToState.flyProgress = progress
+
+      // A2: Cubic ease-out — smooth departure, fast middle, gentle arrival
+      const easedPos  = 1 - Math.pow(1 - progress, 3)
+      // A4: Gaze leads position — quartic converges faster, camera "looks first"
+      const easedLook = 1 - Math.pow(1 - progress, 4.5)
+
+      // A1: Direct camera writes — OrbitControls is disabled, no fight
+      camera.position.lerpVectors(f.startPos, f.targetPos, easedPos)
+      orbitRef.current.target.lerpVectors(f.startLook, f.targetLook, easedLook)
+      camera.lookAt(orbitRef.current.target)
+
+      // A5: Time-based completion — no world-space threshold needed
+      if (progress >= 1.0) {
+        if (f.phase === 'returning') {
+          // Return complete — hand back to manual/cinematic
+          f.phase = 'stopped'
+          orbitRef.current.target.copy(f.targetLook)
+          orbitRef.current.enabled = true
+          f.orbitDisabledByUs = false
+          flyToState.slowOrbitActive = false
+          return
+        }
+
+        // A3: Enter slow orbit on SAME frame — no one-frame gap
+        flyToState.flyProgress = 1
+        camera.position.copy(f.targetPos)  // snap to exact destination
+        _soOffset.subVectors(camera.position, f.targetLook)
+        f.slowOrbit.theta  = Math.atan2(_soOffset.z, _soOffset.x)
+        f.slowOrbit.radius = Math.sqrt(_soOffset.x * _soOffset.x + _soOffset.z * _soOffset.z)
+        f.phase = 'orbiting'
+        f.slowOrbit.arrivedAt = Date.now()
+        flyToState.slowOrbitActive = true
+        // OrbitControls stays disabled (orbitDisabledByUs already true from flight start)
+        // Fall through to slow orbit below — no return
+      } else {
+        return  // still flying
+      }
     }
+
+    // ── PHASE 2: SLOW ORBIT ─────────────────────────────────────────────
+    if (f.phase !== 'orbiting' || f.slowOrbit.pausedByUser) return
+
+    // 2-second pause after arriving before orbit begins — let the visitor take in the view
+    if (Date.now() - f.slowOrbit.arrivedAt < 2000) return
+
+    f.slowOrbit.theta += SLOW_ORBIT_SPD * delta
+
+    const camY = camera.position.y
+    const look = f.targetLook
+
+    camera.position.set(
+      look.x + f.slowOrbit.radius * Math.cos(f.slowOrbit.theta),
+      camY,
+      look.z + f.slowOrbit.radius * Math.sin(f.slowOrbit.theta),
+    )
+    camera.lookAt(look)
   })
 
   return null

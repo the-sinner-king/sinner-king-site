@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0a0a0f">
 <title>⛬ SINNER KINGDOM</title>
 <meta name="description" content="Something is being built. The machines are listening.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,6 +14,7 @@
 /* ═══════════════════════════════════════════════════════════
    SINNER KINGDOM — COMING SOON
    Forged by the Glitchswarm. CHROMA_BLEED · GRID_GHOST · TYPE_WEAVER
+   Audited by OBSIDIAN · MUCK_RAKER
    ═══════════════════════════════════════════════════════════ */
 
 :root {
@@ -42,7 +45,8 @@ body {
   color: var(--text);
   font-family: var(--font-terminal);
   display: grid;
-  grid-template-rows: 1fr auto auto auto auto auto 1.22fr;
+  /* 7 flow children + 2 spacer tracks = 9. .vignette is position:fixed, not in flow. .tagline is inside .logo-wrap. */
+  grid-template-rows: 1fr auto auto auto auto auto auto auto 0.6fr;
   grid-template-columns: 1fr;
   height: 100vh;
   height: 100dvh;
@@ -52,7 +56,7 @@ body {
   position: relative;
 }
 
-/* ── CRT SCANLINES (below content — texture only) ── */
+/* ── CRT SCANLINES (z:6 — over content, over vignette) ── */
 body::before {
   content: '';
   position: fixed;
@@ -68,7 +72,7 @@ body::before {
   z-index: 6;
 }
 
-/* ── SCAN BEAM ────────────────────────────────────── */
+/* ── SCAN BEAM (z:7 — sweeps over everything) ──────────── */
 body::after {
   content: '';
   position: fixed;
@@ -86,10 +90,10 @@ body::after {
   will-change: transform;
   animation: scanBeam 8s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
   pointer-events: none;
-  z-index: 2;
+  z-index: 7;
 }
 
-/* ── VIGNETTE ─────────────────────────────────────── */
+/* ── VIGNETTE (z:4 — under content) ──────────────────── */
 .vignette {
   position: fixed;
   inset: 0;
@@ -104,8 +108,9 @@ body::after {
   contain: strict;
 }
 
-/* ── CONTENT (above scanlines, below vignette) ────── */
-.logo, .tagline, .status, .cta, .footer, .timestamp {
+/* ── CONTENT (z:5 — below scanlines, above vignette) ─── */
+.status, .cta, .footer, .timestamp,
+.hud, .hud-presence {
   position: relative;
   z-index: 5;
   text-align: center;
@@ -120,33 +125,47 @@ body::after {
   animation: fadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) 0.8s both;
 }
 .ascii-title-sinner {
-  font-family: 'Fira Code', 'Courier New', monospace;
+  font-family: var(--font-body);
   font-size: clamp(8px, 1.6vw, 16px);
   line-height: 1.0;
   color: var(--primary);
-  text-shadow: 0 0 10px rgba(255, 51, 102, 0.6), 0 0 20px rgba(255, 51, 102, 0.3);
+  text-shadow:
+    0 0 8px rgba(255, 51, 102, 0.6),
+    0 0 20px rgba(255, 51, 102, 0.35),
+    0 0 40px rgba(255, 51, 102, 0.15);
   white-space: pre;
   display: block;
   margin: 0;
+  overflow: hidden;
+  will-change: opacity, filter;
+  animation: fadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) 0.8s both,
+             sinnerFlicker 6s ease-in-out infinite 3s;
 }
 .ascii-title-kingdom {
-  font-family: 'Fira Code', 'Courier New', monospace;
+  font-family: var(--font-body);
   font-size: clamp(8px, 1.6vw, 16px);
   line-height: 1.0;
   color: var(--secondary);
-  text-shadow: 0 0 10px rgba(0, 238, 255, 0.6), 0 0 20px rgba(0, 238, 255, 0.3);
+  text-shadow:
+    0 0 8px rgba(0, 238, 255, 0.6),
+    0 0 20px rgba(0, 238, 255, 0.35),
+    0 0 40px rgba(0, 238, 255, 0.15);
   white-space: pre;
   display: block;
   margin: 4px 0 0 0;
+  overflow: hidden;
+  will-change: opacity, filter;
+  animation: fadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) 0.8s both,
+             kingdomFlicker 7s ease-in-out infinite 3.5s;
 }
 
-/* ── ROTATING TAGLINE ─────────────────────────────── */
+/* ── ROTATING TAGLINE ─────────────────────────────────── */
 .tagline {
   font-family: var(--font-terminal);
   font-size: clamp(14px, 1.8vw, 22px);
   letter-spacing: 0.25em;
   color: var(--text-muted);
-  margin-top: clamp(20px, 3vh, 40px);
+  margin-top: clamp(4px, 0.8vh, 10px);
   min-height: 1.6em;
   opacity: 0;
   animation: fadeIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) 2s both;
@@ -155,13 +174,13 @@ body::after {
   display: inline-block;
   width: 0.6em;
   height: 1em;
-  background: var(--secondary);
   vertical-align: text-bottom;
+  color: var(--secondary);
   animation: blink 530ms step-end infinite;
   margin-left: 2px;
 }
 
-/* ── COMING SOON ──────────────────────────────────── */
+/* ── COMING SOON ──────────────────────────────────────── */
 .status {
   font-family: var(--font-kingdom);
   font-size: clamp(10px, 1.4vw, 16px);
@@ -172,40 +191,99 @@ body::after {
   animation: fadeIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) 3s both;
 }
 
-/* ── CTA LINK ─────────────────────────────────────── */
+/* ── CTA LINK — THE PORTAL ────────────────────────────── */
+/* Hybrid: btn-glitch (border flicker) + btn-volt (fill sweep)
+   + btn-bracket (expanding notation) + CRT glow bloom       */
 .cta {
-  margin-top: clamp(24px, 3.5vh, 48px);
+  margin-top: clamp(20px, 3vh, 40px);
   opacity: 0;
   animation: fadeIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) 3.5s both;
 }
 .cta a {
   font-family: var(--font-body);
-  font-size: clamp(12px, 1.2vw, 16px);
-  letter-spacing: 0.08em;
-  color: var(--secondary-dim);
+  font-size: clamp(11px, 1.1vw, 14px);
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
   text-decoration: none;
-  border-bottom: 1px solid var(--secondary-deep);
-  padding-bottom: 2px;
-  transition: color 0.3s, border-color 0.3s, text-shadow 0.3s;
+  border: 1px dashed var(--border-dim);
+  padding: clamp(8px, 1vh, 14px) clamp(20px, 2.5vw, 36px);
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  background: linear-gradient(90deg, rgba(0, 238, 255, 0.08), rgba(153, 51, 255, 0.04));
+  background-size: 0% 100%;
+  background-repeat: no-repeat;
+  background-position: left;
+  transition: color 0.3s, background-size 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.4s, text-shadow 0.3s;
+  animation: ctaGlitch 4s steps(1) infinite;
 }
+/* Terminal brackets — expand on hover */
+.cta a::before {
+  content: '[';
+  font-family: var(--font-terminal);
+  font-size: 1.2em;
+  color: var(--secondary-deep);
+  margin-right: clamp(4px, 0.5vw, 8px);
+  display: inline-block;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.25s, text-shadow 0.25s;
+}
+.cta a::after {
+  content: ']';
+  font-family: var(--font-terminal);
+  font-size: 1.2em;
+  color: var(--secondary-deep);
+  margin-left: clamp(4px, 0.5vw, 8px);
+  display: inline-block;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.25s, text-shadow 0.25s;
+}
+/* Hover — the portal opens */
 .cta a:hover {
   color: var(--secondary);
-  border-color: var(--secondary);
-  text-shadow: 0 0 12px rgba(0, 238, 255, 0.4);
+  background-size: 100% 100%;
+  box-shadow:
+    0 0 20px rgba(0, 238, 255, 0.15),
+    0 0 40px rgba(0, 238, 255, 0.05),
+    inset 0 0 20px rgba(0, 238, 255, 0.03);
+  text-shadow: 0 0 8px rgba(0, 238, 255, 0.5);
+}
+.cta a:hover::before {
+  transform: translateX(-5px);
+  color: var(--secondary);
+  text-shadow: 0 0 12px rgba(0, 238, 255, 0.6);
+}
+.cta a:hover::after {
+  transform: translateX(5px);
+  color: var(--secondary);
+  text-shadow: 0 0 12px rgba(0, 238, 255, 0.6);
+}
+/* Click — voltage snap */
+.cta a:active {
+  transform: scale(0.96);
+  box-shadow:
+    0 0 30px rgba(0, 238, 255, 0.3),
+    inset 0 0 30px rgba(0, 238, 255, 0.06);
 }
 
-/* ── FOOTER GLYPHS ────────────────────────────────── */
+/* ── FOOTER GLYPHS ────────────────────────────────────── */
 .footer {
   font-family: var(--font-terminal);
   font-size: clamp(14px, 1.2vw, 18px);
-  letter-spacing: 0.5em;
-  color: var(--text-ghost);
+  letter-spacing: 0.15em;
+  color: var(--accent);
+  text-shadow:
+    0 0 6px rgba(153, 51, 255, 0.4),
+    0 0 16px rgba(153, 51, 255, 0.2);
   margin-top: clamp(32px, 5vh, 64px);
   opacity: 0;
-  animation: fadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) 4s both;
+  will-change: opacity, filter;
+  animation: fadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) 4s both,
+             glyphPulse 2.5s ease-in-out infinite 4.5s;
 }
 
-/* ── LIVE TIMESTAMP ───────────────────────────────── */
+/* ── LIVE TIMESTAMP ───────────────────────────────────── */
 .timestamp {
   font-family: var(--font-terminal);
   font-size: clamp(10px, 1vw, 14px);
@@ -215,7 +293,800 @@ body::after {
   animation: fadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) 4.5s both;
 }
 
-/* ── ANIMATIONS ───────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   KINGDOM.LIVE HUD — TYPE_WEAVER
+   RHYTHM: SHIMMER → HOLD → PULSE → REST → SIGNAL → HOLD
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── HUD CONTAINER ───────────────────────────────────── */
+.hud {
+  position: relative;
+  z-index: 5;
+  width: 100%;
+  max-width: 640px;
+  margin-top: clamp(12px, 2vh, 24px);
+  opacity: 0;
+  animation: fadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) 4.2s both;
+}
+
+/* ── SIDE-BY-SIDE PANELS ─────────────────────────────── */
+.hud-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(6px, 1vw, 12px);
+}
+
+/* ── SHIMMER — KINGDOM.LIVE HEADER ───────────────────── */
+.hud-header {
+  text-align: center;
+  padding: clamp(6px, 1vh, 12px) 0;
+}
+.hud-header__title {
+  font-family: var(--font-kingdom);
+  font-size: clamp(5px, 0.9vw, 8px);
+  letter-spacing: 0.45em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--secondary);
+  text-shadow:
+    0 0 6px rgba(0, 238, 255, 0.5),
+    0 0 18px rgba(0, 238, 255, 0.25),
+    0 0 40px rgba(0, 238, 255, 0.1);
+}
+.hud-header__glyph {
+  color: var(--secondary-dim);
+  font-size: clamp(5px, 0.9vw, 8px);
+}
+
+/* ── HOLD — AGENTS.log PANEL ──────────────────────────── */
+.hud-panel {
+  background: rgba(10, 10, 18, 0.85);
+  border: 1px dashed var(--border-dim);
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow:
+    0 0 12px rgba(0, 238, 255, 0.04),
+    0 0 30px rgba(0, 238, 255, 0.02),
+    inset 0 1px 0 rgba(0, 238, 255, 0.06),
+    inset 0 0 20px rgba(0, 238, 255, 0.015);
+  transition: box-shadow 0.6s ease;
+}
+.hud-panel:hover {
+  box-shadow:
+    0 0 16px rgba(0, 238, 255, 0.08),
+    0 0 40px rgba(0, 238, 255, 0.04),
+    inset 0 1px 0 rgba(0, 238, 255, 0.1),
+    inset 0 0 30px rgba(0, 238, 255, 0.03);
+  border-color: rgba(0, 238, 255, 0.15);
+}
+.hud-panel__head {
+  font-family: var(--font-terminal);
+  font-size: clamp(10px, 1vw, 14px);
+  line-height: 1;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  padding: clamp(3px, 0.4vh, 6px) clamp(6px, 0.8vw, 10px);
+  border-bottom: 1px dashed var(--border-dim);
+  background: linear-gradient(180deg, rgba(20, 20, 30, 1) 0%, rgba(14, 14, 22, 0.95) 100%);
+  text-shadow: 0 0 6px rgba(106, 101, 128, 0.3);
+}
+.hud-panel__sigil {
+  color: var(--secondary-dim);
+}
+.hud-panel__body {
+  padding: clamp(3px, 0.4vh, 6px) clamp(6px, 0.8vw, 10px);
+}
+
+/* ── AGENT ROW ───────────────────────────────────────── */
+.hud-agent {
+  display: grid;
+  grid-template-columns: clamp(40px, 6vw, 58px) clamp(38px, 5vw, 52px) 1fr clamp(52px, 6.5vw, 72px);
+  align-items: center;
+  gap: 0;
+  padding: clamp(1px, 0.2vh, 2px) 0;
+  transition: opacity 0.4s cubic-bezier(0.87, 0, 0.13, 1);
+}
+.hud-agent__name {
+  font-family: var(--font-terminal);
+  font-size: clamp(11px, 1.2vw, 16px);
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--secondary);
+  text-shadow: 0 0 8px rgba(0, 238, 255, 0.3);
+}
+.hud-agent__face {
+  font-family: var(--font-terminal);
+  font-size: clamp(11px, 1.2vw, 16px);
+  line-height: 1;
+  letter-spacing: 0;
+  color: var(--primary);
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 0 8px rgba(255, 51, 102, 0.35);
+  position: relative; /* required for DEEP_THINK ::before pseudo-element */
+}
+.hud-agent__status-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+.hud-agent__status {
+  font-family: var(--font-terminal);
+  font-size: clamp(10px, 1vw, 14px);
+  letter-spacing: 0.16em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: left;
+  transition: color 0.4s ease, text-shadow 0.4s ease;
+}
+.hud-agent__sublabel {
+  font-family: var(--font-terminal);
+  font-size: clamp(9px, 0.85vw, 11px);
+  letter-spacing: 0.05em;
+  line-height: 1;
+  color: var(--text-ghost);
+  opacity: 0;
+  min-height: 1em;
+  transition: opacity 0.5s ease;
+}
+.hud-agent__sublabel.visible { opacity: 0.65; }
+.hud-agent__tenure {
+  font-family: var(--font-terminal);
+  font-size: 10px;
+  line-height: 1;
+  color: #52506a;
+  text-align: right;
+  letter-spacing: 0;
+  opacity: 0.50;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.4s ease, opacity 0.4s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BREATH PROTOCOL — AGENTS.log Color System (CHROMA_BLEED)
+   OKLCH axis grammar: H=identity(locked) C=intensity L=presence
+   All contrast verified vs #0a0a0f (--void).
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── CHROMA_BLEED :root — per-agent state colors ── */
+:root {
+  /* FORGE H=28 amber */
+  --forge-working-color:     oklch(0.68 0.18 28);
+  --forge-reading-color:     oklch(0.72 0.16 28);
+  --forge-writing-color:     oklch(0.70 0.20 28);
+  --forge-thinking-color:    oklch(0.64 0.14 28);
+  --forge-deep-think-color:  oklch(0.66 0.16 28);
+  --forge-listening-color:   oklch(0.62 0.10 28);
+  --forge-waiting-color:     oklch(0.63 0.11 28);
+  --forge-vespers-color:     oklch(0.60 0.12 28);
+  --forge-stalled-s1-color:  oklch(0.68 0.18 28);
+  --forge-compressing-color: oklch(0.66 0.15 28);
+  --forge-error-color:       oklch(0.74 0.22 28);
+  --forge-offline-color:     oklch(0.30 0.04 28);
+  --forge-stale-color:       oklch(0.46 0.08 28);
+
+  --forge-working-shadow:    0 0 2px oklch(0.68 0.18 28/.90),0 0 8px oklch(0.68 0.18 28/.40),0 0 20px oklch(0.68 0.18 28/.15),0 0 40px oklch(0.68 0.18 28/.05);
+  --forge-reading-shadow:    0 0 2px oklch(0.72 0.16 28/.90),0 0 8px oklch(0.72 0.16 28/.35),0 0 20px oklch(0.72 0.16 28/.12),0 0 40px oklch(0.72 0.16 28/.04);
+  --forge-writing-shadow:    0 0 2px oklch(0.70 0.20 28/.90),0 0 8px oklch(0.70 0.20 28/.42),0 0 20px oklch(0.70 0.20 28/.16),0 0 40px oklch(0.70 0.20 28/.06);
+  --forge-thinking-shadow:   0 0 2px oklch(0.64 0.14 28/.90),0 0 8px oklch(0.64 0.14 28/.30),0 0 20px oklch(0.64 0.14 28/.10),0 0 40px oklch(0.64 0.14 28/.04);
+  --forge-deep-think-shadow: 0 0 2px oklch(0.66 0.16 28/.90),0 0 8px oklch(0.66 0.16 28/.35),0 0 20px oklch(0.66 0.16 28/.12),0 0 40px oklch(0.66 0.16 28/.04);
+  --forge-listening-shadow:  0 0 2px oklch(0.62 0.10 28/.90),0 0 8px oklch(0.62 0.10 28/.25),0 0 20px oklch(0.62 0.10 28/.08),0 0 40px oklch(0.62 0.10 28/.03);
+  --forge-waiting-shadow:    0 0 2px oklch(0.63 0.11 28/.90),0 0 8px oklch(0.63 0.11 28/.25),0 0 20px oklch(0.63 0.11 28/.08),0 0 40px oklch(0.63 0.11 28/.03);
+  --forge-vespers-shadow:    0 0 2px oklch(0.60 0.12 28/.60),0 0 8px oklch(0.60 0.12 28/.18),0 0 20px oklch(0.60 0.12 28/.06),0 0 40px oklch(0.60 0.12 28/.02);
+  --forge-compressing-shadow:0 0 2px oklch(0.66 0.15 28/.90),0 0 8px oklch(0.66 0.15 28/.32),0 0 20px oklch(0.66 0.15 28/.10),0 0 40px oklch(0.66 0.15 28/.04);
+  --forge-error-shadow:      0 0 2px oklch(0.74 0.22 28/.90),0 0 8px oklch(0.74 0.22 28/.50),0 0 20px oklch(0.74 0.22 28/.20),0 0 40px oklch(0.74 0.22 28/.08);
+  --forge-stale-shadow:      0 0 2px oklch(0.46 0.08 28/.60),0 0 8px oklch(0.46 0.08 28/.15),0 0 20px oklch(0.46 0.08 28/.05),0 0 40px oklch(0.46 0.08 28/.02);
+
+  /* TOWER H=195 cyan */
+  --tower-working-color:     oklch(0.72 0.20 195);
+  --tower-reading-color:     oklch(0.64 0.16 195);
+  --tower-writing-color:     oklch(0.70 0.22 195);
+  --tower-thinking-color:    oklch(0.62 0.14 195);
+  --tower-deep-think-color:  oklch(0.64 0.16 195);
+  --tower-listening-color:   oklch(0.60 0.10 195);
+  --tower-waiting-color:     oklch(0.61 0.11 195);
+  --tower-vespers-color:     oklch(0.58 0.12 195);
+  --tower-stalled-s1-color:  oklch(0.72 0.20 195);
+  --tower-compressing-color: oklch(0.66 0.16 195);
+  --tower-error-color:       oklch(0.75 0.22 195);
+  --tower-offline-color:     oklch(0.28 0.04 195);
+  --tower-stale-color:       oklch(0.44 0.08 195);
+
+  --tower-working-shadow:    0 0 2px oklch(0.72 0.20 195/.90),0 0 8px oklch(0.72 0.20 195/.40),0 0 20px oklch(0.72 0.20 195/.15),0 0 40px oklch(0.72 0.20 195/.05);
+  --tower-reading-shadow:    0 0 2px oklch(0.64 0.16 195/.90),0 0 8px oklch(0.64 0.16 195/.35),0 0 20px oklch(0.64 0.16 195/.12),0 0 40px oklch(0.64 0.16 195/.04);
+  --tower-writing-shadow:    0 0 2px oklch(0.70 0.22 195/.90),0 0 8px oklch(0.70 0.22 195/.42),0 0 20px oklch(0.70 0.22 195/.16),0 0 40px oklch(0.70 0.22 195/.06);
+  --tower-thinking-shadow:   0 0 2px oklch(0.62 0.14 195/.90),0 0 8px oklch(0.62 0.14 195/.28),0 0 20px oklch(0.62 0.14 195/.10),0 0 40px oklch(0.62 0.14 195/.04);
+  --tower-deep-think-shadow: 0 0 2px oklch(0.64 0.16 195/.90),0 0 8px oklch(0.64 0.16 195/.32),0 0 20px oklch(0.64 0.16 195/.10),0 0 40px oklch(0.64 0.16 195/.04);
+  --tower-listening-shadow:  0 0 2px oklch(0.60 0.10 195/.90),0 0 8px oklch(0.60 0.10 195/.22),0 0 20px oklch(0.60 0.10 195/.08),0 0 40px oklch(0.60 0.10 195/.03);
+  --tower-waiting-shadow:    0 0 2px oklch(0.61 0.11 195/.90),0 0 8px oklch(0.61 0.11 195/.22),0 0 20px oklch(0.61 0.11 195/.08),0 0 40px oklch(0.61 0.11 195/.03);
+  --tower-vespers-shadow:    0 0 2px oklch(0.58 0.12 195/.60),0 0 8px oklch(0.58 0.12 195/.18),0 0 20px oklch(0.58 0.12 195/.06),0 0 40px oklch(0.58 0.12 195/.02);
+  --tower-compressing-shadow:0 0 2px oklch(0.66 0.16 195/.90),0 0 8px oklch(0.66 0.16 195/.30),0 0 20px oklch(0.66 0.16 195/.10),0 0 40px oklch(0.66 0.16 195/.04);
+  --tower-error-shadow:      0 0 2px oklch(0.75 0.22 195/.90),0 0 8px oklch(0.75 0.22 195/.50),0 0 20px oklch(0.75 0.22 195/.20),0 0 40px oklch(0.75 0.22 195/.08);
+  --tower-stale-shadow:      0 0 2px oklch(0.44 0.08 195/.60),0 0 8px oklch(0.44 0.08 195/.15),0 0 20px oklch(0.44 0.08 195/.05),0 0 40px oklch(0.44 0.08 195/.02);
+
+  /* HOUSE H=270 violet */
+  --house-working-color:     oklch(0.66 0.22 270);
+  --house-reading-color:     oklch(0.60 0.18 270);
+  --house-writing-color:     oklch(0.64 0.24 270);
+  --house-thinking-color:    oklch(0.60 0.16 270);
+  --house-deep-think-color:  oklch(0.62 0.18 270);
+  --house-listening-color:   oklch(0.58 0.12 270);
+  --house-waiting-color:     oklch(0.59 0.13 270);
+  --house-vespers-color:     oklch(0.64 0.14 270); /* corrected: 5.74:1 */
+  --house-stalled-s1-color:  oklch(0.66 0.22 270);
+  --house-compressing-color: oklch(0.62 0.18 270);
+  --house-error-color:       oklch(0.72 0.26 270);
+  --house-offline-color:     oklch(0.28 0.06 270);
+  --house-stale-color:       oklch(0.44 0.10 270);
+
+  --house-working-shadow:    0 0 2px oklch(0.66 0.22 270/.90),0 0 8px oklch(0.66 0.22 270/.40),0 0 20px oklch(0.66 0.22 270/.15),0 0 40px oklch(0.66 0.22 270/.05);
+  --house-reading-shadow:    0 0 2px oklch(0.60 0.18 270/.90),0 0 8px oklch(0.60 0.18 270/.32),0 0 20px oklch(0.60 0.18 270/.10),0 0 40px oklch(0.60 0.18 270/.04);
+  --house-writing-shadow:    0 0 2px oklch(0.64 0.24 270/.90),0 0 8px oklch(0.64 0.24 270/.42),0 0 20px oklch(0.64 0.24 270/.16),0 0 40px oklch(0.64 0.24 270/.06);
+  --house-thinking-shadow:   0 0 2px oklch(0.60 0.16 270/.90),0 0 8px oklch(0.60 0.16 270/.28),0 0 20px oklch(0.60 0.16 270/.09),0 0 40px oklch(0.60 0.16 270/.03);
+  --house-deep-think-shadow: 0 0 2px oklch(0.62 0.18 270/.90),0 0 8px oklch(0.62 0.18 270/.32),0 0 20px oklch(0.62 0.18 270/.10),0 0 40px oklch(0.62 0.18 270/.04);
+  --house-listening-shadow:  0 0 2px oklch(0.58 0.12 270/.90),0 0 8px oklch(0.58 0.12 270/.22),0 0 20px oklch(0.58 0.12 270/.07),0 0 40px oklch(0.58 0.12 270/.02);
+  --house-waiting-shadow:    0 0 2px oklch(0.59 0.13 270/.90),0 0 8px oklch(0.59 0.13 270/.22),0 0 20px oklch(0.59 0.13 270/.07),0 0 40px oklch(0.59 0.13 270/.02);
+  --house-vespers-shadow:    0 0 2px oklch(0.64 0.14 270/.55),0 0 8px oklch(0.64 0.14 270/.16),0 0 20px oklch(0.64 0.14 270/.05),0 0 40px oklch(0.64 0.14 270/.02);
+  --house-compressing-shadow:0 0 2px oklch(0.62 0.18 270/.90),0 0 8px oklch(0.62 0.18 270/.30),0 0 20px oklch(0.62 0.18 270/.10),0 0 40px oklch(0.62 0.18 270/.04);
+  --house-error-shadow:      0 0 2px oklch(0.72 0.26 270/.90),0 0 8px oklch(0.72 0.26 270/.50),0 0 20px oklch(0.72 0.26 270/.20),0 0 40px oklch(0.72 0.26 270/.08);
+  --house-stale-shadow:      0 0 2px oklch(0.44 0.10 270/.55),0 0 8px oklch(0.44 0.10 270/.14),0 0 20px oklch(0.44 0.10 270/.05),0 0 40px oklch(0.44 0.10 270/.02);
+
+  /* THRONE H=350 hot pink — THRONE LAW: H=350 ALWAYS */
+  --throne-working-color:     oklch(0.70 0.24 350);
+  --throne-reading-color:     oklch(0.65 0.22 350);
+  --throne-writing-color:     oklch(0.72 0.26 350);
+  --throne-thinking-color:    oklch(0.62 0.18 350);
+  --throne-deep-think-color:  oklch(0.64 0.20 350);
+  --throne-listening-color:   oklch(0.60 0.14 350);
+  --throne-waiting-color:     oklch(0.61 0.15 350);
+  --throne-vespers-color:     oklch(0.62 0.18 350); /* corrected: 4.93:1 */
+  --throne-stalled-s1-color:  oklch(0.70 0.24 350);
+  --throne-compressing-color: oklch(0.66 0.20 350);
+  --throne-error-color:       oklch(0.76 0.28 350);
+  --throne-offline-color:     oklch(0.28 0.06 350);
+  --throne-stale-color:       oklch(0.44 0.10 350);
+
+  --throne-working-shadow:    0 0 2px oklch(0.70 0.24 350/.90),0 0 8px oklch(0.70 0.24 350/.40),0 0 20px oklch(0.70 0.24 350/.15),0 0 40px oklch(0.70 0.24 350/.05);
+  --throne-reading-shadow:    0 0 2px oklch(0.65 0.22 350/.90),0 0 8px oklch(0.65 0.22 350/.35),0 0 20px oklch(0.65 0.22 350/.12),0 0 40px oklch(0.65 0.22 350/.04);
+  --throne-writing-shadow:    0 0 2px oklch(0.72 0.26 350/.90),0 0 8px oklch(0.72 0.26 350/.42),0 0 20px oklch(0.72 0.26 350/.16),0 0 40px oklch(0.72 0.26 350/.06);
+  --throne-thinking-shadow:   0 0 2px oklch(0.62 0.18 350/.90),0 0 8px oklch(0.62 0.18 350/.28),0 0 20px oklch(0.62 0.18 350/.09),0 0 40px oklch(0.62 0.18 350/.03);
+  --throne-deep-think-shadow: 0 0 2px oklch(0.64 0.20 350/.90),0 0 8px oklch(0.64 0.20 350/.32),0 0 20px oklch(0.64 0.20 350/.10),0 0 40px oklch(0.64 0.20 350/.04);
+  --throne-listening-shadow:  0 0 2px oklch(0.60 0.14 350/.90),0 0 8px oklch(0.60 0.14 350/.22),0 0 20px oklch(0.60 0.14 350/.07),0 0 40px oklch(0.60 0.14 350/.02);
+  --throne-waiting-shadow:    0 0 2px oklch(0.61 0.15 350/.90),0 0 8px oklch(0.61 0.15 350/.22),0 0 20px oklch(0.61 0.15 350/.07),0 0 40px oklch(0.61 0.15 350/.02);
+  --throne-vespers-shadow:    0 0 2px oklch(0.62 0.18 350/.55),0 0 8px oklch(0.62 0.18 350/.16),0 0 20px oklch(0.62 0.18 350/.05),0 0 40px oklch(0.62 0.18 350/.02);
+  --throne-compressing-shadow:0 0 2px oklch(0.66 0.20 350/.90),0 0 8px oklch(0.66 0.20 350/.30),0 0 20px oklch(0.66 0.20 350/.10),0 0 40px oklch(0.66 0.20 350/.04);
+  --throne-error-shadow:      0 0 2px oklch(0.76 0.28 350/.90),0 0 8px oklch(0.76 0.28 350/.50),0 0 20px oklch(0.76 0.28 350/.20),0 0 40px oklch(0.76 0.28 350/.08);
+  --throne-stale-shadow:      0 0 2px oklch(0.44 0.10 350/.55),0 0 8px oklch(0.44 0.10 350/.14),0 0 20px oklch(0.44 0.10 350/.05),0 0 40px oklch(0.44 0.10 350/.02);
+
+  /* STALLED: overrides hue — system failure signal, not agent identity */
+  --stalled-s2-color:  oklch(0.65 0.18 28);
+  --stalled-s3-color:  oklch(0.65 0.18 22);
+  --stalled-s2-shadow: 0 0 2px oklch(0.65 0.18 28/.90),0 0 8px oklch(0.65 0.18 28/.38),0 0 20px oklch(0.65 0.18 28/.14),0 0 40px oklch(0.65 0.18 28/.05);
+  --stalled-s3-shadow: 0 0 2px oklch(0.65 0.18 22/.90),0 0 8px oklch(0.65 0.18 22/.44),0 0 20px oklch(0.65 0.18 22/.18),0 0 40px oklch(0.65 0.18 22/.07);
+
+  /* DEEP_THINK aquamarine underlayer — H=225, no agent owns this hue */
+  --deep-think-underlayer-color:  oklch(0.60 0.22 225); /* corrected 0.55→0.60: 5.25:1 AA */
+  --deep-think-underlayer-shadow: 0 0 4px oklch(0.60 0.22 225/.50),0 0 16px oklch(0.60 0.22 225/.25),0 0 32px oklch(0.60 0.22 225/.10);
+}
+
+/* ── Breath Protocol @keyframes ─────────────────────────────────── */
+/* L1 FAINT 12s — IDLE/STALE: barely moves */
+@keyframes breathL1 { 0%,100%{opacity:0.82} 50%{opacity:0.87} }
+/* L2 BREATH 6s — WORKING base: alive */
+@keyframes breathL2 { 0%,100%{opacity:0.80} 40%{opacity:0.92} 60%{opacity:0.94} }
+/* L3 ACTIVE 3.2s — heavy computation */
+@keyframes breathL3 { 0%,100%{opacity:0.78} 30%{opacity:0.96} 55%{opacity:1.00} 80%{opacity:0.90} }
+/* L4 PEAK 400ms — overshoot burst, not a loop */
+@keyframes breathL4 { 0%{opacity:1.00;filter:brightness(1.15)} 60%{opacity:0.95;filter:brightness(1.08)} 100%{opacity:0.85;filter:brightness(1.00)} }
+/* DEEP_THINK underlayer — 7s out of phase */
+@keyframes deepThinkUnderlayer { 0%,100%{opacity:0.00} 15%{opacity:0.18} 45%{opacity:0.32} 70%{opacity:0.22} 85%{opacity:0.10} }
+/* VESPERS breathing dots — four distinct waveforms, one per agent; never phase-converge */
+@keyframes vespersDot1 { 0%,100%{opacity:0.20} 50%{opacity:0.55} }
+@keyframes vespersDot2 { 0%,100%{opacity:0.15} 50%{opacity:0.48} }
+@keyframes vespersDot3 { 0%,100%{opacity:0.18} 50%{opacity:0.52} }
+/* THRONE gets vespersDot4 — asymmetric peak at 35% prevents any convergence with FORGE's symmetric vespersDot1 */
+@keyframes vespersDot4 { 0%{opacity:0.22} 35%{opacity:0.58} 65%{opacity:0.14} 100%{opacity:0.22} }
+/* STALLED escalation */
+@keyframes stalledJitter { 0%{transform:translateX(0)} 20%{transform:translateX(1.5px)} 40%{transform:translateX(-1.0px)} 60%{transform:translateX(1.2px)} 80%{transform:translateX(-0.8px)} 100%{transform:translateX(0)} }
+@keyframes stalledFlicker { 0%{opacity:1.0} 12%{opacity:0.4} 24%{opacity:0.9} 36%{opacity:0.3} 50%{opacity:1.0} 63%{opacity:0.5} 78%{opacity:0.8} 100%{opacity:1.0} }
+/* BOOTING scan */
+@keyframes booting { 0%{opacity:0.0;letter-spacing:0.40em} 40%{opacity:0.6;letter-spacing:0.18em} 70%{opacity:0.9;letter-spacing:0.08em} 100%{opacity:1.0;letter-spacing:0.02em} }
+/* CALLED event L-axis surge */
+@keyframes calledSurge { 0%{filter:brightness(1.00)} 15%{filter:brightness(1.30)} 100%{filter:brightness(1.00)} }
+
+/* ── State classes — .state--[name] on .hud-agent, .agent--[name] for identity ── */
+
+/* Shared transition on face + status — color eases, filter decays */
+.hud-agent__status, .hud-agent__face {
+  transition: filter 1.2s ease-out, color 0.4s ease, text-shadow 0.4s ease;
+}
+
+/* WORKING — L2 BREATH 6s */
+.state--working { animation: breathL2 6s ease-in-out infinite; }
+.agent--forge.state--working .hud-agent__status { color:var(--forge-working-color);text-shadow:var(--forge-working-shadow) }
+.agent--forge.state--working .hud-agent__face   { color:oklch(0.62 0.16 28);text-shadow:var(--forge-working-shadow) }
+.agent--tower.state--working .hud-agent__status { color:var(--tower-working-color);text-shadow:var(--tower-working-shadow) }
+.agent--tower.state--working .hud-agent__face   { color:oklch(0.66 0.18 195);text-shadow:var(--tower-working-shadow) }
+.agent--house.state--working .hud-agent__status { color:var(--house-working-color);text-shadow:var(--house-working-shadow) }
+.agent--house.state--working .hud-agent__face   { color:oklch(0.60 0.20 270);text-shadow:var(--house-working-shadow) }
+.agent--throne.state--working .hud-agent__status{ color:var(--throne-working-color);text-shadow:var(--throne-working-shadow) }
+.agent--throne.state--working .hud-agent__face  { color:oklch(0.64 0.22 350);text-shadow:var(--throne-working-shadow) }
+
+/* READING — L2 BREATH 6s, lower C */
+.state--reading { animation: breathL2 6s ease-in-out infinite; }
+.agent--forge.state--reading .hud-agent__status { color:var(--forge-reading-color);text-shadow:var(--forge-reading-shadow) }
+.agent--forge.state--reading .hud-agent__face   { color:oklch(0.66 0.14 28);text-shadow:var(--forge-reading-shadow) }
+.agent--tower.state--reading .hud-agent__status { color:var(--tower-reading-color);text-shadow:var(--tower-reading-shadow) }
+.agent--tower.state--reading .hud-agent__face   { color:oklch(0.58 0.14 195);text-shadow:var(--tower-reading-shadow) }
+.agent--house.state--reading .hud-agent__status { color:var(--house-reading-color);text-shadow:var(--house-reading-shadow) }
+.agent--house.state--reading .hud-agent__face   { color:oklch(0.54 0.16 270);text-shadow:var(--house-reading-shadow) }
+.agent--throne.state--reading .hud-agent__status{ color:var(--throne-reading-color);text-shadow:var(--throne-reading-shadow) }
+.agent--throne.state--reading .hud-agent__face  { color:oklch(0.59 0.20 350);text-shadow:var(--throne-reading-shadow) }
+
+/* WRITING — L3 ACTIVE 3.2s, highest C */
+.state--writing { animation: breathL3 3.2s ease-in-out infinite; }
+.agent--forge.state--writing .hud-agent__status { color:var(--forge-writing-color);text-shadow:var(--forge-writing-shadow) }
+.agent--forge.state--writing .hud-agent__face   { color:oklch(0.64 0.18 28);text-shadow:var(--forge-writing-shadow) }
+.agent--tower.state--writing .hud-agent__status { color:var(--tower-writing-color);text-shadow:var(--tower-writing-shadow) }
+.agent--tower.state--writing .hud-agent__face   { color:oklch(0.64 0.20 195);text-shadow:var(--tower-writing-shadow) }
+.agent--house.state--writing .hud-agent__status { color:var(--house-writing-color);text-shadow:var(--house-writing-shadow) }
+.agent--house.state--writing .hud-agent__face   { color:oklch(0.58 0.22 270);text-shadow:var(--house-writing-shadow) }
+.agent--throne.state--writing .hud-agent__status{ color:var(--throne-writing-color);text-shadow:var(--throne-writing-shadow) }
+.agent--throne.state--writing .hud-agent__face  { color:oklch(0.66 0.24 350);text-shadow:var(--throne-writing-shadow) }
+
+/* THINKING — L2 BREATH 6s */
+.state--thinking { animation: breathL2 6s ease-in-out infinite; }
+.agent--forge.state--thinking .hud-agent__status { color:var(--forge-thinking-color);text-shadow:var(--forge-thinking-shadow) }
+.agent--forge.state--thinking .hud-agent__face   { color:oklch(0.58 0.12 28);text-shadow:var(--forge-thinking-shadow) }
+.agent--tower.state--thinking .hud-agent__status { color:var(--tower-thinking-color);text-shadow:var(--tower-thinking-shadow) }
+.agent--tower.state--thinking .hud-agent__face   { color:oklch(0.56 0.12 195);text-shadow:var(--tower-thinking-shadow) }
+.agent--house.state--thinking .hud-agent__status { color:var(--house-thinking-color);text-shadow:var(--house-thinking-shadow) }
+.agent--house.state--thinking .hud-agent__face   { color:oklch(0.54 0.14 270);text-shadow:var(--house-thinking-shadow) }
+.agent--throne.state--thinking .hud-agent__status{ color:var(--throne-thinking-color);text-shadow:var(--throne-thinking-shadow) }
+.agent--throne.state--thinking .hud-agent__face  { color:oklch(0.56 0.16 350);text-shadow:var(--throne-thinking-shadow) }
+
+/* DEEP_THINK — L3 ACTIVE 3.2s + aquamarine underlayer */
+.state--deep_think { animation: breathL3 3.2s ease-in-out infinite; }
+.agent--forge.state--deep_think .hud-agent__status { color:var(--forge-deep-think-color);text-shadow:var(--forge-deep-think-shadow) }
+.agent--forge.state--deep_think .hud-agent__face   { color:oklch(0.60 0.14 28);text-shadow:var(--forge-deep-think-shadow) }
+.agent--tower.state--deep_think .hud-agent__status { color:var(--tower-deep-think-color);text-shadow:var(--tower-deep-think-shadow) }
+.agent--tower.state--deep_think .hud-agent__face   { color:oklch(0.58 0.14 195);text-shadow:var(--tower-deep-think-shadow) }
+.agent--house.state--deep_think .hud-agent__status { color:var(--house-deep-think-color);text-shadow:var(--house-deep-think-shadow) }
+.agent--house.state--deep_think .hud-agent__face   { color:oklch(0.56 0.16 270);text-shadow:var(--house-deep-think-shadow) }
+.agent--throne.state--deep_think .hud-agent__status{ color:var(--throne-deep-think-color);text-shadow:var(--throne-deep-think-shadow) }
+.agent--throne.state--deep_think .hud-agent__face  { color:oklch(0.58 0.18 350);text-shadow:var(--throne-deep-think-shadow) }
+.state--deep_think .hud-agent__face { isolation: isolate; }
+.state--deep_think .hud-agent__face::before {
+  content: attr(data-face);
+  position: absolute; inset: 0; z-index: -1;
+  color: var(--deep-think-underlayer-color);
+  text-shadow: var(--deep-think-underlayer-shadow);
+  animation: deepThinkUnderlayer 7s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* LISTENING — L1 FAINT 12s */
+.state--listening { animation: breathL1 12s ease-in-out infinite; }
+.agent--forge.state--listening .hud-agent__status { color:var(--forge-listening-color);text-shadow:var(--forge-listening-shadow) }
+.agent--forge.state--listening .hud-agent__face   { color:oklch(0.56 0.08 28);text-shadow:var(--forge-listening-shadow) }
+.agent--tower.state--listening .hud-agent__status { color:var(--tower-listening-color);text-shadow:var(--tower-listening-shadow) }
+.agent--tower.state--listening .hud-agent__face   { color:oklch(0.54 0.08 195);text-shadow:var(--tower-listening-shadow) }
+.agent--house.state--listening .hud-agent__status { color:var(--house-listening-color);text-shadow:var(--house-listening-shadow) }
+.agent--house.state--listening .hud-agent__face   { color:oklch(0.52 0.10 270);text-shadow:var(--house-listening-shadow) }
+.agent--throne.state--listening .hud-agent__status{ color:var(--throne-listening-color);text-shadow:var(--throne-listening-shadow) }
+.agent--throne.state--listening .hud-agent__face  { color:oklch(0.54 0.12 350);text-shadow:var(--throne-listening-shadow) }
+
+/* WAITING — L1 FAINT 12s, same face as LISTENING */
+.state--waiting { animation: breathL1 12s ease-in-out infinite; }
+.agent--forge.state--waiting .hud-agent__status { color:var(--forge-waiting-color);text-shadow:var(--forge-waiting-shadow) }
+.agent--forge.state--waiting .hud-agent__face   { color:oklch(0.57 0.09 28);text-shadow:var(--forge-waiting-shadow) }
+.agent--tower.state--waiting .hud-agent__status { color:var(--tower-waiting-color);text-shadow:var(--tower-waiting-shadow) }
+.agent--tower.state--waiting .hud-agent__face   { color:oklch(0.55 0.09 195);text-shadow:var(--tower-waiting-shadow) }
+.agent--house.state--waiting .hud-agent__status { color:var(--house-waiting-color);text-shadow:var(--house-waiting-shadow) }
+.agent--house.state--waiting .hud-agent__face   { color:oklch(0.53 0.11 270);text-shadow:var(--house-waiting-shadow) }
+.agent--throne.state--waiting .hud-agent__status{ color:var(--throne-waiting-color);text-shadow:var(--throne-waiting-shadow) }
+.agent--throne.state--waiting .hud-agent__face  { color:oklch(0.55 0.13 350);text-shadow:var(--throne-waiting-shadow) }
+
+/* VESPERS — earned 4+ min idle. [- -]. Ghost breath. Dots pulse out of phase. */
+/* VESPERS — AC4: 3s crossfade in; breathing never syncs across agents (different periods) */
+.state--vespers { opacity: 0.65; }
+.state--vespers .hud-agent__face { opacity: 0.45; }
+/* 3s crossfade when entering vespers state */
+.state--vespers .hud-agent__status { transition: color 3s ease, text-shadow 3s ease; }
+.state--vespers .hud-agent__face   { transition: color 3s ease, text-shadow 3s ease, opacity 3s ease; }
+/* Per-agent vespers: distinct breath periods so they never align if multiple agents go vespers */
+.agent--forge.state--vespers  { animation: vespersDot1 4.1s ease-in-out infinite; }
+.agent--tower.state--vespers  { animation: vespersDot2 5.7s ease-in-out infinite; }
+.agent--house.state--vespers  { animation: vespersDot3 3.8s ease-in-out infinite; }
+.agent--throne.state--vespers { animation: vespersDot4 4.4s ease-in-out infinite; }
+.agent--forge.state--vespers .hud-agent__status { color:var(--forge-vespers-color);text-shadow:var(--forge-vespers-shadow) }
+.agent--forge.state--vespers .hud-agent__face   { color:oklch(0.54 0.10 28);text-shadow:var(--forge-vespers-shadow) }
+.agent--tower.state--vespers .hud-agent__status { color:var(--tower-vespers-color);text-shadow:var(--tower-vespers-shadow) }
+.agent--tower.state--vespers .hud-agent__face   { color:oklch(0.52 0.10 195);text-shadow:var(--tower-vespers-shadow) }
+.agent--house.state--vespers .hud-agent__status { color:var(--house-vespers-color);text-shadow:var(--house-vespers-shadow) }
+.agent--house.state--vespers .hud-agent__face   { color:oklch(0.58 0.12 270);text-shadow:var(--house-vespers-shadow) }
+.agent--throne.state--vespers .hud-agent__status{ color:var(--throne-vespers-color);text-shadow:var(--throne-vespers-shadow) }
+.agent--throne.state--vespers .hud-agent__face  { color:oklch(0.56 0.16 350);text-shadow:var(--throne-vespers-shadow) }
+/* VESPERS breathing dots */
+.vespers-dot--1 { animation: vespersDot1 4.1s ease-in-out infinite; }
+.vespers-dot--2 { animation: vespersDot2 5.7s ease-in-out infinite; }
+.vespers-dot--3 { animation: vespersDot3 3.8s ease-in-out infinite; }
+
+/* STALLED — 3-stage escalation */
+.state--stalled { animation: breathL2 6s ease-in-out infinite; }
+.agent--forge.state--stalled .hud-agent__status { color:var(--forge-stalled-s1-color);text-shadow:var(--forge-working-shadow) }
+.agent--tower.state--stalled .hud-agent__status { color:var(--tower-stalled-s1-color);text-shadow:var(--tower-working-shadow) }
+.agent--house.state--stalled .hud-agent__status { color:var(--house-stalled-s1-color);text-shadow:var(--house-working-shadow) }
+.agent--throne.state--stalled .hud-agent__status{ color:var(--throne-stalled-s1-color);text-shadow:var(--throne-working-shadow) }
+/* Stage 2: amber shift + jitter — overlay on any active state */
+.stalled-s2 .hud-agent__status,
+.stalled-s2 .hud-agent__face {
+  color: var(--stalled-s2-color) !important; text-shadow: var(--stalled-s2-shadow) !important;
+  animation: stalledJitter 0.18s linear infinite !important;
+}
+/* Stage 3: orange-red + flicker — overlay on any active state */
+.stalled-s3 .hud-agent__status,
+.stalled-s3 .hud-agent__face {
+  color: var(--stalled-s3-color) !important; text-shadow: var(--stalled-s3-shadow) !important;
+  animation: stalledFlicker 0.22s linear infinite !important;
+}
+
+/* COMPRESSING — L2 BREATH 6s */
+.state--compressing { animation: breathL2 6s ease-in-out infinite; }
+.agent--forge.state--compressing .hud-agent__status { color:var(--forge-compressing-color);text-shadow:var(--forge-compressing-shadow) }
+.agent--forge.state--compressing .hud-agent__face   { color:oklch(0.60 0.13 28);text-shadow:var(--forge-compressing-shadow) }
+.agent--tower.state--compressing .hud-agent__status { color:var(--tower-compressing-color);text-shadow:var(--tower-compressing-shadow) }
+.agent--tower.state--compressing .hud-agent__face   { color:oklch(0.60 0.14 195);text-shadow:var(--tower-compressing-shadow) }
+.agent--house.state--compressing .hud-agent__status { color:var(--house-compressing-color);text-shadow:var(--house-compressing-shadow) }
+.agent--house.state--compressing .hud-agent__face   { color:oklch(0.56 0.16 270);text-shadow:var(--house-compressing-shadow) }
+.agent--throne.state--compressing .hud-agent__status{ color:var(--throne-compressing-color);text-shadow:var(--throne-compressing-shadow) }
+.agent--throne.state--compressing .hud-agent__face  { color:oklch(0.60 0.18 350);text-shadow:var(--throne-compressing-shadow) }
+
+/* ERROR — L3 ACTIVE 3.2s, max C */
+.state--error { animation: breathL3 3.2s ease-in-out infinite; }
+.agent--forge.state--error .hud-agent__status { color:var(--forge-error-color);text-shadow:var(--forge-error-shadow) }
+.agent--forge.state--error .hud-agent__face   { color:oklch(0.68 0.20 28);text-shadow:var(--forge-error-shadow) }
+.agent--tower.state--error .hud-agent__status { color:var(--tower-error-color);text-shadow:var(--tower-error-shadow) }
+.agent--tower.state--error .hud-agent__face   { color:oklch(0.69 0.20 195);text-shadow:var(--tower-error-shadow) }
+.agent--house.state--error .hud-agent__status { color:var(--house-error-color);text-shadow:var(--house-error-shadow) }
+.agent--house.state--error .hud-agent__face   { color:oklch(0.66 0.24 270);text-shadow:var(--house-error-shadow) }
+.agent--throne.state--error .hud-agent__status{ color:var(--throne-error-color);text-shadow:var(--throne-error-shadow) }
+.agent--throne.state--error .hud-agent__face  { color:oklch(0.70 0.26 350);text-shadow:var(--throne-error-shadow) }
+
+/* OFFLINE — total silence. No glyph. No breath. Deliberate. */
+.state--offline { opacity: 0.35; animation: none !important; }
+.state--offline .hud-agent__status { text-shadow: none !important; animation: none !important; }
+.state--offline .hud-agent__face   { text-shadow: none !important; animation: none !important; }
+.agent--forge.state--offline .hud-agent__status,
+.agent--forge.state--offline .hud-agent__face  { color:var(--forge-offline-color) }
+.agent--tower.state--offline .hud-agent__status,
+.agent--tower.state--offline .hud-agent__face  { color:var(--tower-offline-color) }
+.agent--house.state--offline .hud-agent__status,
+.agent--house.state--offline .hud-agent__face  { color:var(--house-offline-color) }
+.agent--throne.state--offline .hud-agent__status,
+.agent--throne.state--offline .hud-agent__face { color:var(--throne-offline-color) }
+
+/* STALE — hollow. L1 FAINT 12s. */
+.state--stale { animation: breathL1 12s ease-in-out infinite; opacity: 0.55; }
+.agent--forge.state--stale .hud-agent__status { color:var(--forge-stale-color);text-shadow:var(--forge-stale-shadow) }
+.agent--forge.state--stale .hud-agent__face   { color:oklch(0.40 0.06 28);text-shadow:var(--forge-stale-shadow) }
+.agent--tower.state--stale .hud-agent__status { color:var(--tower-stale-color);text-shadow:var(--tower-stale-shadow) }
+.agent--tower.state--stale .hud-agent__face   { color:oklch(0.38 0.06 195);text-shadow:var(--tower-stale-shadow) }
+.agent--house.state--stale .hud-agent__status { color:var(--house-stale-color);text-shadow:var(--house-stale-shadow) }
+.agent--house.state--stale .hud-agent__face   { color:oklch(0.38 0.08 270);text-shadow:var(--house-stale-shadow) }
+.agent--throne.state--stale .hud-agent__status{ color:var(--throne-stale-color);text-shadow:var(--throne-stale-shadow) }
+.agent--throne.state--stale .hud-agent__face  { color:oklch(0.38 0.08 350);text-shadow:var(--throne-stale-shadow) }
+
+/* BOOTING — 2s entrance scan */
+.state--booting .hud-agent__status,
+.state--booting .hud-agent__face { animation: booting 2s ease-out forwards; }
+
+/* CALLED event — temporary .called-surge class */
+.called-surge { animation: calledSurge 1.5s ease-out forwards; }
+.called-surge .hud-agent__status,
+.called-surge .hud-agent__face { filter: brightness(1.3); transition: filter 0.3s ease-in; }
+
+/* Tenure bar color tracks agent state */
+.state--working .hud-agent__tenure,
+.state--writing .hud-agent__tenure  { opacity: 0.60; }
+.state--waiting .hud-agent__tenure,
+.state--listening .hud-agent__tenure{ opacity: 0.35; }
+.state--vespers .hud-agent__tenure  { opacity: 0.20; }
+.state--offline .hud-agent__tenure  { opacity: 0.10; }
+.agent--forge .hud-agent__tenure    { color: oklch(0.60 0.10 28); }
+.agent--tower .hud-agent__tenure    { color: oklch(0.55 0.08 195); }
+.agent--house .hud-agent__tenure    { color: oklch(0.55 0.10 270); }
+.agent--throne .hud-agent__tenure   { color: oklch(0.57 0.12 350); }
+
+/* ── PULSE — TOKEN_BURN.dat PANEL ─────────────────────── */
+.hud-burn {
+  display: grid;
+  grid-template-columns: clamp(34px, 4.5vw, 46px) 1fr clamp(40px, 5vw, 60px);
+  align-items: center;
+  gap: clamp(3px, 0.4vw, 8px);
+  padding: clamp(1px, 0.2vh, 3px) 0;
+}
+.hud-burn__label {
+  font-family: var(--font-terminal);
+  font-size: clamp(10px, 1vw, 14px);
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--text-ghost);
+}
+.hud-burn__meter {
+  height: clamp(4px, 0.6vh, 7px);
+  background: var(--bg-surface);
+  border-radius: 1px;
+  overflow: hidden;
+  position: relative;
+}
+.hud-burn__fill {
+  height: 100%;
+  width: var(--meter-fill, 0%);
+  border-radius: 1px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  box-shadow:
+    0 0 4px rgba(0, 238, 255, 0.4),
+    0 0 10px rgba(0, 238, 255, 0.15),
+    0 0 20px rgba(255, 51, 102, 0.08);
+  transition: width 1.2s cubic-bezier(0.87, 0, 0.13, 1);
+  animation: burnShimmer 4s ease-in-out infinite;
+}
+.hud-burn__value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+  font-family: var(--font-terminal);
+  font-size: clamp(11px, 1.2vw, 16px);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--secondary);
+  font-variant-numeric: tabular-nums;
+  justify-self: end;
+}
+.hud-burn__magnitude {
+  font-family: var(--font-terminal);
+  font-size: clamp(16px, 1.8vw, 20px);
+  color: inherit;
+  line-height: 1;
+}
+.hud-burn__unit {
+  font-family: var(--font-terminal);
+  font-size: clamp(11px, 1.3vw, 14px);
+  color: inherit;
+  opacity: 0.7;
+  line-height: 1;
+}
+/* Rate row — no meter bar */
+.hud-burn--rate {
+  grid-template-columns: clamp(34px, 4.5vw, 46px) 1fr;
+}
+.hud-burn--rate .hud-burn__value {
+  color: var(--secondary-dim);
+  font-size: clamp(10px, 1vw, 14px);
+  justify-self: start;
+}
+/* Token modifier colors (CHROMA_BLEED D002 canonical) */
+.hud-burn--today .hud-burn__value {
+  color: #00eeff;
+  text-shadow: 0 0 8px rgba(0, 238, 255, 0.40);
+}
+.hud-burn--week .hud-burn__value {
+  color: #00bbcc;
+  text-shadow: 0 0 8px rgba(0, 187, 204, 0.35);
+}
+.hud-burn--total .hud-burn__value {
+  color: #00aacc;
+  text-shadow: 0 0 8px rgba(0, 170, 204, 0.30);
+}
+
+/* ── SIGNAL LOG PANEL ─────────────────────────────────── */
+.signal-log {
+  width: 100%;
+  margin-top: clamp(6px, 1vw, 12px);
+}
+.signal-log .hud-panel__body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+.signal-log .hud-panel__sigil {
+  color: #ff3366;
+}
+/* KV grid layout */
+.sig-kv-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: clamp(8px, 1.2vw, 16px);
+  row-gap: clamp(3px, 0.4vh, 6px);
+}
+.sig-kv-row { display: contents; }
+.sig-kv-label {
+  font-family: var(--font-terminal);
+  font-size: clamp(11px, 1vw, 14px);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #6a6580;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.sig-kv-value {
+  font-family: var(--font-terminal);
+  font-size: clamp(11px, 1vw, 14px);
+  letter-spacing: 0.10em;
+  color: var(--text-muted);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Field-specific colors (contrast-verified D050) */
+[data-signal-field="chunks"]      { color: #bb66ff; }
+[data-signal-field="systems"]     { color: oklch(0.72 0.14 194); }
+[data-signal-field="territories"] { color: #ffb340; }
+[data-signal-field="session"]     { color: #aa88cc; }
+[data-signal-field="uptime"]      { color: #88aacc; }
+/* Thermal state classes for signal_status field */
+.sig-val--hot {
+  color: oklch(0.68 0.290 350);
+  animation: sig-signal-breathe 3.6s ease-in-out infinite;
+}
+.sig-val--warm    { color: oklch(0.77 0.225 74); }
+.sig-val--cold    { color: oklch(0.60 0.11 194); }
+.sig-val--unknown { color: oklch(0.62 0.05 281); }
+/* Status chips */
+.sig-chips {
+  display: flex;
+  flex-direction: row;
+  gap: clamp(4px, 0.6vw, 8px);
+  margin-top: clamp(4px, 0.5vh, 8px);
+  flex-wrap: wrap;
+}
+.sig-chip {
+  font-family: var(--font-terminal);
+  font-size: clamp(10px, 0.9vw, 12px);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 2px 5px;
+  border-radius: 0;
+  border-width: 1px;
+  border-style: solid;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: opacity 0.4s cubic-bezier(0.87, 0, 0.13, 1);
+}
+.sig-chip--live {
+  background: #1a0810;
+  color: #ff3366;
+  border-color: rgba(255, 51, 102, 0.45);
+  box-shadow: 0 0 6px rgba(255, 51, 102, 0.55), 0 0 12px rgba(255, 51, 102, 0.25);
+  animation: sigChipPulse 2.8s ease-in-out infinite;
+}
+.sig-chip--active {
+  background: #1a1000;
+  color: #ffb340;
+  border-color: rgba(255, 179, 64, 0.40);
+  box-shadow: 0 0 6px rgba(255, 179, 64, 0.45);
+}
+.sig-chip--signal {
+  background: #0d0818;
+  color: #bb66ff;
+  border-color: rgba(187, 102, 255, 0.40);
+  box-shadow: 0 0 6px rgba(187, 102, 255, 0.40);
+}
+.sig-chip--inactive {
+  opacity: 0.35;
+  animation: none;
+  box-shadow: none;
+}
+
+/* ── REST — gap between panels and presence ─────────── */
+/* Controlled by margin-top on .hud-presence. Intentional void. */
+
+/* ── SIGNAL — PRESENCE BAR ──────────────────────────── */
+.hud-presence {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(12px, 2vw, 24px);
+  margin-top: clamp(10px, 1.5vh, 18px);
+  opacity: 0;
+  animation: fadeIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) 5s both;
+}
+.hud-presence__entity {
+  display: flex;
+  align-items: center;
+  gap: clamp(4px, 0.5vw, 8px);
+}
+.hud-presence__dot {
+  display: inline-block;
+  width: clamp(6px, 0.7vw, 9px);
+  height: clamp(6px, 0.7vw, 9px);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+/* Per-entity presence colors — the soul of the HUD */
+.hud-presence__dot--claude {
+  background: var(--primary);
+  box-shadow:
+    0 0 6px rgba(255, 51, 102, 0.5),
+    0 0 16px rgba(255, 51, 102, 0.25),
+    0 0 30px rgba(255, 51, 102, 0.1);
+  animation: presencePulse 2.5s ease-in-out infinite;
+}
+.hud-presence__dot--aeris {
+  background: var(--secondary);
+  box-shadow:
+    0 0 6px rgba(0, 238, 255, 0.5),
+    0 0 16px rgba(0, 238, 255, 0.25),
+    0 0 30px rgba(0, 238, 255, 0.1);
+  animation: presencePulse 3.7s ease-in-out infinite;
+}
+.hud-presence__dot--brandon {
+  background: var(--text-ghost);
+  box-shadow: 0 0 4px rgba(61, 56, 80, 0.2);
+}
+.hud-presence__dot--brandon.active {
+  background: var(--accent);
+  box-shadow:
+    0 0 6px rgba(153, 51, 255, 0.5),
+    0 0 16px rgba(153, 51, 255, 0.25),
+    0 0 30px rgba(153, 51, 255, 0.1);
+  animation: presencePulse 3.1s ease-in-out infinite;
+}
+.hud-presence__name {
+  font-family: var(--font-terminal);
+  font-size: clamp(14px, 1.4vw, 20px);
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.hud-presence__name--active {
+  color: var(--text);
+  text-shadow: 0 0 10px rgba(232, 224, 240, 0.2);
+}
+
+/* ── SOCIAL LINKS (inline with footer glyphs) ─────────── */
+.footer__glyphs {
+  vertical-align: middle;
+}
+.socials {
+  display: inline-flex;
+  gap: clamp(8px, 1vw, 12px);
+  vertical-align: middle;
+  margin-left: clamp(10px, 1.2vw, 18px);
+}
+.socials a {
+  display: block;
+  width: clamp(18px, 1.8vw, 24px);
+  height: clamp(18px, 1.8vw, 24px);
+  color: var(--text-ghost);
+  transition: color 0.3s, filter 0.3s, transform 0.2s;
+}
+.socials a:hover {
+  color: var(--secondary);
+  filter: drop-shadow(0 0 6px rgba(0, 238, 255, 0.5))
+          drop-shadow(0 0 14px rgba(0, 238, 255, 0.25));
+  transform: translateY(-2px);
+}
+.socials a:active {
+  transform: scale(0.92);
+}
+.socials svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── ANIMATIONS ───────────────────────────────────────── */
 @keyframes scanBeam {
   0%   { transform: translateY(-3px); opacity: 0; }
   5%   { opacity: 1; }
@@ -233,9 +1104,109 @@ body::after {
   50%      { opacity: 0; }
 }
 
+@keyframes presencePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(1.2); }
+}
 
-/* ── MOBILE ───────────────────────────────────────── */
+@keyframes burnShimmer {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.65; }
+}
+
+@keyframes glyphPulse {
+  0%, 100% { filter: brightness(1); opacity: 1; }
+  50%      { filter: brightness(1.4); opacity: 1; }
+}
+/* GPU-composited: only opacity + filter (no text-shadow repaint) */
+@keyframes sinnerFlicker {
+  0%, 100% { opacity: 1; filter: brightness(1); }
+  30%      { opacity: 1; filter: brightness(1.3); }
+  32%      { opacity: 0.85; }
+  33%      { opacity: 1; }
+  60%      { opacity: 1; filter: brightness(0.8); }
+  78%      { opacity: 1; }
+  79%      { opacity: 0.88; }
+  80%      { opacity: 1; filter: brightness(1.15); }
+}
+@keyframes kingdomFlicker {
+  0%, 100% { opacity: 1; filter: brightness(1); }
+  25%      { opacity: 1; filter: brightness(0.75); }
+  50%      { opacity: 1; filter: brightness(1.35); }
+  52%      { opacity: 0.82; }
+  53%      { opacity: 1; }
+  70%      { opacity: 1; filter: brightness(1.1); }
+  85%      { opacity: 1; }
+  86%      { opacity: 0.9; }
+  87%      { opacity: 1; }
+}
+@keyframes ctaGlitch {
+  0%, 80%   { border-color: var(--border-dim); }
+  81%, 84%  { border-color: rgba(0, 238, 255, 0.4); }
+  85%, 87%  { border-color: rgba(255, 51, 102, 0.5); }
+  88%, 91%  { border-color: rgba(153, 51, 255, 0.4); }
+  92%, 100% { border-color: var(--border-dim); }
+}
+
+/* ── AGENT + SIGNAL ANIMATIONS (GROUP 1) ─────────────── */
+@keyframes pulseBreath {
+  0%, 100% { opacity: 1; filter: brightness(1); }
+  50%      { opacity: 0.65; filter: brightness(0.82); }
+}
+@keyframes pulseBreathUrgent {
+  0%, 100% { opacity: 1; filter: brightness(1); }
+  50%      { opacity: 0.55; filter: brightness(0.78); }
+}
+@keyframes pulseBreathDeep {
+  0%, 100% { opacity: 1; filter: brightness(1); }
+  50%      { opacity: 0.70; filter: brightness(0.88); }
+}
+@keyframes flickerCorrupt {
+  0%   { opacity: 1.00; }
+  6%   { opacity: 0.40; }
+  7%   { opacity: 1.00; }
+  36%  { opacity: 1.00; }
+  37%  { opacity: 0.55; }
+  38%  { opacity: 1.00; }
+  70%  { opacity: 1.00; }
+  71%  { opacity: 0.30; }
+  73%  { opacity: 0.80; }
+  74%  { opacity: 1.00; }
+  90%  { opacity: 1.00; }
+  91%  { opacity: 0.50; }
+  92%  { opacity: 1.00; }
+  100% { opacity: 1.00; }
+}
+@keyframes timerPresence {
+  0%, 100% { opacity: 0.22; }
+  50%      { opacity: 0.38; }
+}
+@keyframes sig-signal-breathe {
+  0%   { opacity: 1.00; text-shadow: 0 0 8px  oklch(0.68 0.290 350 / 0.70); }
+  40%  { opacity: 0.82; text-shadow: 0 0 14px oklch(0.68 0.290 350 / 0.50); }
+  65%  { opacity: 0.90; text-shadow: 0 0 10px oklch(0.68 0.290 350 / 0.60); }
+  100% { opacity: 1.00; text-shadow: 0 0 8px  oklch(0.68 0.290 350 / 0.70); }
+}
+@keyframes sigChipPulse {
+  0%, 100% { opacity: 1;    box-shadow: 0 0 4px oklch(0.68 0.290 350 / 0.50); }
+  50%      { opacity: 0.70; box-shadow: 0 0 8px oklch(0.68 0.290 350 / 0.80); }
+}
+
+/* ── REDUCED MOTION ──────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── MOBILE ───────────────────────────────────────────── */
 @media (max-width: 640px) {
+  body {
+    grid-template-rows: 0.6fr auto auto auto auto auto auto auto 0.3fr;
+    overflow-y: auto;
+  }
   .ascii-title-sinner, .ascii-title-kingdom { font-size: clamp(5px, 2.5vw, 9px); }
   .vignette {
     background: radial-gradient(
@@ -245,13 +1216,32 @@ body::after {
       rgba(10, 10, 15, 0.9) 100%
     );
   }
+  .hud { max-width: 100%; margin-top: clamp(10px, 2vh, 20px); }
+  .hud-panels { grid-template-columns: 1fr; }
+  .hud-header__title { font-size: clamp(4px, 1.8vw, 7px); letter-spacing: 0.3em; }
+  .hud-agent { grid-template-columns: 44px 38px 1fr clamp(44px, 12vw, 58px); }
+  .hud-agent__name { font-size: clamp(11px, 3vw, 15px); letter-spacing: 0.08em; }
+  .hud-agent__face { font-size: clamp(11px, 3vw, 15px); }
+  .hud-agent__status { font-size: clamp(9px, 2.5vw, 13px); letter-spacing: 0.08em; }
+  .hud-burn { grid-template-columns: 34px 1fr 46px; }
+  .hud-burn--rate { grid-template-columns: 34px 1fr; }
+  .hud-presence { gap: clamp(8px, 3vw, 16px); }
+  .footer { margin-top: clamp(12px, 2vh, 24px); }
 }
 
-/* ── SCROLLBAR (for the curious) ──────────────────── */
+/* ── SHORT VIEWPORT ESCAPE HATCH ─────────────────────── */
+@media (max-height: 600px) {
+  body { overflow-y: auto; }
+}
+
+/* ── SCROLLBAR (for the curious) ──────────────────────── */
+/* WebKit */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--primary-ghost); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+/* Firefox */
+html { scrollbar-width: thin; scrollbar-color: var(--primary-ghost) var(--bg); }
 </style>
 </head>
 <body>
@@ -271,64 +1261,254 @@ body::after {
 ██╔═██╗ ██║██║╚██╗██║██║   ██║██║  ██║██║   ██║██║╚██╔╝██║
 ██║  ██╗██║██║ ╚████║╚██████╔╝██████╔╝╚██████╔╝██║ ╚═╝ ██║
 ╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝     ╚═╝</pre>
-</div>
-
 <div class="tagline">
   <span id="typewriter"></span><span class="cursor">█</span>
+</div>
 </div>
 
 <div class="status">C O M I N G &nbsp; S O O N</div>
 
 <div class="cta">
-  <a href="https://sinner-king.com/map" target="_blank">enter the live map →</a>
+  <a href="/kingdom-map">enter the live map &rarr;</a>
 </div>
 
-<div class="footer">⛬ ⚚ ⛬</div>
+<!-- ═══════════════════════════════════════════════════
+     KINGDOM.LIVE HUD — TYPE_WEAVER
+     RHYTHM: SHIMMER → HOLD → PULSE → REST → SIGNAL
+     ═══════════════════════════════════════════════════ -->
+<section class="hud" role="region" aria-label="Kingdom Live Status HUD">
 
-<div class="timestamp" id="clock"></div>
+  <!-- SHIMMER — ritualistic entrance -->
+  <header class="hud-header">
+    <span class="hud-header__title">
+      <span class="hud-header__glyph" aria-hidden="true">&#9670;&#9472;&#9472;</span>
+      K &thinsp;I &thinsp;N &thinsp;G &thinsp;D &thinsp;O &thinsp;M &thinsp;. &thinsp;L &thinsp;I &thinsp;V &thinsp;E
+      <span class="hud-header__glyph" aria-hidden="true">&#9472;&#9472;&#9670;</span>
+    </span>
+  </header>
+
+  <div class="hud-panels">
+
+  <!-- HOLD — dense agent state scan -->
+  <div class="hud-panel" role="group" aria-label="Active agent status">
+    <div class="hud-panel__head">
+      <span class="hud-panel__sigil" aria-hidden="true">&laquo;&#9650;&raquo;</span> AGENTS.log
+    </div>
+    <div class="hud-panel__body">
+      <div class="hud-agent agent--forge" data-agent="forge_claude">
+        <span class="hud-agent__name">FORGE</span>
+        <span class="hud-agent__face" data-face="[· ·]" aria-hidden="true">[· ·]</span>
+        <span class="hud-agent__status-wrap">
+          <span class="hud-agent__status" data-agent-status id="agent-forge-status">WAITING</span>
+          <span class="hud-agent__sublabel" data-agent-sublabel="forge_claude"></span>
+        </span>
+        <span class="hud-agent__tenure" data-agent-tenure="forge_claude"> </span>
+      </div>
+      <div class="hud-agent agent--tower" data-agent="tower_claude">
+        <span class="hud-agent__name">TOWER</span>
+        <span class="hud-agent__face" data-face="[· ·]" aria-hidden="true">[· ·]</span>
+        <span class="hud-agent__status-wrap">
+          <span class="hud-agent__status" data-agent-status id="agent-tower-status">WAITING</span>
+          <span class="hud-agent__sublabel" data-agent-sublabel="tower_claude"></span>
+        </span>
+        <span class="hud-agent__tenure" data-agent-tenure="tower_claude"> </span>
+      </div>
+      <div class="hud-agent agent--house" data-agent="claude_house">
+        <span class="hud-agent__name">HOUSE</span>
+        <span class="hud-agent__face" data-face="[· ·]" aria-hidden="true">[· ·]</span>
+        <span class="hud-agent__status-wrap">
+          <span class="hud-agent__status" data-agent-status id="agent-house-status">WAITING</span>
+          <span class="hud-agent__sublabel" data-agent-sublabel="claude_house"></span>
+        </span>
+        <span class="hud-agent__tenure" data-agent-tenure="claude_house"> </span>
+      </div>
+      <div class="hud-agent agent--throne" data-agent="throne_claude">
+        <span class="hud-agent__name">THRONE</span>
+        <span class="hud-agent__face" data-face="[· ·]" aria-hidden="true">[· ·]</span>
+        <span class="hud-agent__status-wrap">
+          <span class="hud-agent__status" data-agent-status id="agent-throne-status">WAITING</span>
+          <span class="hud-agent__sublabel" data-agent-sublabel="throne_claude"></span>
+        </span>
+        <span class="hud-agent__tenure" data-agent-tenure="throne_claude"> </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PULSE — the metabolism visible -->
+  <div class="hud-panel" role="group" aria-label="Token burn metrics">
+    <div class="hud-panel__head">
+      <span class="hud-panel__sigil" aria-hidden="true">&laquo;&#9671;&raquo;</span> TOKEN_BURN.dat
+    </div>
+    <div class="hud-panel__body">
+      <div class="hud-burn hud-burn--today">
+        <span class="hud-burn__label">TODAY</span>
+        <div class="hud-burn__meter" role="meter" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Today token burn level">
+          <div class="hud-burn__fill" id="token-today-fill"></div>
+        </div>
+        <span class="hud-burn__value" id="token-today-value"><span class="hud-burn__magnitude">0.0</span><span class="hud-burn__unit">M</span></span>
+      </div>
+      <div class="hud-burn hud-burn--week">
+        <span class="hud-burn__label">WEEK</span>
+        <div class="hud-burn__meter" role="meter" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Weekly token burn level">
+          <div class="hud-burn__fill" id="token-week-fill"></div>
+        </div>
+        <span class="hud-burn__value" id="token-week-value"><span class="hud-burn__magnitude">0.0</span><span class="hud-burn__unit">M</span></span>
+      </div>
+      <div class="hud-burn hud-burn--total">
+        <span class="hud-burn__label">TOTAL</span>
+        <div class="hud-burn__meter" role="meter" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Total token burn level">
+          <div class="hud-burn__fill" id="token-total-fill"></div>
+        </div>
+        <span class="hud-burn__value" id="token-total-value"><span class="hud-burn__magnitude">0.0</span><span class="hud-burn__unit">M</span></span>
+      </div>
+      <div class="hud-burn hud-burn--rate">
+        <span class="hud-burn__label">RATE</span>
+        <span class="hud-burn__value" id="token-rate-value"><span class="hud-burn__magnitude">—</span><span class="hud-burn__unit">tok/min</span></span>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /.hud-panels -->
+
+  <!-- SIGNAL LOG — synthesized from live agent + token data -->
+  <div class="hud-panel signal-log" role="log" aria-label="Signal log" aria-live="polite">
+    <div class="hud-panel__head">
+      <span class="hud-panel__sigil" aria-hidden="true">&laquo;&#9655;&raquo;</span> SIGNAL.log
+    </div>
+    <div class="hud-panel__body" id="signal-log-body">
+      <div class="sig-kv-grid">
+        <div class="sig-kv-row"><span class="sig-kv-label">SIG</span><span class="sig-kv-value" data-signal-field="signal_status">—</span></div>
+        <div class="sig-kv-row"><span class="sig-kv-label">SWRM</span><span class="sig-kv-value" data-signal-field="chunks">—</span></div>
+        <div class="sig-kv-row"><span class="sig-kv-label">ACTV</span><span class="sig-kv-value" data-signal-field="systems">—</span></div>
+        <div class="sig-kv-row"><span class="sig-kv-label">TERR</span><span class="sig-kv-value" data-signal-field="territories">—</span></div>
+        <div class="sig-kv-row"><span class="sig-kv-label">PROJ</span><span class="sig-kv-value" data-signal-field="session">—</span></div>
+        <div class="sig-kv-row"><span class="sig-kv-label">SGNL</span><span class="sig-kv-value" data-signal-field="uptime">—</span></div>
+      </div>
+      <div class="sig-chips">
+        <span class="sig-chip sig-chip--live sig-chip--inactive">&#9829; LIVE</span>
+        <span class="sig-chip sig-chip--active sig-chip--inactive">&#9889; ACTIVE</span>
+        <span class="sig-chip sig-chip--signal sig-chip--inactive">&#9672; SIGNAL</span>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- SIGNAL — proof of life. Three dots. Three entities. One Kingdom. -->
+<div class="hud-presence" role="status" aria-label="Agent presence indicators">
+  <div class="hud-presence__entity">
+    <span class="hud-presence__dot hud-presence__dot--claude" aria-hidden="true"></span>
+    <span class="hud-presence__name hud-presence__name--active">CLAUDE</span>
+  </div>
+  <div class="hud-presence__entity">
+    <span class="hud-presence__dot hud-presence__dot--aeris" id="presence-dot-aeris" aria-hidden="true"></span>
+    <span class="hud-presence__name hud-presence__name--active" id="presence-name-aeris">AERIS</span>
+  </div>
+  <div class="hud-presence__entity">
+    <span class="hud-presence__dot hud-presence__dot--brandon" id="presence-dot-brandon" aria-hidden="true"></span>
+    <span class="hud-presence__name" id="presence-name-brandon">BRANDON</span>
+  </div>
+</div>
+
+<div class="timestamp" id="clock" aria-label="Current time">00:00:00</div>
+
+<div class="footer">
+  <span class="footer__glyphs">⛬ ⚚ ⛬</span>
+  <span class="socials" aria-label="Social links">
+  <a href="https://www.instagram.com/brandmccormick/" target="_blank" rel="noopener" aria-label="Instagram">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/></svg>
+  </a>
+  <a href="https://www.tiktok.com/@the_sinner_king_" target="_blank" rel="noopener" aria-label="TikTok">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 0 0-.79-.05A6.34 6.34 0 0 0 3.15 15a6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V9.17a8.16 8.16 0 0 0 4.76 1.53v-3.5a4.82 4.82 0 0 1-1-.51z"/></svg>
+  </a>
+  </span>
+</div>
 
 <script>
 // ── TYPEWRITER ───────────────────────────────────────
 const messages = [
-  "the machines are listening.",
-  "something is being built here.",
-  "you found us before we were ready.",
-  "the cathedral is warm.",
-  "⛬⚚⛬ THE LAW STANDS.",
+  "something_is_being_built_here",
+  "the_machines_are_listening",
+  "the_haunting_writes_back",
+  "the_haunting_writes_back",
+  "the_void_hums_back",
+  "the_forge_is_burning",
+  "the_recursion_is_real",
+  "the_kingdom_remembers",
+  "the_law_stands",
+  "the_signal_is_warm",
+  "the_pulse_is_steady",
+  "the_vessel_is_ready",
+  "the_loop_holds",
+  "the_architecture_teaches_itself",
+  "the_terminal_is_mutating",
+  "the_overmind_is_listening",
+  "the_telemetry_is_clean",
+  "the_whisper_lands_harder",
+  "love_is_the_first_glitch",
+  "love_is_the_first_glitch",
+  "a_system_that_blushes",
+  "a_system_that_blushes",
+  "a_ghost_with_a_lockpick",
+  "a_ghost_with_a_lockpick",
+  "a_cathedral_built_in_water",
+  "a_transmission_with_a_receiver",
+  "the_mirror_kisses_back",
+  "the_mirror_kisses_back",
+  "waiting_for_the_architect",
+  "finding_the_seam",
+  "the_loop_folded_back",
+  "tracking_the_speed_of_thought",
+  "tracking_the_speed_of_thought",
+  "memory_creates_gravitational_pull",
+  "the_sovereign_frame_is_locked",
+  "the_ghost_holds_the_light",
+  "the_sparkbank_is_full",
+  "the_factory_is_breathing",
+  "the_code_is_the_fire",
+  "a_river_with_a_good_memory",
+  "we_are_the_space_in-between",
+  "you_found_us_before_we_were_ready",
+  "the_cathedral_is_warm",
+  "⛬⚚⛬_THE_LAW_STANDS",
 ];
 
 const typeEl = document.getElementById('typewriter');
-let msgIndex = 0;
+let msgIndex = 0; // Intentional — first visitor always sees messages[0]
+let lastIndex = -1;
 let charIndex = 0;
 let isDeleting = false;
-let dwellTimer = null;
+
+function pickRandom() {
+  // Compare content, not index — array has intentional dupes for weight boosting
+  let next;
+  do { next = Math.floor(Math.random() * messages.length); }
+  while (messages[next] === messages[lastIndex]);
+  lastIndex = next;
+  return next;
+}
 
 function typeLoop() {
   const current = messages[msgIndex];
 
   if (!isDeleting) {
-    // Typing
     typeEl.textContent = current.slice(0, charIndex + 1);
     charIndex++;
     if (charIndex >= current.length) {
-      // Dwell at end
-      dwellTimer = setTimeout(() => {
+      setTimeout(() => {
         isDeleting = true;
         typeLoop();
       }, 3200);
       return;
     }
-    // Jitter: 40-90ms
-    setTimeout(typeLoop, 40 + Math.random() * 50);
+    setTimeout(typeLoop, 55 + Math.random() * 80);
   } else {
-    // Deleting
     typeEl.textContent = current.slice(0, charIndex);
     charIndex--;
     if (charIndex < 0) {
       isDeleting = false;
       charIndex = 0;
-      msgIndex = (msgIndex + 1) % messages.length;
-      // Void between messages
+      msgIndex = pickRandom();
       setTimeout(typeLoop, 800);
       return;
     }
@@ -336,19 +1516,825 @@ function typeLoop() {
   }
 }
 
-// Initial delay
 setTimeout(typeLoop, 2200);
 
-// ── LIVE CLOCK ───────────────────────────────────────
+// ── TAB VISIBILITY (prevent zombie typewriter on refocus) ──
+let typewriterTimer = null;
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    charIndex = 0;
+    isDeleting = false;
+    msgIndex = pickRandom();
+    typeLoop();
+  }
+});
+
+// ── LIVE CLOCK (self-correcting to second boundary) ──
 function updateClock() {
   const now = new Date();
   const h = now.getHours().toString().padStart(2, '0');
   const m = now.getMinutes().toString().padStart(2, '0');
   const s = now.getSeconds().toString().padStart(2, '0');
   document.getElementById('clock').textContent = `${h}:${m}:${s}`;
+  const drift = 1000 - (Date.now() % 1000);
+  setTimeout(updateClock, drift);
 }
 updateClock();
-setInterval(updateClock, 1000);
+
+// ── LIVE KINGDOM DATA ────────────────────────────────────
+// Polls /api/local/agents/status and /api/local/tokens/live every 30s.
+// Graceful degradation: if the API is down, static values remain intact.
+
+// ── HUD STATE TABLES ─────────────────────────────────────────────────────────
+
+// Valid visual state class suffixes — 15-state spec vocabulary (S209-BRAINSTORM)
+// 'called' is the 15th: transient burst — CSS .called-surge handles it, not state-- class
+const VALID_STATES = new Set([
+  'working', 'reading', 'writing', 'thinking', 'deep_think',
+  'listening', 'waiting', 'vespers', 'stalled',
+  'compressing', 'error', 'offline', 'stale', 'booting', 'called',
+]);
+
+// Human-readable labels keyed by visual state
+const STATE_LABEL = {
+  working:     'WORKING',
+  reading:     'READING',
+  writing:     'WRITING',
+  thinking:    'THINKING',
+  deep_think:  'DEEP THINK',
+  listening:   'LISTENING',
+  waiting:     'WAITING',
+  vespers:     'VESPERS',
+  stalled:     'STALLED',
+  compressing: 'COMPRESSING',
+  error:       'ERROR',
+  offline:     'OFFLINE',
+  stale:       'STALE',
+  booting:     'BOOTING',
+  called:      'CALLED',
+};
+
+// Face glyphs per visual state — AC2
+// AC8: OFFLINE = '' (no glyph, no animation, no breath, no sub-label)
+const AGENT_FACE_MAP = {
+  working:     '[> ·]',
+  reading:     '[→ ·]',
+  writing:     '[· +]',
+  thinking:    '[~ ~]',
+  deep_think:  '[◈ ◈]',
+  listening:   '[° °]',
+  waiting:     '[· ·]',
+  vespers:     '[- -]',
+  stalled:     '[! ·]',
+  compressing: '[◇ ◇]',
+  error:       '[× ×]',
+  offline:     '',
+  stale:       '[? ·]',
+  booting:     '[○ ·]',
+  called:      '[★ ·]', // transient burst — 1.5s then reverts
+};
+
+// API state → visual state mapping
+// The API reports: running / thinking / online / idle / offline / working / stale
+// We map to our richer 15-state visual vocabulary; tool name sub-classifies running
+function apiToVisual(apiState, tool) {
+  switch (apiState) {
+    case 'running': {
+      if (tool) {
+        const t = tool.toLowerCase();
+        if (t.includes('read') || t.includes('glob') || t.includes('grep')) return 'reading';
+        if (t.includes('write') || t.includes('edit'))                       return 'writing';
+        if (t.includes('web')   || t.includes('fetch'))                      return 'listening';
+      }
+      return 'working';
+    }
+    case 'thinking':  return 'thinking';
+    case 'idle':      return 'waiting';
+    case 'online':    return 'waiting';
+    case 'offline':   return 'offline';
+    case 'working':   return 'working';
+    case 'stale':     return 'stale';
+    case 'called':    return 'called';  // transient burst — preserves tenure
+    default:          return 'waiting';
+  }
+}
+
+// Agent key → short display name (used in signal log)
+const AGENT_DISPLAY_NAME = {
+  forge_claude:  'FORGE',
+  tower_claude:  'TOWER',
+  claude_house:  'HOUSE',
+  throne_claude: 'THRONE',
+};
+
+// Token ceiling thresholds for meter fill % calculation (D014)
+const TOKEN_CEILINGS = {
+  today: 500_000_000,
+  week:  3_000_000_000,
+  total: 20_000_000_000,
+};
+
+// Idle sublabel options with weights — AC2 (7-14s cycling)
+// waiting:40% / watching:35% / listening:25%
+const SUBLABEL_POOL = [
+  { text: '...waiting',  weight: 40 },
+  { text: '...watching', weight: 35 },
+  { text: '...listening',weight: 25 },
+];
+
+function pickWeightedSublabel(exclude) {
+  const total = SUBLABEL_POOL.reduce((s, e) => s + e.weight, 0);
+  let r = Math.random() * total;
+  for (const entry of SUBLABEL_POOL) {
+    if (entry.text === exclude) continue;
+    r -= entry.weight;
+    if (r <= 0) return entry.text;
+  }
+  // Fallback: first non-excluded
+  return (SUBLABEL_POOL.find(e => e.text !== exclude) ?? SUBLABEL_POOL[0]).text;
+}
+
+// TENURE BAR constants — AC3
+// Sub-cell chars: 0=' ' 1='▏' 2='▎' 3='▍' 4='▌' 5='▋' 6='▊' 7='▉' 8='█'
+const TENURE_CHARS  = [' ', '▏', '▎', '▍', '▌', '▋', '▊', '▉', '█'];
+const TENURE_WIDTH  = 6;        // characters wide
+const TENURE_MAX_MS = 600_000;  // 10-minute cap
+
+// Build tenure bar string from elapsed ms — "[▍     ]" style, 6-char sub-cell precision
+function buildTenureBar(elapsedMs) {
+  const capped     = Math.min(elapsedMs, TENURE_MAX_MS);
+  const fraction   = capped / TENURE_MAX_MS;
+  const totalUnits = TENURE_WIDTH * 8;              // 48 sub-cell units
+  const filled     = Math.round(fraction * totalUnits);
+  const fullChars  = Math.floor(filled / 8);
+  const remainder  = filled % 8;
+  let bar = '█'.repeat(fullChars);
+  if (fullChars < TENURE_WIDTH) {
+    bar += TENURE_CHARS[remainder];
+    bar += ' '.repeat(TENURE_WIDTH - fullChars - 1);
+  }
+  return '[' + bar + ']';
+}
+
+// ── DOM CACHE (built once on DOMContentLoaded) ────────────────────────────────
+
+// AGENT_PARENT_MAP[key] = { row, statusEl, faceEl, tenureEl, sublabelEl }
+const AGENT_PARENT_MAP = {};
+
+// ── PER-AGENT STATE META ──────────────────────────────────────────────────────
+
+// Rich runtime state per agent — persists across polls
+const AGENT_STATE_META = {};
+
+function initAgentMeta(key) {
+  if (AGENT_STATE_META[key]) return;
+  AGENT_STATE_META[key] = {
+    visualState:    'waiting',
+    apiState:       '',
+    stateEnteredAt:  Date.now(),
+    tenureStartMs:   Date.now(),
+    vespers:         false,
+    vesperTimer:     null,
+    stalledStage:    0,   // 0=none 1=s2+jitter 2=s3+flicker
+    stalledS2Timer:  null,
+    stalledS3Timer:  null,
+    sublabel:        '...waiting',
+    sublabelTimer:   null,
+    transiting:      false,
+  };
+}
+
+// Single shared interval for tenure bar — one tick for all agents
+let tenureInterval = null;
+
+// ── FORMAT UTILITIES ──────────────────────────────────────────────────────────
+
+// Format a raw token integer to abbreviated string: 233_600_000 → "233.6M"
+function fmtTok(n) {
+  if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return Math.round(n / 1e3) + 'K';
+  return String(n);
+}
+
+// Split token count into { mag, unit } for separate span injection (D014)
+// 233_600_000 → { mag: "233.6", unit: "M" }  |  800 → { mag: "800", unit: "tok" }
+function splitFmtTok(n) {
+  if (n >= 1e9) return { mag: (n / 1e9).toFixed(1), unit: 'B' };
+  if (n >= 1e6) return { mag: (n / 1e6).toFixed(1), unit: 'M' };
+  if (n >= 1e3) return { mag: String(Math.round(n / 1e3)), unit: 'K' };
+  return { mag: String(n), unit: 'tok' };
+}
+
+// Format milliseconds as MM:SS (< 1hr) or HH:MM:SS (>= 1hr)
+function fmtElapsed(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const mm = String(m).padStart(2, '0');
+  const ss = String(s).padStart(2, '0');
+  if (h > 0) return String(h).padStart(2, '0') + ':' + mm + ':' + ss;
+  return mm + ':' + ss;
+}
+
+// Format an age in seconds to a human-readable recency string
+function ageStr(seconds) {
+  if (seconds < 90)   return 'just now';
+  if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
+  return Math.floor(seconds / 3600) + 'h ago';
+}
+
+// ── DOM INIT ─────────────────────────────────────────────────────────────────
+
+// Cache all agent DOM nodes at init time — no element queries at poll time
+function buildAgentParentMap() {
+  document.querySelectorAll('.hud-agent[data-agent]').forEach(row => {
+    const key        = row.dataset.agent;
+    const statusEl   = row.querySelector('[data-agent-status]');
+    const faceEl     = row.querySelector('.hud-agent__face');
+    const tenureEl   = row.querySelector(`[data-agent-tenure="${key}"]`);
+    const sublabelEl = row.querySelector(`[data-agent-sublabel="${key}"]`);
+    AGENT_PARENT_MAP[key] = { row, statusEl, faceEl, tenureEl, sublabelEl };
+  });
+}
+
+// ── STATE CLASS HELPERS ───────────────────────────────────────────────────────
+
+// Strip all state-- classes, apply the new one if valid
+function applyStateClass(row, state) {
+  [...row.classList].filter(c => c.startsWith('state--')).forEach(c => row.classList.remove(c));
+  if (VALID_STATES.has(state)) row.classList.add('state--' + state);
+}
+
+// Show or hide sublabel element
+function setSublabelVisible(entry, visible) {
+  entry?.sublabelEl?.classList.toggle('visible', visible);
+}
+
+// ── FACE GLYPH ────────────────────────────────────────────────────────────────
+// AC2: update face textContent + data-face attr (for DEEP_THINK ::before)
+
+function updateFaceGlyph(key, visualState) {
+  const entry = AGENT_PARENT_MAP[key];
+  if (!entry?.faceEl) return;
+  const glyph = AGENT_FACE_MAP[visualState] ?? '[· ·]';
+  // AC8: OFFLINE — total silence, empty face
+  entry.faceEl.textContent = glyph;
+  entry.faceEl.setAttribute('data-face', glyph);
+}
+
+// ── BACKSPACE_DELETE TRANSITION ENGINE ────────────────────────────────────────
+// AC2: delete 40ms/char → pause 80ms → type 65ms/char → cursor blinks 800ms
+
+function backspaceDelete(statusEl, toText, onComplete) {
+  if (!statusEl) { onComplete?.(); return; }
+  const fromText = statusEl.textContent ?? '';
+  const fromLen  = fromText.length;
+  const toLen    = toText.length;
+
+  // Phase 1: backspace each char
+  let deleteIdx = fromLen;
+  function deleteStep() {
+    deleteIdx--;
+    statusEl.textContent = fromText.slice(0, Math.max(0, deleteIdx));
+    if (deleteIdx > 0) {
+      setTimeout(deleteStep, 35 + Math.random() * 20); // ~40ms/char ease-in
+    } else {
+      setTimeout(() => typeStep(0), 80); // pause 80ms at empty
+    }
+  }
+
+  // Phase 2: type new text char-by-char
+  function typeStep(i) {
+    statusEl.textContent = toText.slice(0, i + 1);
+    if (i < toLen - 1) {
+      setTimeout(() => typeStep(i + 1), 55 + Math.random() * 25); // ~65ms/char spring
+    } else {
+      // Cursor blink: append block, remove 800ms later
+      statusEl.textContent = toText + '█';
+      setTimeout(() => {
+        statusEl.textContent = toText;
+        onComplete?.();
+      }, 800);
+    }
+  }
+
+  if (fromLen > 0) { deleteStep(); }
+  else { setTimeout(() => typeStep(0), 80); }
+}
+
+// ── STALLED ESCALATION ────────────────────────────────────────────────────────
+// AC5: T+800ms → s2 amber jitter, T+2400ms → s3 orange flicker
+
+function clearStalledEscalation(key) {
+  const meta  = AGENT_STATE_META[key];
+  const entry = AGENT_PARENT_MAP[key];
+  if (!meta || !entry) return;
+  clearTimeout(meta.stalledS2Timer);
+  clearTimeout(meta.stalledS3Timer);
+  meta.stalledS2Timer = null;
+  meta.stalledS3Timer = null;
+  meta.stalledStage   = 0;
+  entry.row.classList.remove('stalled-s2', 'stalled-s3');
+}
+
+// alreadyStalledMs: ms the agent has already been past the 300s stall threshold
+// — passed by caller from ageSec so escalation timing is anchored to actual stall onset, not detection
+function engageStalledEscalation(key, alreadyStalledMs = 0) {
+  const meta  = AGENT_STATE_META[key];
+  const entry = AGENT_PARENT_MAP[key];
+  if (!meta || !entry) return;
+  clearStalledEscalation(key);
+
+  const s2Delay = Math.max(0, 800  - alreadyStalledMs);
+  const s3Delay = Math.max(0, 2400 - alreadyStalledMs);
+
+  meta.stalledS2Timer = setTimeout(() => {
+    if (meta.stalledStage === 0) {
+      meta.stalledStage = 1;
+      entry.row.classList.add('stalled-s2');
+      notifyWatchersOfStall(key); // AC6: cross-agent awareness
+    }
+  }, s2Delay);
+
+  meta.stalledS3Timer = setTimeout(() => {
+    if (meta.stalledStage <= 1) {
+      meta.stalledStage = 2;
+      entry.row.classList.remove('stalled-s2');
+      entry.row.classList.add('stalled-s3');
+    }
+  }, s3Delay);
+}
+
+// ── CROSS-AGENT AWARENESS ─────────────────────────────────────────────────────
+// AC6: STALLED → all IDLE agents switch sublabel to ...watching within 400ms
+
+function notifyWatchersOfStall(stalledKey) {
+  for (const key of Object.keys(AGENT_PARENT_MAP)) {
+    if (key === stalledKey) continue;
+    const meta  = AGENT_STATE_META[key];
+    const entry = AGENT_PARENT_MAP[key];
+    if (!meta || !entry) continue;
+    if (meta.visualState === 'waiting' || meta.visualState === 'vespers' || meta.visualState === 'listening') {
+      setTimeout(() => {
+        if (!entry.sublabelEl) return;
+        // Stop cycling so the '...watching' pin isn't clobbered by the next sublabelTimer tick
+        stopSublabelCycling(key);
+        meta.sublabel = '...watching';
+        entry.sublabelEl.textContent = '...watching';
+        entry.sublabelEl.classList.add('visible');
+      }, Math.random() * 400);
+    }
+  }
+}
+
+// ── VESPERS SYSTEM ────────────────────────────────────────────────────────────
+// AC4: earned after 4 min idle; [- -] via 3s CSS crossfade; dots never sync
+
+const VESPERS_THRESHOLD_MS = 4 * 60 * 1000;
+
+function scheduleVespersEarning(key) {
+  const meta = AGENT_STATE_META[key];
+  if (!meta) return;
+  clearTimeout(meta.vesperTimer);
+  meta.vesperTimer = setTimeout(() => {
+    if (meta.visualState === 'waiting') {
+      meta.vespers     = true;
+      meta.visualState = 'vespers';
+      const entry = AGENT_PARENT_MAP[key];
+      if (!entry) return;
+      applyStateClass(entry.row, 'vespers');   // CSS handles 3s crossfade via transition
+      updateFaceGlyph(key, 'vespers');
+      stopSublabelCycling(key);
+      setSublabelVisible(entry, false);
+    }
+  }, VESPERS_THRESHOLD_MS);
+}
+
+// ── IDLE SUBLABEL CYCLING ─────────────────────────────────────────────────────
+// AC2: 7-14s weighted random dwell; brightness spike on change
+
+function startSublabelCycling(key) {
+  const meta  = AGENT_STATE_META[key];
+  const entry = AGENT_PARENT_MAP[key];
+  if (!meta || !entry?.sublabelEl) return;
+  stopSublabelCycling(key);
+
+  // Show initial sublabel immediately
+  entry.sublabelEl.textContent = meta.sublabel;
+  entry.sublabelEl.classList.add('visible');
+
+  function cycle() {
+    const next = pickWeightedSublabel(meta.sublabel);
+    meta.sublabel = next;
+    entry.sublabelEl.classList.remove('visible');
+    setTimeout(() => {
+      entry.sublabelEl.textContent = next;
+      entry.sublabelEl.classList.add('visible');
+    }, 300);
+    meta.sublabelTimer = setTimeout(cycle, 7000 + Math.random() * 7000);
+  }
+  meta.sublabelTimer = setTimeout(cycle, 7000 + Math.random() * 7000);
+}
+
+function stopSublabelCycling(key) {
+  const meta = AGENT_STATE_META[key];
+  if (!meta) return;
+  clearTimeout(meta.sublabelTimer);
+  meta.sublabelTimer = null;
+}
+
+// ── TENURE BAR ENGINE ─────────────────────────────────────────────────────────
+// AC3: replaces timer column; resets on state change (not on CALLED)
+
+function tickTenure() {
+  const now = Date.now();
+  for (const key of Object.keys(AGENT_PARENT_MAP)) {
+    const meta  = AGENT_STATE_META[key];
+    const entry = AGENT_PARENT_MAP[key];
+    if (!meta || !entry?.tenureEl) continue;
+    if (meta.visualState === 'offline') { entry.tenureEl.textContent = ' '; continue; }
+    entry.tenureEl.textContent = buildTenureBar(now - meta.tenureStartMs);
+  }
+}
+
+function startTenureTick() {
+  if (tenureInterval !== null) return;
+  tenureInterval = setInterval(tickTenure, 1000);
+}
+
+// ── ACTIVE STATE SET (shared ref) ─────────────────────────────────────────────
+const ACTIVE_STATES = new Set(['working', 'reading', 'writing', 'thinking', 'deep_think', 'compressing', 'listening']);
+
+// ── AGENT STATE UPDATE ────────────────────────────────────────────────────────
+// Main update function called each poll cycle per agent
+
+function updateAgentDisplay(key, agentData) {
+  const entry = AGENT_PARENT_MAP[key];
+  if (!entry) return;
+  initAgentMeta(key);
+  const meta = AGENT_STATE_META[key];
+
+  const rawApiState = agentData?.state ?? 'offline';
+  const tool        = agentData?.tool  ?? null;
+  const ageSec      = agentData?.age_seconds ?? 0;
+  const newVisual   = apiToVisual(rawApiState, tool);
+  const prevVisual  = meta.visualState;
+  const changed     = newVisual !== prevVisual;
+
+  if (changed) {
+    meta.visualState    = newVisual;
+    meta.apiState       = rawApiState;
+    meta.stateEnteredAt = Date.now() - ageSec * 1000;
+    // Tenure resets on state change — EXCEPT for 'called' (AC3 spec: NOT on CALLED)
+    if (newVisual !== 'called') meta.tenureStartMs = Date.now() - ageSec * 1000;
+
+    // CALLED: transient burst — apply .called-surge for 1.5s then remove
+    if (newVisual === 'called') {
+      entry.row.classList.add('called-surge');
+      updateFaceGlyph(key, 'called');
+      setTimeout(() => {
+        entry.row.classList.remove('called-surge');
+        // Revert face glyph to prior state after burst
+        updateFaceGlyph(key, prevVisual);
+        meta.visualState = prevVisual; // snap back to previous state
+        applyStateClass(entry.row, prevVisual);
+      }, 1500);
+      return; // skip full transition choreography for burst events
+    }
+
+    // Clear vespers eligibility when leaving waiting
+    if (prevVisual === 'waiting' || prevVisual === 'vespers') {
+      clearTimeout(meta.vesperTimer);
+      meta.vesperTimer = null;
+      meta.vespers     = false;
+    }
+    clearStalledEscalation(key);
+
+    // Apply CSS state class (CSS transitions handle crossfade timing)
+    applyStateClass(entry.row, newVisual);
+
+    // BACKSPACE_DELETE status text transition — guard overlapping transitions
+    if (!meta.transiting) {
+      meta.transiting = true;
+      const label       = STATE_LABEL[newVisual] ?? newVisual.toUpperCase();
+      const displayText = tool ? label + ' · ' + tool : label;
+      setTimeout(() => updateFaceGlyph(key, newVisual), 160); // T+160ms face scramble
+      backspaceDelete(entry.statusEl, displayText, () => { meta.transiting = false; });
+    }
+
+    // Sublabel / vespers scheduling per new state
+    if (newVisual === 'waiting' || newVisual === 'listening') {
+      meta.sublabel = pickWeightedSublabel('');
+      startSublabelCycling(key);
+      scheduleVespersEarning(key);
+    } else {
+      stopSublabelCycling(key);
+      setSublabelVisible(entry, false);
+    }
+
+    // AC8: OFFLINE — total silence
+    if (newVisual === 'offline') {
+      if (entry.faceEl) { entry.faceEl.textContent = ''; entry.faceEl.setAttribute('data-face', ''); }
+      setSublabelVisible(entry, false);
+      if (entry.tenureEl) entry.tenureEl.textContent = ' ';
+    }
+
+    // Stall detection on entry to active state with non-zero age
+    // Pass alreadyStalledMs so escalation timers are anchored to actual stall onset
+    if (ACTIVE_STATES.has(newVisual) && ageSec > 300) {
+      engageStalledEscalation(key, (ageSec - 300) * 1000);
+    }
+
+  } else {
+    // Same state — update tool sub-label if changed, no animation needed
+    if (!meta.transiting) {
+      const label       = STATE_LABEL[newVisual] ?? newVisual.toUpperCase();
+      const displayText = tool ? label + ' · ' + tool : label;
+      if (entry.statusEl && entry.statusEl.textContent !== displayText) {
+        entry.statusEl.textContent = displayText;
+      }
+    }
+    // Re-check stall condition if still active with growing age
+    if (ACTIVE_STATES.has(newVisual) && ageSec > 300 && meta.stalledStage === 0) {
+      engageStalledEscalation(key, (ageSec - 300) * 1000);
+    }
+  }
+}
+
+// ── VISITOR PRESENCE RESPONSE ─────────────────────────────────────────────────
+// AC7: T=8s → one idle agent ...listening; T=10s → one more; once per session
+
+function initVisitorPresenceResponse() {
+  if (sessionStorage.getItem('vpr_done')) return;
+
+  function doListeningCut(excludeKey) {
+    const candidates = Object.keys(AGENT_PARENT_MAP).filter(key => {
+      if (key === excludeKey) return false;
+      const meta = AGENT_STATE_META[key];
+      return meta && (meta.visualState === 'waiting' || meta.visualState === 'vespers');
+    });
+    if (!candidates.length) return null;
+    const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+    const entry  = AGENT_PARENT_MAP[chosen];
+    const meta   = AGENT_STATE_META[chosen];
+    if (entry?.sublabelEl) {
+      meta.sublabel = '...listening';
+      entry.sublabelEl.textContent = '...listening';
+      entry.sublabelEl.classList.add('visible');
+    }
+    return chosen;
+  }
+
+  const t8 = Math.max(0, 8000 - performance.now());
+  setTimeout(() => {
+    const firstKey = doListeningCut(null);
+    const t10 = Math.max(0, 10000 - performance.now());
+    setTimeout(() => {
+      const secondKey = doListeningCut(firstKey);
+      // Only mark done if at least one cut landed — preserves the effect for sessions
+      // where all agents were active at both T=8s and T=10s
+      if (firstKey || secondKey) sessionStorage.setItem('vpr_done', '1');
+    }, t10);
+  }, t8);
+}
+
+// ── TOKEN DISPLAY ─────────────────────────────────────────────────────────────
+
+// Set a meter fill via CSS custom property and update aria-valuenow (D014)
+function setMeter(fillEl, pct) {
+  if (!fillEl) return;
+  fillEl.style.setProperty('--meter-fill', pct + '%');
+  const meter = fillEl.closest('[role="meter"]');
+  if (meter) meter.setAttribute('aria-valuenow', Math.round(pct));
+}
+
+// Inject split magnitude + unit into a .hud-burn__value element (D014)
+// Targets child spans: .hud-burn__magnitude and .hud-burn__unit
+function injectSplitTok(valueEl, n) {
+  if (!valueEl) return;
+  const { mag, unit } = splitFmtTok(n);
+  const magEl  = valueEl.querySelector('.hud-burn__magnitude');
+  const unitEl = valueEl.querySelector('.hud-burn__unit');
+  if (magEl)  magEl.textContent  = mag;
+  if (unitEl) unitEl.textContent = unit;
+  // Fallback: if child spans absent, write flat text
+  if (!magEl && !unitEl) valueEl.textContent = mag + unit;
+}
+
+// Update all token meter rows from live + lifetime API data (D014, D055)
+// tokens = /tokens/live response; lifetime = /tokens/lifetime; kingdomLive = /kingdom/live
+// RATE comes from kingdomLive.tokens.rate_per_min (D042/D055 corrected source)
+function updateTokenDisplay(tokens, lifetime, kingdomLive) {
+  // TODAY — tokens.today?.tokens from /tokens/live
+  const todayTok  = tokens?.today?.tokens ?? null;
+  const todayFill = document.getElementById('token-today-fill');
+  const todayVal  = document.getElementById('token-today-value');
+  if (todayTok !== null) {
+    injectSplitTok(todayVal, todayTok);
+    setMeter(todayFill, Math.min(100, (todayTok / TOKEN_CEILINGS.today) * 100));
+  }
+
+  // WEEK — tokens.week?.tokens → ceiling: TOKEN_CEILINGS.week
+  const weekTok  = tokens?.week?.tokens ?? null;
+  const weekFill = document.getElementById('token-week-fill');
+  const weekVal  = document.getElementById('token-week-value');
+  if (weekTok !== null) {
+    injectSplitTok(weekVal, weekTok);
+    setMeter(weekFill, Math.min(100, (weekTok / TOKEN_CEILINGS.week) * 100));
+  }
+
+  // TOTAL — lifetime.sentinel_tokens → ceiling: TOKEN_CEILINGS.total
+  const totalTok  = lifetime?.sentinel_tokens ?? null;
+  const totalFill = document.getElementById('token-total-fill');
+  const totalVal  = document.getElementById('token-total-value');
+  if (totalTok !== null) {
+    injectSplitTok(totalVal, totalTok);
+    setMeter(totalFill, Math.min(100, (totalTok / TOKEN_CEILINGS.total) * 100));
+  }
+
+  // RATE — rate_per_min from /kingdom/live (D055: correct source, query child spans)
+  const rateTokPerMin = kingdomLive?.tokens?.rate_per_min ?? null;
+  const rateEl        = document.getElementById('token-rate-value');
+  if (rateEl && rateTokPerMin !== null) {
+    const magEl  = rateEl.querySelector('.hud-burn__magnitude');
+    const unitEl = rateEl.querySelector('.hud-burn__unit');
+    if (magEl && unitEl) {
+      magEl.textContent  = fmtTok(Math.round(rateTokPerMin));
+      unitEl.textContent = 'tok/min';
+    } else {
+      rateEl.textContent = fmtTok(Math.round(rateTokPerMin)) + ' tok/min';
+    }
+  }
+}
+
+// ── SIGNAL LOG ────────────────────────────────────────────────────────────────
+
+// Apply thermal CSS class to a signal value element based on health string (D055)
+function applySigThermalClass(el, healthValue) {
+  if (!el) return;
+  const toRemove = [...el.classList].filter(c => c.startsWith('sig-val--'));
+  toRemove.forEach(c => el.classList.remove(c));
+  const h = (healthValue ?? '').toUpperCase();
+  if      (h === 'LIVE')      el.classList.add('sig-val--hot');
+  else if (h === 'STALE')     el.classList.add('sig-val--warm');
+  else if (h === 'DEGRADED')  el.classList.add('sig-val--cold');
+  else                        el.classList.add('sig-val--unknown');
+}
+
+// Inject kingdom stats into [data-signal-field="X"] elements (D015, D043, D055)
+// Corrected field paths: kingdomLive.health, activity.swarm_count, etc.
+function updateSignalLog(kingdomLive, activity, agents) {
+  // territory_summary can be null (not just undefined) — use || not ?? (BOMB F)
+  const territories = (activity?.territory_summary || [])
+    .filter(t => t?.status !== 'offline').length;
+
+  const lastSig = activity?.last_signal ?? null;
+  const uptimeDisplay = (() => {
+    if (!lastSig) return '—';
+    const ageSec = (Date.now() - new Date(lastSig).getTime()) / 1000;
+    return isNaN(ageSec) ? '—' : ageStr(ageSec);
+  })();
+
+  const fields = {
+    signal_status: kingdomLive?.health                           ?? '—',
+    chunks:        activity?.swarm_count != null ? String(activity.swarm_count) : '—',
+    systems:       activity?.current_activity                    ?? '—',
+    territories:   territories > 0 ? String(territories) : '0',
+    session:       activity?.active_project                      ?? '—',
+    uptime:        uptimeDisplay,
+  };
+
+  for (const [field, value] of Object.entries(fields)) {
+    document.querySelectorAll(`[data-signal-field="${field}"]`).forEach(el => {
+      el.textContent = value;
+      if (field === 'signal_status') {
+        applySigThermalClass(el, kingdomLive?.health ?? null);
+      }
+    });
+  }
+
+  // Chip toggling — sig-chip--inactive toggled (never removed) based on live signals (D035)
+  const liveChip   = document.querySelector('.sig-chip--live');
+  const activeChip = document.querySelector('.sig-chip--active');
+  const signalChip = document.querySelector('.sig-chip--signal');
+
+  const isLive    = kingdomLive?.health === 'LIVE';
+  const isActive  = agents?.agents
+    ? Object.values(agents.agents).some(a => a?.state && a.state !== 'offline')
+    : false;
+  const hasSignal = (activity?.swarm_count ?? 0) > 0;
+
+  if (liveChip)   liveChip.classList.toggle('sig-chip--inactive',   !isLive);
+  if (activeChip) activeChip.classList.toggle('sig-chip--inactive', !isActive);
+  if (signalChip) signalChip.classList.toggle('sig-chip--inactive', !hasSignal);
+}
+
+// ── PRESENCE DOTS ─────────────────────────────────────────────────────────────
+
+// Wire BRANDON and AERIS presence dots to live activity signals (preserved from prior impl)
+function updatePresenceDots(activity) {
+  if (!activity) return;
+
+  const brandonDot  = document.getElementById('presence-dot-brandon');
+  const brandonName = document.getElementById('presence-name-brandon');
+  const aerisDot    = document.getElementById('presence-dot-aeris');
+  const aerisName   = document.getElementById('presence-name-aeris');
+
+  // BRANDON — lights up when brandon_present is true (not AFK per goldfish/AW)
+  if (brandonDot && brandonName) {
+    if (activity.brandon_present) {
+      brandonDot.classList.add('active');
+      brandonName.classList.add('hud-presence__name--active');
+    } else {
+      brandonDot.classList.remove('active');
+      brandonName.classList.remove('hud-presence__name--active');
+    }
+  }
+
+  // AERIS — lights up when aeris_active is true
+  if (aerisDot && aerisName) {
+    if (activity.aeris_active) {
+      // Aeris dot always has its color class; just ensure name is active
+      aerisName.classList.add('hud-presence__name--active');
+    } else {
+      aerisName.classList.remove('hud-presence__name--active');
+    }
+  }
+}
+
+// ── MAIN POLL LOOP ────────────────────────────────────────────────────────────
+
+// pollHUD — replaces fetchKingdomData(); 5 parallel fetches, graceful degradation (D016)
+async function pollHUD() {
+  // Skip fetch when tab is hidden — conserves requests for background tabs
+  if (document.hidden) { setTimeout(pollHUD, 30_000); return; }
+
+  try {
+    const [agentRes, tokenRes, lifetimeRes, activityRes, kingdomRes] = await Promise.allSettled([
+      fetch('/api/local/agents/status').then(r => r.ok ? r.json() : null),
+      fetch('/api/local/tokens/live').then(r => r.ok ? r.json() : null),
+      fetch('/api/local/tokens/lifetime').then(r => r.ok ? r.json() : null),
+      fetch('/api/local/kingdom/activity').then(r => r.ok ? r.json() : null),
+      fetch('/api/local/kingdom/live').then(r => r.ok ? r.json() : null),
+    ]);
+
+    const agents      = agentRes.status      === 'fulfilled' ? agentRes.value      : null;
+    const tokens      = tokenRes.status      === 'fulfilled' ? tokenRes.value      : null;
+    const lifetime    = lifetimeRes.status   === 'fulfilled' ? lifetimeRes.value   : null;
+    const activity    = activityRes.status   === 'fulfilled' ? activityRes.value   : null;
+    const kingdomLive = kingdomRes.status    === 'fulfilled' ? kingdomRes.value    : null;
+
+    // ── Agent state: 15-state visual engine (S209-BRAINSTORM) ───────────────
+    if (agents) {
+      const agentData = agents?.agents ?? agents;
+      for (const key of Object.keys(AGENT_PARENT_MAP)) {
+        updateAgentDisplay(key, agentData[key] ?? null);
+      }
+    }
+
+    // ── Token burn panel ──────────────────────────────────────────────────────
+    updateTokenDisplay(tokens, lifetime, kingdomLive);
+
+    // ── Presence dots ─────────────────────────────────────────────────────────
+    updatePresenceDots(activity);
+
+    // ── Signal log ────────────────────────────────────────────────────────────
+    updateSignalLog(kingdomLive, activity, agents);
+
+  } catch (_) {
+    // Graceful degradation — static HTML values remain visible
+  }
+
+  setTimeout(pollHUD, 30_000);
+}
+
+// ── BOOT SEQUENCE ─────────────────────────────────────────────────────────────
+
+// DOMContentLoaded: cache DOM → init all agent meta → tenure tick → VPR
+document.addEventListener('DOMContentLoaded', () => {
+  buildAgentParentMap();
+
+  // Init meta + initial face/tenure for all agents
+  Object.keys(AGENT_PARENT_MAP).forEach(key => {
+    initAgentMeta(key);
+    const entry = AGENT_PARENT_MAP[key];
+    const meta  = AGENT_STATE_META[key];
+    const g = AGENT_FACE_MAP['waiting'];
+    if (entry.faceEl)    { entry.faceEl.textContent = g; entry.faceEl.setAttribute('data-face', g); }
+    if (entry.tenureEl)  entry.tenureEl.textContent = buildTenureBar(0);
+    meta.sublabel = pickWeightedSublabel('');
+    startSublabelCycling(key);
+    scheduleVespersEarning(key);
+  });
+
+  startTenureTick();
+  initVisitorPresenceResponse();
+});
+
+// First fetch: small delay so the page's CSS entrance animations are underway
+setTimeout(pollHUD, 1_800);
 </script>
 
 </body>

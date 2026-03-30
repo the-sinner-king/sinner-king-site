@@ -182,12 +182,13 @@ export function TimeStream() {
   }, [scene])
 
   useFrame((_state, delta) => {
+    // PERF: read store once per frame — was called once per beam per frame (~5×60=300/s).
+    // getAgentState() reads agentStates hydrated every 15s. Same result, one read.
+    const store = useKingdomStore.getState()
+
     beams.current.forEach((beam) => {
       const positions    = beam.geometry.attributes.position.array as Float32Array
-      // Use getAgentState (same data source as buildings) — getStatus() reads territoryMap
-      // which is only populated by PartyKit WS. getAgentState() reads agentStates which
-      // is hydrated by KingdomLiveSync every 15s. Same fix as Phase 5.3 A+B.
-      const agentState = useKingdomStore.getState().getAgentState(beam.sourceId)
+      const agentState = store.getAgentState(beam.sourceId)
 
       // All particles in a beam move at the same speed — no variation within a beam.
       const speedMul: number =
@@ -195,7 +196,9 @@ export function TimeStream() {
         agentState === 'online'  ? 0.35 :  // gentle trickle when idle
         1.0                                  // any active state → full flow
 
-      beam.particles.forEach((p, i) => {
+      // for-loop avoids forEach closure + iterator allocation per beam per frame
+      for (let i = 0; i < beam.particles.length; i++) {
+        const p = beam.particles[i]
         if (speedMul > 0) {
           p.progress += delta * FLOW_SPEED * speedMul
           if (p.progress >= 1) p.progress -= 1
@@ -211,7 +214,7 @@ export function TimeStream() {
         positions[i * 3]     = beam.lut[b0]     + (beam.lut[b1]     - beam.lut[b0])     * frac
         positions[i * 3 + 1] = beam.lut[b0 + 1] + (beam.lut[b1 + 1] - beam.lut[b0 + 1]) * frac
         positions[i * 3 + 2] = beam.lut[b0 + 2] + (beam.lut[b1 + 2] - beam.lut[b0 + 2]) * frac
-      })
+      }
 
       // Additive blending accumulates at THE_SCRYER. Raised from 0.08 base (invisible)
       // to actual visible values — offline barely-there ghost, online dim trickle, active bright.

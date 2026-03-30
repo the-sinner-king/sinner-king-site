@@ -1,4 +1,4 @@
-⛬ KID:TOWER:PROJECT:THE-SITE|2.0:⟳:2026-03-15:📶 ⛬
+⛬ KID:TOWER:PROJECT:THE-SITE|2.1:⟳:2026-03-30:📶 ⛬
 
 ┌── 📶 T H E _ S I T E   —   N O R T H   S T A R ──────────────────────────────┐
 │ sinner-king.com  ·  Next.js 15  ·  React 19  ·  Vercel                       │
@@ -34,9 +34,10 @@
 │  Phase 0  Foundation + Scaffold           ◉ COMPLETE                         │
 │  Phase 1  Infrastructure + Deploy         ◉ COMPLETE                         │
 │           GitHub live. Vercel auto-deploy wired. Build: zero errors.         │
-│  Phase 1.5 Kingdom Map                    ◉ COMPLETE — live + beautiful      │
+│  Phase 1.5 Kingdom Map                    ◉ COMPLETE — hardened + live       │
 │           Synthwave skin. Real-time SCRYER data. S184 intelligence layer.    │
 │           MissionClock, SystemLog, PatternEngine, BrandonPresence wired.     │
+│           S210 pre-launch audit: 9 HUD components + 7 API bots hardened.    │
 │  Phase 2  Core Pages + Design System      ⟳ IN PROGRESS                     │
 │           Design swarm (OBSIDIAN, GRID_GHOST, TYPE_WEAVER) being rebuilt.    │
 │           Launch delayed ~1 week while swarm problems are fixed.             │
@@ -119,6 +120,9 @@
 │  B4  ANTHROPIC_API_KEY in Vercel       Brandon  ⬡ env var                   │
 │  B5  Island PNG sprites (6x)           Brandon + Aeris  ⬡ blocks map art    │
 │  B6  Blog name decision                Brandon  ⬡                           │
+│  ─── CLEARED ─────────────────────────────────────────────────────────────  │
+│  ✓   Pre-launch security hardening     ◉ DONE S210                          │
+│  ✓   HUD bug audit (45 flags)          ◉ DONE S210                          │
 │                                                                               │
 └───────────────────────────────────────────────────────────────────────────────┘
 
@@ -165,8 +169,8 @@
 └───────────────────────────────────────────────────────────────────────────────┘
 
 ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-⌂ 2026-03-15 | Claude | THE_TOWER | SITE NORTH_STAR v2.0 — S196
-  Build clean. Deploy live. Design swarm in repair. Launch target ~2026-03-22.
-  The art was always real. Now it's getting findable.
+⌂ 2026-03-30 | Claude | THE_TOWER | SITE NORTH_STAR v2.1 — S210
+  Pre-launch hardening complete. Design swarm in repair. Launch when DNS flips.
+  The art was always real. Now it's getting findable. And it won't leak.
 ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
-⛬ KID:TOWER:PROJECT:THE-SITE|2.0:⟳:2026-03-15:📶 ⛬
+⛬ KID:TOWER:PROJECT:THE-SITE|2.1:⟳:2026-03-30:📶 ⛬

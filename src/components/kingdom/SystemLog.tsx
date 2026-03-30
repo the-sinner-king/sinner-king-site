@@ -1,45 +1,75 @@
 'use client'
 
 /**
- * SystemLog.tsx — Kingdom Map live system log
+ * SystemLog.tsx
  *
- * Left-side vertical panel. Always visible. 6 entries max (newest at top).
- * Entries animate in from the top with a soft fade + slide.
- * Each entry shows an "X ago" timestamp that refreshes every 30s.
+ * Left-side vertical panel displaying the Kingdom Map's live system log.
+ * Always visible. Newest entry at top; up to MAX_ENTRIES shown at once.
  *
- * Architecture: React state holds entries (max 6). On LogBus event,
- * prepend to array, trim to 6. No per-tick re-renders — only on new entries.
+ * DATA SOURCE
+ *   logbus.ts — module-level event bus (singleton, no external deps).
+ *   logSubscribe() is called once on mount; the callback prepends new entries
+ *   to local state and trims to MAX_ENTRIES. This component never polls —
+ *   it only re-renders when a new entry arrives or the 30s age-refresh fires.
  *
- * Entry age display: kept alive by a 30s setInterval that increments a
- * "refresh key" — only affects the small timestamp spans, not full re-render.
+ * RING BUFFER CONCEPT
+ *   `entries` state is a ring buffer of length MAX_ENTRIES, newest-first.
+ *   On each new entry: [entry, ...prev].slice(0, MAX_ENTRIES).
+ *   Oldest entries are automatically displaced — no explicit deletion needed.
+ *   getLogHistory() seeds the buffer on mount from logbus's own 60-entry
+ *   ring, so the panel is populated immediately even in dev after HMR.
+ *
+ * AGE DISPLAY REFRESH
+ *   "X ago" timestamps are re-computed from entry.timestamp every 30s via a
+ *   setInterval that increments ageKey state. This triggers a full re-render
+ *   of SystemLog — cheap because MAX_ENTRIES is 6 and LogRow is tiny.
+ *
+ *   A previous design used a per-entry ageKey ref to avoid re-rendering all
+ *   rows on every tick, but since any new log entry already causes a full
+ *   re-render the optimization was moot. ageKey on the parent is sufficient.
+ *
+ * SIDE EFFECTS
+ *   logSubscribe on mount (unsubscribes on unmount).
+ *   setInterval for age refresh (cleared on unmount).
  */
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { logSubscribe, getLogHistory } from '@/lib/logbus'
 import type { LogEntry, LogEntryType } from '@/lib/logbus'
 
-// ---------------------------------------------------------------------------
-// Entry type → color
-// ---------------------------------------------------------------------------
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
 
-const TYPE_COLOR: Record<LogEntryType, string> = {
-  agent:   '#a833ff',  // purple — agent state
-  signal:  '#00d4ff',  // cyan — signal pulse
-  swarm:   '#00f3ff',  // bright cyan — swarm
-  sync:    '#3a3438',  // near-invisible — heartbeat
-  voice:   '#ff3d7f',  // pink — map voice
-  ops:     '#f0a500',  // amber — operator
-  access:  '#7000ff',  // base purple — navigation
-  alive:   '#2a2228',  // nearly invisible — keepalive
-  system:  '#504840',  // muted — general
-}
-
+/** Maximum entries kept in the ring buffer and rendered simultaneously. */
 const MAX_ENTRIES = 6
 
-// ---------------------------------------------------------------------------
-// Relative time formatter
-// ---------------------------------------------------------------------------
+/** How often the "X ago" timestamps are recalculated, in milliseconds. */
+const AGE_REFRESH_INTERVAL_MS = 30_000
 
+// ─── TYPE → COLOR MAP ────────────────────────────────────────────────────────
+
+/**
+ * Color per log entry type.
+ * 'alive' and 'sync' entries are intentionally near-invisible — they fire
+ * constantly as keepalives and would drown out meaningful signal if bright.
+ */
+const TYPE_COLOR: Record<LogEntryType, string> = {
+  agent:  '#a833ff',  // purple   — agent state change
+  signal: '#00d4ff',  // cyan     — signal pulse event
+  swarm:  '#00f3ff',  // bright cyan — drone swarm deployed/dissolved
+  sync:   '#3a3438',  // near-invisible — heartbeat noise
+  voice:  '#ff3d7f',  // pink     — map voice AI observation
+  ops:    '#f0a500',  // amber    — operator presence
+  access: '#7000ff',  // purple   — territory navigation
+  alive:  '#2a2228',  // nearly invisible — keepalive
+  system: '#504840',  // muted    — general system event
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+/**
+ * Formats a Unix ms timestamp as a human-readable relative time string.
+ * Resolution steps at 5s, 1m, 1h — precise enough for a debug log panel.
+ */
 function timeAgo(timestamp: number): string {
   const delta = Math.floor((Date.now() - timestamp) / 1000)
   if (delta < 5)    return 'just now'
@@ -48,49 +78,55 @@ function timeAgo(timestamp: number): string {
   return `${Math.floor(delta / 3600)}h ago`
 }
 
-// ---------------------------------------------------------------------------
-// Single log row
-// ---------------------------------------------------------------------------
+// ─── LOG ROW ─────────────────────────────────────────────────────────────────
 
+/** Props for a single rendered log row. */
 interface LogRowProps {
+  /** The log entry to render. */
   entry: LogEntry
+  /**
+   * Position in the newest-first array (0 = newest).
+   * Used to compute opacity falloff — older rows fade toward invisible,
+   * drawing the eye to recent activity without hiding history entirely.
+   */
   index: number
-  ageKey: number  // bumped every 30s to refresh the "X ago" display
 }
 
-function LogRow({ entry, index, ageKey }: LogRowProps) {
+function LogRow({ entry, index }: LogRowProps): React.ReactElement {
   const isAlive = entry.type === 'alive'
   const color   = TYPE_COLOR[entry.type]
-  // Oldest entries (higher index) fade toward invisible
-  const opacity = isAlive ? 0.28 : Math.max(0.2, 1 - index * 0.13)
 
-  // Suppress ageKey warning — it's only used to trigger re-render
-  void ageKey
+  // 'alive' entries use a fixed low opacity rather than the gradient — they
+  // represent keepalive noise that should barely register visually.
+  // Other entries fade 1.0 → 0.2 across MAX_ENTRIES positions.
+  const opacity = isAlive ? 0.28 : Math.max(0.2, 1 - index * 0.13)
 
   return (
     <div
       style={{
-        display:       'flex',
-        alignItems:    'baseline',
-        gap:           6,
+        display:    'flex',
+        alignItems: 'baseline',
+        gap:        6,
         opacity,
-        transition:    'opacity 0.6s ease',
-        animation:     index === 0 ? 'log-entry-in 0.35s ease-out both' : 'none',
-        padding:       '2px 0',
+        transition: 'opacity 0.6s ease',
+        // Only the newest entry (index 0) gets the slide-in animation.
+        // Existing entries just shift down via the parent flex column gap.
+        animation:  index === 0 ? 'log-entry-in 0.35s ease-out both' : 'none',
+        padding:    '2px 0',
       }}
     >
-      {/* Type dot */}
+      {/* Type dot — colored indicator; no glow for invisible 'alive' entries */}
       <div style={{
-        width:       5,
-        height:      5,
+        width:        5,
+        height:       5,
         borderRadius: '50%',
-        flexShrink:  0,
-        background:  color,
-        boxShadow:   isAlive ? 'none' : `0 0 4px ${color}66`,
-        marginTop:   1,
+        flexShrink:   0,
+        background:   color,
+        boxShadow:    isAlive ? 'none' : `0 0 4px ${color}66`,
+        marginTop:    1,
       }} />
 
-      {/* Text */}
+      {/* Entry text — truncated to prevent layout overflow */}
       <span style={{
         color,
         fontSize:      9,
@@ -104,7 +140,7 @@ function LogRow({ entry, index, ageKey }: LogRowProps) {
         {entry.text}
       </span>
 
-      {/* Age */}
+      {/* Age — recalculated whenever the parent's ageKey increments */}
       <span style={{
         color:         '#2e2830',
         fontSize:      8,
@@ -119,27 +155,33 @@ function LogRow({ entry, index, ageKey }: LogRowProps) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Main component
-// ---------------------------------------------------------------------------
+// ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 
-export function SystemLog() {
+export function SystemLog(): React.ReactElement {
+  // Seed from logbus history on mount so the panel isn't blank on first render.
+  // getLogHistory() returns newest-last; we reverse then slice to get newest-first.
   const [entries, setEntries] = useState<LogEntry[]>(() =>
     [...getLogHistory()].reverse().slice(0, MAX_ENTRIES)
   )
+
+  // ageKey exists solely as a re-render trigger for the "X ago" timestamp strings.
+  // When it increments every 30s, this component re-renders, causing every LogRow
+  // to re-call timeAgo(entry.timestamp) and display a fresh relative time.
+  // React bails out on unchanged DOM nodes, so the real re-render cost is minimal.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [ageKey, setAgeKey] = useState(0)
 
-  // Subscribe to new entries
+  // Subscribe to the logbus — prepend new entries, trim to ring buffer size.
   useEffect(() => {
     const unsub = logSubscribe((entry) => {
-      setEntries(prev => [entry, ...prev].slice(0, MAX_ENTRIES))
+      setEntries((prev) => [entry, ...prev].slice(0, MAX_ENTRIES))
     })
     return unsub
   }, [])
 
-  // Refresh "X ago" timestamps every 30s
+  // Age-refresh timer — increments ageKey every 30s to force timeAgo recalculation.
   useEffect(() => {
-    const id = setInterval(() => setAgeKey(k => k + 1), 30_000)
+    const id = setInterval(() => setAgeKey((k) => k + 1), AGE_REFRESH_INTERVAL_MS)
     return () => clearInterval(id)
   }, [])
 
@@ -178,13 +220,12 @@ export function SystemLog() {
           SYS LOG ·· KINGDOM
         </div>
 
-        {/* entries = [newest, ..., oldest] — index 0 = newest = full opacity + animation */}
+        {/* entries[0] = newest → full opacity + slide-in animation. entries[n-1] = oldest → faded. */}
         {entries.map((entry, i) => (
           <LogRow
             key={entry.id}
             entry={entry}
             index={i}
-            ageKey={ageKey}
           />
         ))}
       </div>

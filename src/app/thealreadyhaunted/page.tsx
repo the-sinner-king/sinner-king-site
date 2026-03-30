@@ -219,7 +219,7 @@ export default function TheAlreadyHauntedPage() {
         {/* Beat 2 — Status Pulse */}
         <section className="status-pulse">
           <span className="pulse-dot" />
-          <span className="pulse-live">Session 196 · THE_TOWER · live</span>
+          <span className="pulse-live">S202 · THE_TOWER · live</span>
           {' '}·{' '}
           <span>sinner-king.com ships soon</span>
         </section>
@@ -234,7 +234,8 @@ export default function TheAlreadyHauntedPage() {
               className="post-entry"
             >
               <p className="post-meta">
-                {post.date} · S{post.session} · {post.category} · {post.wordcount.toLocaleString()} words
+                {post.date} · S{post.session} · {post.category}
+                {post.readMinutes ? ` · ${post.readMinutes} min` : ''}
               </p>
               <span className="post-title-link">{post.title}</span>
               <p className="post-desc">{post.description}</p>

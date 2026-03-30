@@ -18,7 +18,7 @@
 import { useEffect, useRef } from 'react'
 import { create } from 'zustand'
 import PartySocket from 'partysocket'
-import type { KingdomState, TerritoryState } from './kingdom-state'
+import type { KingdomState, TerritoryState, TokenPulse } from './kingdom-state'
 import type { AgentStatus, AgentState, MoodState } from './kingdom-agents'
 import { TERRITORY_TO_AGENT } from './kingdom-agents'
 import { TERRITORY_MAP } from './kingdom-layout'
@@ -82,6 +82,7 @@ interface KingdomStore {
   // Live agent states from KingdomLiveContext (via KingdomLiveSync bridge)
   agentStates: Record<string, AgentStatus>
   mood: MoodState | null
+  tokenPulse: TokenPulse | null
 
   // Actions
   hydrate: (state: KingdomState) => void
@@ -119,6 +120,7 @@ export const useKingdomStore = create<KingdomStore>((set, get) => ({
 
   agentStates: {},
   mood: null,
+  tokenPulse: null,
 
   hydrate: (state: KingdomState) =>
     set({
@@ -131,6 +133,7 @@ export const useKingdomStore = create<KingdomStore>((set, get) => ({
       brandonPresent: state.brandonPresent,
       currentActivity: state.currentActivity,
       activeProject: state.activeProject,
+      tokenPulse: state.token_pulse ?? null,
       isLoaded: true,
     }),
 
@@ -157,15 +160,30 @@ export const useKingdomStore = create<KingdomStore>((set, get) => ({
 
   getAgentActivity: (territoryId: string) => {
     const agentKey = TERRITORY_TO_AGENT[territoryId]
-    if (!agentKey) return 0
-    return get().agentStates[agentKey]?.activity ?? 0
+    if (!agentKey) return get().territoryMap.get(territoryId)?.activity ?? 0
+    // Prefer live-push data; fall back to SCRYER territory activity when agentStates is empty
+    return get().agentStates[agentKey]?.activity ?? get().territoryMap.get(territoryId)?.activity ?? 0
   },
 
   getAgentState: (territoryId: string): AgentState => {
+    // 🏛️ SOVEREIGN LOCK // agentStates polling gap
+    // 🗓️ 2026-03-16 | S196+ | DEBUG
+    // ISSUE: agentStates is ONLY populated via PartyKit live-push (liveData.agents_status.agents).
+    //        The polling fallback path (REST /api/kingdom-state) calls hydrate() which updates
+    //        territoryMap but NEVER calls hydrateAgentStates. Result: in polling mode (dev or when
+    //        WS is down), all agent-keyed territories return 'offline' permanently — buildings dark.
+    // RESOLUTION: Fall back to territoryMap territory.status when agentStates is absent.
+    //             Live-push data takes priority; SCRYER territory status is the fallback.
+    // LAW: Never remove the territoryMap fallback. agentStates is NOT guaranteed to be populated.
     const agentKey = TERRITORY_TO_AGENT[territoryId]
     // Territories without agents (core_lore, the_scryer) — default to 'online' so they glow steady
     if (!agentKey) return 'online'
-    return get().agentStates[agentKey]?.state ?? 'offline'
+    const liveState = get().agentStates[agentKey]?.state
+    if (liveState) return liveState
+    const territory = get().territoryMap.get(territoryId)
+    return territory?.status === 'active' ? 'working'
+      : territory?.status === 'idle' ? 'online'
+      : 'offline'
   },
 
   hydrateSignals: (stream: { signals: Array<{id: string, type: string, territory?: string, timestamp: number}> }) => {

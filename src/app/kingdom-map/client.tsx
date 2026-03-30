@@ -23,7 +23,6 @@
 import { useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { ProductionQueueHUD } from '@/components/kingdom/ProductionQueueHUD'
-import { SwarmLauncher } from '@/components/kingdom/SwarmLauncher'
 import { KingdomErrorBoundary } from '@/components/kingdom/KingdomErrorBoundary'
 import { TokenHUD } from '@/components/kingdom/TokenHUD'
 import { PresenceStrip, ClaudeStatusBadge } from '@/components/kingdom/PresenceHUD'
@@ -34,6 +33,8 @@ import { useKingdomStore } from '@/lib/kingdom-store'
 import { SinnerKingRadio } from '@/components/sinnerking-radio/SinnerKingRadio'
 import { MissionClock } from '@/components/kingdom/MissionClock'
 import { SystemLog } from '@/components/kingdom/SystemLog'
+import { TokenBurnHUD } from '@/components/kingdom/TokenBurnHUD'
+import { RavenArrivalFlash } from '@/components/kingdom/RavenArrivalFlash'
 import { useBrandonPresenceDetector } from '@/hooks/useBrandonPresenceDetector'
 import {
   startPatternEngine,
@@ -283,6 +284,10 @@ export function KingdomMapClient() {
           <MissionClock />
           {/* System log — bottom-left corner */}
           <SystemLog />
+          {/* Token burn rate — bottom-left, above system log */}
+          <TokenBurnHUD />
+          {/* Raven arrival flash — fixed position, manages its own layout */}
+          <RavenArrivalFlash />
           {/* Right-side HUD stack — shifted down to clear MissionClock */}
           <div style={{
             position:      'absolute',
@@ -300,13 +305,12 @@ export function KingdomMapClient() {
             <AgentPanel />
           </div>
           <ProductionQueueHUD />
-          <SwarmLauncher />
           <HeraldTicker />
-          {/* Sinner King Radio — bottom-right, autoplay eternal-rick on load */}
+          {/* Sinner King Radio — bottom-left */}
           <div style={{
             position:      'absolute',
             bottom:        16,
-            right:         16,
+            left:          16,
             zIndex:        25,
             pointerEvents: 'auto',
           }}>

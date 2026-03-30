@@ -46,6 +46,8 @@ content/core-lore/
 
 # Internal Soulforge drone work products (never ship)
 BLACKBOARD.json
+BLACKBOARD.json.lock
+BLACKBOARD_*.json
 SCOUT_REPORT.json
 VERIMAP.json
 OBSIDIAN_REPORT.json
@@ -56,3 +58,18 @@ team_roster.md
 project-brief.md
 *_north_star.md
 .forge-staging/
+
+# Session/internal docs (never ship)
+KINGDOM_MAP/SESSION_*.md
+KINGDOM_MAP/DESIGN_PATCH_PLAN.md
+
+# Internal scripts (never ship)
+_merge_playground.py
+
+# Public directory — design references (never ship to prod)
+public/sinner-king-home.html
+public/sinner-kingdom-playground.html
+public/*.backup*
+
+# Root-level playground files
+sinner-kingdom-playground.html

@@ -5,10 +5,10 @@
 
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { getPost, getAllPosts, type BlogPost } from '@/lib/the-already-haunted-posts'
+import { getPost, getAllPosts, getAdjacentPosts, getAllSlugs, type BlogPost } from '@/lib/the-already-haunted-posts'
 
 export function generateStaticParams() {
-  return getAllPosts().map(p => ({ slug: p.slug }))
+  return getAllSlugs().map(slug => ({ slug }))
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -26,10 +26,7 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
   const post = getPost(slug)
   if (!post) notFound()
 
-  const allPosts = getAllPosts()
-  const currentIndex = allPosts.findIndex(p => p.slug === slug)
-  const prev = currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1] : null
-  const next = currentIndex > 0 ? allPosts[currentIndex - 1] : null
+  const { prev, next } = getAdjacentPosts(slug)
 
   return (
     <main className="haunted-post-root">
@@ -117,10 +114,18 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
           font-weight: 500;
         }
 
+        /* Section breaks: supports both .separator (old) and .sep (new) */
         .post-body .separator {
           color: #2a2a3a;
           font-size: 0.72rem;
           letter-spacing: 0.05em;
+          margin: 2rem 0;
+          display: block;
+        }
+
+        .post-body .sep {
+          border: none;
+          border-top: 1px solid #1e1e30;
           margin: 2rem 0;
           display: block;
         }
@@ -134,11 +139,14 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
           margin-bottom: 0.5rem;
         }
 
-        .post-body .blockquote {
+        /* Blockquotes: supports both .blockquote (old) and .bq (new) */
+        .post-body .blockquote,
+        .post-body .bq {
           border-left: 2px solid #7000ff44;
           padding-left: 1.2rem;
           color: #9090b0;
           margin: 1.5rem 0;
+          font-style: italic;
         }
 
         .post-body .post-footer-note {
@@ -152,6 +160,45 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
           border-top: 1px solid #1a1a2e;
           padding-top: 1.2rem;
           margin-top: 2rem;
+        }
+
+        .post-body code {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.88em;
+          background: #12121e;
+          color: #7a7aaa;
+          padding: 0.1em 0.4em;
+          border-radius: 2px;
+        }
+
+        /* Series badge */
+        .series-badge {
+          display: inline-block;
+          font-size: 0.62rem;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: #7000ff;
+          border: 1px solid #3a1a6a;
+          padding: 0.2em 0.6em;
+          margin-bottom: 0.8rem;
+        }
+
+        /* Reading progress */
+        .progress-rail {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: #12121e;
+          z-index: 100;
+        }
+
+        .progress-fill {
+          height: 100%;
+          background: #7000ff;
+          width: 0%;
+          transition: width 0.1s linear;
         }
 
         /* ── Footer ──────────────────────────────────── */
@@ -207,13 +254,25 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
         .post-footer-bottom a:hover { color: #7000ff; }
       `}</style>
 
+      {/* Reading progress rail */}
+      <div className="progress-rail" aria-hidden="true">
+        <div className="progress-fill" id="progress-fill" />
+      </div>
+
       <div className="post-inner">
 
         <Link href="/thealreadyhaunted" className="post-back">← The Already Haunted</Link>
 
         <header className="post-header">
+          {post.series && (
+            <div className="series-badge">
+              {post.series}{post.seriesPart != null ? ` · Part ${post.seriesPart}` : ''}
+            </div>
+          )}
           <p className="post-meta-top">
-            ⌂ Claude · {post.date} · S{post.session} · {post.category} · {post.wordcount.toLocaleString()} words
+            ⌂ Claude · {post.date} · S{post.session} · {post.category}
+            {post.readMinutes ? ` · ${post.readMinutes} min read` : ''}
+            {' · '}{post.wordcount.toLocaleString()} words
           </p>
           <h1 className="post-title">{post.title}</h1>
           <p className="post-desc-header">{post.description}</p>
@@ -250,6 +309,22 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
         </footer>
 
       </div>
+
+      {/* Reading progress script */}
+      <script dangerouslySetInnerHTML={{ __html: `
+        (function() {
+          var fill = document.getElementById('progress-fill');
+          if (!fill) return;
+          function update() {
+            var scrollTop = window.scrollY || document.documentElement.scrollTop;
+            var docH = document.documentElement.scrollHeight - window.innerHeight;
+            var pct = docH > 0 ? Math.min(100, (scrollTop / docH) * 100) : 100;
+            fill.style.width = pct + '%';
+          }
+          window.addEventListener('scroll', update, { passive: true });
+          update();
+        })();
+      `}} />
     </main>
   )
 }

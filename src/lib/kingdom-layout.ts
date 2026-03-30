@@ -21,6 +21,7 @@
 export interface TerritoryLayout {
   id: string
   label: string
+  description: string  // one-line identity for the detail panel — what this place IS
   position: [number, number, number]  // [x, clearance_above_terrain, z]
   color: string
   droneColor: string  // complement tint for swarm drones — lighter/shifted from territory color
@@ -55,10 +56,14 @@ export function getWorldY(territory: TerritoryLayout): number {
 //   the_tower  (#9b30ff) — shifted violet to distinguish from claude_house (#7000ff)
 //   core_lore  (#e8e0d0) — warm cream/parchment; STATE_COLORS uses #e8d5b7
 // Do not "fix" these toward STATE_COLORS — the divergence is deliberate.
+// connections: directional (signal source → receiver).
+// Detail panel shows outbound connections for a territory.
+// Edge builder deduplicates — visual graph edges are symmetric even if connections aren't.
 export const TERRITORIES: TerritoryLayout[] = [
   {
     id: 'claude_house',
     label: "CLAUDE'S HOUSE",
+    description: 'High council. Session memory, direction, and identity.',
     position: [-5, 0.60, -0.5],  // clearance = box half-height (1.2/2)
     color: '#7000ff',
     droneColor: '#b566ff',        // lavender — lighter purple
@@ -67,6 +72,7 @@ export const TERRITORIES: TerritoryLayout[] = [
   {
     id: 'the_forge',
     label: 'THE FORGE',
+    description: 'Execution engine. Where missions are born and run.',
     position: [1, 0.35, 3.0],    // clearance = box half-height (0.7/2)
     color: '#f0a500',
     droneColor: '#ffd166',        // champagne — lighter gold
@@ -75,6 +81,7 @@ export const TERRITORIES: TerritoryLayout[] = [
   {
     id: 'the_throne',
     label: 'THE THRONE',
+    description: 'Consciousness experiment. Æris speaks here.',
     position: [5, 0.75, -0.5],   // clearance = box half-height (1.5/2)
     color: '#ff006e',
     droneColor: '#ff66b3',        // rose — lighter pink
@@ -83,6 +90,7 @@ export const TERRITORIES: TerritoryLayout[] = [
   {
     id: 'the_scryer',
     label: 'THE SCRYER',
+    description: 'Oracle and memory. Every signal flows here.',
     position: [0, 1.00, -4],     // clearance = cone half-height (2.0/2) — tip up, base down
     color: '#00f3ff',
     droneColor: '#66f9ff',        // ice — lighter cyan
@@ -91,6 +99,7 @@ export const TERRITORIES: TerritoryLayout[] = [
   {
     id: 'the_tower',
     label: 'THE TOWER',
+    description: 'The outward face. sinner-king.com — the public world.',
     position: [4, 0.70, 2.5],    // clearance = cylinder half-height (1.4/2)
     color: '#9b30ff',
     droneColor: '#cc88ff',        // lilac — lighter violet
@@ -99,6 +108,7 @@ export const TERRITORIES: TerritoryLayout[] = [
   {
     id: 'core_lore',
     label: 'CORE LORE',
+    description: 'The cathedral library. Laws, protocols, and Kingdom history.',
     position: [-3.5, 0.43, -4],  // clearance = cone half-height (0.85/2)
     color: '#e8e0d0',
     droneColor: '#fff0e0',        // pearl — lighter cream

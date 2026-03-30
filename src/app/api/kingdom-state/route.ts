@@ -17,17 +17,57 @@
  *   X-Kingdom-Timestamp: unix ms
  *   X-SCRYER-Status: healthy | degraded | offline
  *
- * Rate limiting: not applied here (internal use + low traffic).
- * Add rate limiting if this becomes a public API.
+ * Rate limiting: FLAG #10 — in-process rate limit. Resets on Vercel cold start.
+ * TODO: replace with Upstash Redis for persistent distributed limiting.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getKingdomPayload, getKingdomState, getSignalStream, getActiveEvents } from '@/lib/kingdom-state'
+import { getClientIP } from '@/lib/request-utils'
+
+// FLAG #10 fix: basic in-process rate limiting — 60 requests/minute per IP.
+// B3 fix: periodic sweep prevents unbounded Map growth under sustained unique-IP traffic.
+// NOTE: resets on Vercel cold start — replace with Upstash Redis for persistent limits.
+const _ksRateMap = new Map<string, { count: number; resetAt: number }>()
+const KS_LIMIT = 60
+const KS_WINDOW_MS = 60_000
+let _ksRequestCount = 0
+const KS_SWEEP_INTERVAL = 500  // sweep expired entries every 500 requests
+
+function _ksCheckRate(ip: string): boolean {
+  const now = Date.now()
+
+  // B3 fix: periodic sweep — delete entries whose window has expired
+  _ksRequestCount++
+  if (_ksRequestCount % KS_SWEEP_INTERVAL === 0) {
+    for (const [key, entry] of _ksRateMap) {
+      if (now > entry.resetAt) _ksRateMap.delete(key)
+    }
+  }
+
+  const entry = _ksRateMap.get(ip)
+  if (!entry || now > entry.resetAt) {
+    _ksRateMap.set(ip, { count: 1, resetAt: now + KS_WINDOW_MS })
+    return true
+  }
+  if (entry.count >= KS_LIMIT) return false
+  entry.count++
+  return true
+}
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export async function GET(request: NextRequest) {
+  const ip = getClientIP(request)
+
+  if (!_ksCheckRate(ip)) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded', retryAfter: 60 },
+      { status: 429, headers: { 'Retry-After': '60' } }
+    )
+  }
+
   const { searchParams } = new URL(request.url)
   const type = searchParams.get('type')
 

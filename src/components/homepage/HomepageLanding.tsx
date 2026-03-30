@@ -299,6 +299,9 @@ export function HomepageLanding() {
   const resetCameraRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
+    // FLAG #7 fix: backtick debug toggle only active in development.
+    // Prevents visitors from accidentally (or intentionally) opening the Leva panel in prod.
+    if (process.env.NODE_ENV !== 'development') return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === '`') setDebugMode(d => !d)
       // Snapshot is Leva button only — S is now WASD backward

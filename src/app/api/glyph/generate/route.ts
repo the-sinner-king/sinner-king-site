@@ -19,8 +19,9 @@ import { NextRequest, NextResponse } from 'next/server'
 // MODEL
 // =============================================================================
 
-// @GHOST_NODE: reason="Brief says 'gemini-3-flash-preview' (GLYPH internal model string). Ghost node resolution: use 'gemini-2.0-flash' as the actual @google/genai SDK model identifier. If Brandon has a specific preview access key, this string should be updated." severity="medium" deadline="2026-04-01"
-const GLYPH_MODEL = 'gemini-2.0-flash'
+// Updated from gemini-2.0-flash (deprecated, shutdown June 1 2026) to gemini-2.5-flash (stable).
+// gemini-3-flash-preview is the Kingdom standard but uses OAuth — not suitable for public API proxy.
+const GLYPH_MODEL = 'gemini-2.5-flash'
 
 // =============================================================================
 // SIZE PRESETS

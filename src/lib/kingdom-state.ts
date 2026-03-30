@@ -83,6 +83,14 @@ export interface KingdomState {
   currentActivity?: string   // What's happening right now (1-sentence)
   todaysSummary?: string     // What was built/shipped today
   activeProject?: string     // Name of current active project
+  token_pulse?: TokenPulse   // Live token burn rate from SCRYER
+}
+
+export interface TokenPulse {
+  rate_per_sec: number
+  today_tokens: number
+  today_cost_usd: number
+  broadcast_label: string
 }
 
 export interface SignalStream {
@@ -247,6 +255,12 @@ function getMockKingdomState(): KingdomState {
     brandonPresent: false,
     currentActivity: 'Building THE_TOWER site scaffold',
     activeProject: 'THE_TOWER',
+    token_pulse: {
+      rate_per_sec: 1250,
+      today_tokens: 42000000,
+      today_cost_usd: 18.50,
+      broadcast_label: '42M tokens today',
+    },
   }
 }
 
@@ -397,6 +411,8 @@ export async function getSignalStream(): Promise<SignalStream> {
       return { lastUpdated: Date.now(), version: '1.0', signals: [] }
     }
 
+    // Intentional: bypasses setCached() to use custom TTL (SIGNAL_CACHE_TTL_MS / EVENTS_CACHE_TTL_MS)
+    // rather than the default CACHE_TTL_MS. See setCached() for the standard path.
     // Only cache signal stream briefly — it's meant to be live
     cache.set(cacheKey, { data: parsed, expiresAt: Date.now() + SIGNAL_CACHE_TTL_MS })
     return parsed
@@ -428,6 +444,8 @@ export async function getActiveEvents(): Promise<ActiveEvents> {
       return { lastUpdated: Date.now(), version: '1.0', events: [] }
     }
 
+    // Intentional: bypasses setCached() to use custom TTL (SIGNAL_CACHE_TTL_MS / EVENTS_CACHE_TTL_MS)
+    // rather than the default CACHE_TTL_MS. See setCached() for the standard path.
     // Keep active events fresh — slightly longer TTL than signal stream
     cache.set(cacheKey, { data: parsed, expiresAt: Date.now() + EVENTS_CACHE_TTL_MS })
     return parsed
@@ -470,9 +488,30 @@ export async function getKingdomPayload() {
     }
   }
 
+  // Inject synthetic overmind heartbeat event when signal_stream.json is a placeholder stub.
+  // signal_stream.json is written manually — SCRYER doesn't auto-populate it yet.
+  // Without this injection, OvmindRing (and any component watching type='overmind' events)
+  // starves permanently. Events are keyed by 2-minute bucket so they're stable across polls.
+  let patchedStream = stream
+  const hasRealOvmindEvents = stream.signals.some((s) => s.type === 'overmind')
+  if (!hasRealOvmindEvents && patchedState?.overmindStatus !== 'offline') {
+    const minuteBucket = Math.floor(Date.now() / 120000)
+    const syntheticHeartbeat: RecentSignal = {
+      id: `overmind-heartbeat-${minuteBucket}`,
+      type: 'overmind',
+      message: 'Overmind heartbeat nominal',
+      territory: 'the_scryer',
+      timestamp: minuteBucket * 120000,
+    }
+    patchedStream = {
+      ...stream,
+      signals: [...stream.signals, syntheticHeartbeat],
+    }
+  }
+
   return {
     state: patchedState,
-    stream,
+    stream: patchedStream,
     activeEvents,
     timestamp: Date.now(),
   }
