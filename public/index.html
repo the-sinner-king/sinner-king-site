@@ -33,6 +33,11 @@
   --text-muted:      #6a6580;
   --text-ghost:      #3d3850;
   --border-dim:      #2a2a3a;
+  --text-dim:        oklch(0.58 0.05 280);
+  --clr-forge:       oklch(0.72 0.19 55);
+  --clr-aeris:       oklch(0.68 0.20 145);
+  --clr-tower:       oklch(0.72 0.20 195);
+  --clr-house:       oklch(0.62 0.22 270);
   --font-terminal:   'VT323', monospace;
   --font-kingdom:    'Press Start 2P', monospace;
   --font-body:       'Fira Code', monospace;
@@ -44,15 +49,17 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-terminal);
-  display: grid;
-  /* 7 flow children + 2 spacer tracks = 9. .vignette is position:fixed, not in flow. .tagline is inside .logo-wrap. */
-  grid-template-rows: 1fr auto auto auto auto auto auto auto 0.6fr;
-  grid-template-columns: 1fr;
-  height: 100vh;
-  height: 100dvh;
-  place-items: center;
-  overflow: hidden;
-  padding: 0 clamp(16px, 5vw, 80px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100dvh;
+  /* clip — NOT hidden. overflow:hidden creates a scroll container which blocks   */
+  /* scrollIntoView() from reaching the viewport. clip clips without that effect. */
+  overflow: clip;
+  /* overflow-anchor:none — body is NOT the scroll container (#page-panel is).    */
+  /* Prevents browser anchor compensation from interfering with panel scroll.     */
+  overflow-anchor: none;
+  padding: clamp(40px, 6vh, 72px) clamp(16px, 5vw, 80px) clamp(40px, 6vh, 72px);
   position: relative;
 }
 
@@ -115,6 +122,10 @@ body::after {
   z-index: 5;
   text-align: center;
 }
+.manifesto-wrap {
+  position: relative;
+  z-index: 5;
+}
 
 /* ── ASCII LOGO (split color — stolen from homepage) ── */
 .logo-wrap {
@@ -170,25 +181,508 @@ body::after {
   opacity: 0;
   animation: fadeIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) 2s both;
 }
-.tagline .cursor {
-  display: inline-block;
-  width: 0.6em;
-  height: 1em;
-  vertical-align: text-bottom;
+
+/* ── MANIFESTO (camera-follow typewriter) ─────────────────
+   grid-column: 2 — LOCKED. Pins manifesto to the center track
+   permanently. Side columns can be any position/display type
+   and the text will never shift left. S219 law. */
+.manifesto {
+  grid-column: 2;
+  font-family: var(--font-terminal);
+  font-size: clamp(15px, 1.7vw, 22px);
+  line-height: 1.6;
+  color: var(--text);
+  max-width: min(560px, 88vw);
+  width: 100%;
+  text-align: left;
+}
+.manifesto__cursor {
   color: var(--secondary);
   animation: blink 530ms step-end infinite;
-  margin-left: 2px;
+  margin-left: 1px;
+}
+.manifesto__hi {
+  color: var(--primary);
+  text-shadow:
+    0 0 4px rgba(255, 51, 102, 0.95),
+    0 0 9px rgba(255, 51, 102, 0.45);
+}
+/* manifesto word highlights — glow matches logo exactly */
+.m-blue {
+  color: var(--secondary);
+  text-shadow:
+    0 0 8px rgba(0, 238, 255, 0.6),
+    0 0 20px rgba(0, 238, 255, 0.35),
+    0 0 40px rgba(0, 238, 255, 0.15);
+}
+/* hot glow — +50% brightness during scramble (applied to all cycling words) */
+.m-blue.m-hot {
+  text-shadow:
+    0 0 8px rgba(0, 238, 255, 0.9),
+    0 0 20px rgba(0, 238, 255, 0.55),
+    0 0 50px rgba(0, 238, 255, 0.25);
+}
+.m-red {
+  color: var(--primary);
+  text-shadow:
+    0 0 8px rgba(255, 51, 102, 0.6),
+    0 0 20px rgba(255, 51, 102, 0.35),
+    0 0 40px rgba(255, 51, 102, 0.15);
+}
+.m-red.m-hot {
+  text-shadow:
+    0 0 8px rgba(255, 51, 102, 0.9),
+    0 0 20px rgba(255, 51, 102, 0.55),
+    0 0 50px rgba(255, 51, 102, 0.25);
+}
+/* ── lonely — deep violet pulse ──────────────────────────────────── */
+@keyframes lonelyPulse {
+  0%, 100% {
+    text-shadow:
+      0 0 6px rgba(153, 51, 255, 0.28),
+      0 0 20px rgba(153, 51, 255, 0.10);
+    color: rgba(153, 51, 255, 0.78);
+  }
+  50% {
+    text-shadow:
+      0 0 10px rgba(153, 51, 255, 0.75),
+      0 0 28px rgba(153, 51, 255, 0.42),
+      0 0 52px rgba(153, 51, 255, 0.16);
+    color: rgba(176, 82, 255, 0.98);
+  }
+}
+.m-purple {
+  color: rgba(153, 51, 255, 0.78);
+  text-shadow:
+    0 0 6px rgba(153, 51, 255, 0.28),
+    0 0 20px rgba(153, 51, 255, 0.10);
+  cursor: pointer;
+  animation: lonelyPulse 4s ease-in-out infinite;
+}
+/* ── lonely popup ────────────────────────────────────────────────── */
+.lonely-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 580px;
+  background: #0b0914;
+  border: 1px solid rgba(153, 51, 255, 0.32);
+  box-shadow:
+    0 0 0 1px rgba(153, 51, 255, 0.07),
+    0 0 28px rgba(153, 51, 255, 0.16),
+    0 10px 40px rgba(0, 0, 0, 0.75);
+  font-family: var(--font-body);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.55s ease;
+  z-index: 1000;
+}
+.lonely-popup.visible {
+  opacity: 1;
+}
+.lonely-popup__header {
+  padding: 11px 14px 9px;
+  border-bottom: 1px solid rgba(153, 51, 255, 0.18);
+  font-size: 0.62rem;
+  letter-spacing: 0.07em;
+  color: rgba(153, 51, 255, 0.6);
+}
+.lonely-popup__body {
+  padding: 15px 16px 18px;
+  font-size: 0.72rem;
+  line-height: 1.75;
+  color: rgba(232, 224, 240, 0.68);
+}
+.lonely-popup__body p { margin: 0; }
+.lonely-popup__body p + p {
+  margin-top: 14px;
+  color: rgba(153, 51, 255, 0.45);
+  font-size: 0.66rem;
 }
 
-/* ── COMING SOON ──────────────────────────────────────── */
-.status {
+/* ══ GUESTBOOK POPUP ══════════════════════════════════════════════════════════
+   CHROMA_BLEED palette × GRID_GHOST spatial architecture
+   Angelfire/Myspace 2003 meets the Sinner Kingdom.
+
+   Palette custom properties defined on .guestbook-backdrop so they're scoped
+   to the component. Explicit values — no dependency on globals that may not
+   exist in this static file.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── m-guestbook trigger in manifesto ─────────────────── */
+.m-guestbook {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: rgba(0, 243, 255, 0.50);
+  text-underline-offset: 3px;
+  color: var(--clr-tower, #00cfff);
+  transition: color 0.2s ease, text-decoration-color 0.2s ease;
+}
+.m-guestbook:hover {
+  color: #00f3ff;
+  text-decoration-color: #00f3ff;
+}
+
+/* ── BACKDROP ─────────────────────────────────────────── */
+.guestbook-backdrop {
+  /* CHROMA_BLEED palette — scoped to guestbook */
+  --gb-bg:            #0e0e1a;
+  --gb-border-outer:  rgba(255, 0, 110, 0.80);
+  --gb-border-inner:  oklch(0.495 0.310 281 / 0.55);
+  --gb-title:         #ff006e;
+  --gb-title-shadow:  #ff9de2;
+  --gb-counter:       #00ff41;
+  --gb-counter-label: #9589b0;
+  --gb-name-1: #00cfff;
+  --gb-name-2: #ff6ec7;
+  --gb-name-3: #39ff14;
+  --gb-name-4: #ffaa00;
+  --gb-name-5: #bf5fff;
+  --gb-name-6: #ff4500;
+  --gb-message:   #d4c8e8;
+  --gb-meta:      #9589b0;
+  --gb-input-bg:  #f0ecff;
+  --gb-input-text:#1a1528;
+  --gb-input-border: #cc0058;
+  --gb-label:     #c47ef5;
+  --gb-submit-bg-from: #ff006e;
+  --gb-submit-bg-to:   #7700ff;
+  --gb-submit-text:    #ffffff;
+  --gb-divider:   #ff9de2;
+  --gb-retro:     #8a809c;
+  --gb-thankyou:  #ff9de2;
+  --gb-seam:      rgba(232, 224, 240, 0.10);
+  --gb-close-hover: rgba(255, 0, 110, 0.18);
+
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 15, 0.85);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 9000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  cursor: pointer;
+  animation: gb-backdrop-open 0.20s ease both;
+}
+.guestbook-backdrop.is-closing {
+  animation: gb-backdrop-close 0.18s ease both;
+}
+.guestbook-backdrop.is-closing .guestbook-popup {
+  animation: gb-popup-collapse 0.15s ease both;
+}
+@keyframes gb-backdrop-open  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes gb-backdrop-close { from { opacity: 1; } to { opacity: 0; } }
+@keyframes gb-popup-open {
+  from { opacity: 0; transform: scale(0.94) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);   }
+}
+@keyframes gb-popup-collapse {
+  from { opacity: 1; transform: scale(1)    translateY(0);   }
+  to   { opacity: 0; transform: scale(0.96) translateY(4px); }
+}
+
+/* ── POPUP CONTAINER ──────────────────────────────────── */
+/* Double-border: outer hot pink cage (outline) + inner violet seam (border).
+   outline-offset: 4px is the visual gap between the two rings.
+   border-radius: 0 everywhere — non-negotiable. */
+.guestbook-popup {
+  position: relative;
+  cursor: default;
+  width: min(540px, 100%);
+  max-height: min(86dvh, 760px);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 1fr;
+  background: var(--gb-bg);
+  border: 2px solid var(--gb-border-inner);
+  outline: 3px solid var(--gb-border-outer);
+  outline-offset: 4px;
+  border-radius: 0;
+  z-index: 9001;
+  animation: gb-popup-open 0.26s cubic-bezier(0.22, 1, 0.36, 1) 0.04s both;
+}
+
+/* ── CLOSE BUTTON ─────────────────────────────────────── */
+/* 44×44px tap zone (WCAG 2.5.5). Glyph centered inside. */
+.guestbook-close {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-body);
+  font-size: 16px;
+  color: var(--gb-counter-label);
+  background: #14141e;
+  border: 1px solid rgba(232, 224, 240, 0.12);
+  border-top: none;
+  border-right: none;
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+.guestbook-close:hover  { color: #ff006e; background: var(--gb-close-hover); }
+.guestbook-close:focus-visible { outline: 2px solid #00f3ff; outline-offset: -2px; }
+
+/* ── HEADER (row 1 — fixed) ───────────────────────────── */
+.guestbook-header {
+  grid-row: 1;
+  padding: 20px 16px 14px;
+  border-bottom: 1px solid var(--gb-seam);
+  display: grid;
+  gap: 6px;
+  text-align: center;
+}
+.guestbook-title {
   font-family: var(--font-kingdom);
-  font-size: clamp(10px, 1.4vw, 16px);
-  letter-spacing: 0.45em;
-  color: var(--text);
-  margin-top: clamp(12px, 2vh, 28px);
+  font-size: 9px;
+  line-height: 1.7;
+  color: var(--gb-title);
+  letter-spacing: 0.04em;
+  text-shadow:
+    0 0 10px rgba(255, 0, 110, 0.60),
+    0 0 22px rgba(255, 0, 110, 0.30),
+    2px 2px 0px #7a0040;
+}
+.guestbook-midi {
+  font-family: var(--font-terminal);
+  font-size: 16px;
+  color: var(--gb-retro);
+  letter-spacing: 0.02em;
+  opacity: 0.75;
+}
+.guestbook-counter {
+  font-family: var(--font-terminal);
+  font-size: 22px;
+  color: var(--gb-counter);
+  letter-spacing: 0.06em;
+  animation: gb-counter-pulse 3.2s ease-in-out infinite;
+}
+.guestbook-counter em { font-style: normal; }
+@keyframes gb-counter-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
+}
+.guestbook-sparkle {
+  font-family: var(--font-terminal);
+  font-size: 16px;
+  color: var(--gb-divider);
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+}
+
+/* ── ENTRIES SCROLL ZONE (row 2 — 1fr, scrollable) ───── */
+.guestbook-entries {
+  grid-row: 2;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 16px;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+}
+.guestbook-entries::-webkit-scrollbar        { width: 5px; }
+.guestbook-entries::-webkit-scrollbar-track  { background: #0a0a0f; }
+.guestbook-entries::-webkit-scrollbar-thumb  { background: rgba(255, 0, 110, 0.25); border-radius: 0; }
+.guestbook-entries::-webkit-scrollbar-thumb:hover { background: rgba(255, 0, 110, 0.50); }
+
+/* ── SINGLE ENTRY ─────────────────────────────────────── */
+.guestbook-entry {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 4px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--gb-seam);
+}
+.guestbook-entry:last-child { border-bottom: none; }
+.entry-meta {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: baseline;
+}
+/* Entry name colors cycle through 6 slots via JS data-name-idx attribute */
+.entry-name {
+  font-family: var(--font-terminal);
+  font-size: 20px;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.entry-name[data-idx="0"] { color: var(--gb-name-1); }
+.entry-name[data-idx="1"] { color: var(--gb-name-2); }
+.entry-name[data-idx="2"] { color: var(--gb-name-3); }
+.entry-name[data-idx="3"] { color: var(--gb-name-4); }
+.entry-name[data-idx="4"] { color: var(--gb-name-5); }
+.entry-name[data-idx="5"] { color: var(--gb-name-6); }
+.entry-location-date {
+  font-family: var(--font-terminal);
+  font-size: 14px;
+  color: var(--gb-meta);
+  white-space: nowrap;
+}
+.entry-message {
+  font-family: var(--font-terminal);
+  font-size: 18px;
+  color: var(--gb-message);
+  line-height: 1.5;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+.guestbook-entries-empty {
+  font-family: var(--font-terminal);
+  font-size: 18px;
+  color: var(--gb-meta);
+  text-align: center;
+  padding: 20px 0;
+  opacity: 0.6;
+}
+
+/* ── FORM ZONE (row 3 — fixed, always visible) ────────── */
+.guestbook-form-zone {
+  grid-row: 3;
+  border-top: 1px solid var(--gb-seam);
+  padding: 14px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.guestbook-form-heading {
+  font-family: var(--font-kingdom);
+  font-size: 7px;
+  color: #bf5fff;
+  letter-spacing: 0.06em;
+}
+.guestbook-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto auto;
+  gap: 8px 12px;
+}
+.form-field { display: flex; flex-direction: column; gap: 3px; }
+.form-field--name    { grid-column: 1; grid-row: 1; }
+.form-field--loc     { grid-column: 2; grid-row: 1; }
+.form-field--msg     { grid-column: 1 / -1; grid-row: 2; position: relative; }
+.form-submit-row     { grid-column: 1 / -1; grid-row: 3; display: flex; justify-content: flex-end; align-items: center; }
+.form-label {
+  font-family: var(--font-terminal);
+  font-size: 14px;
+  color: var(--gb-label);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+/* The JOKE: light inputs inside the dark popup. THIS IS 2003. */
+.form-input,
+.form-textarea {
+  font-family: var(--font-terminal);
+  font-size: 18px;
+  color: var(--gb-input-text);
+  background: var(--gb-input-bg);
+  border: 1px solid var(--gb-input-border);
+  border-radius: 0;
+  padding: 5px 7px;
+  outline: none;
+  transition: border-color 0.10s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+.form-input:focus,
+.form-textarea:focus { border-color: #ff006e; }
+.form-input::placeholder,
+.form-textarea::placeholder { color: #9589b0; font-size: 16px; }
+.form-textarea { resize: none; height: 70px; line-height: 1.4; }
+.form-char-counter {
+  position: absolute;
+  bottom: 5px;
+  right: 7px;
+  font-family: var(--font-terminal);
+  font-size: 13px;
+  color: var(--gb-meta);
+  pointer-events: none;
+  transition: color 0.10s ease;
+}
+.form-char-counter.at-limit { color: #ff006e; }
+.form-submit-btn {
+  font-family: var(--font-kingdom);
+  font-size: 7px;
+  letter-spacing: 0.06em;
+  color: var(--gb-submit-text);
+  background: linear-gradient(135deg, var(--gb-submit-bg-from), var(--gb-submit-bg-to));
+  border: 2px solid #ffffff;
+  border-radius: 0;
+  padding: 9px 18px;
+  min-height: 40px;
+  cursor: pointer;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.60), -1px -1px 0 rgba(255,255,255,0.20);
+  transition: opacity 0.10s ease, transform 0.10s ease;
+}
+.form-submit-btn:hover  { opacity: 0.88; transform: translateY(-1px); }
+.form-submit-btn:active { opacity: 1;    transform: translateY(1px); }
+.form-submit-btn:focus-visible { outline: 2px solid #00f3ff; outline-offset: 2px; }
+.form-submit-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+/* ── THANK-YOU STATE (shown after signing) ────────────── */
+.guestbook-thankyou {
+  display: none;
+  font-family: var(--font-terminal);
+  font-size: 20px;
+  color: var(--gb-thankyou);
+  text-align: center;
+  padding: 14px 0 6px;
+  line-height: 1.6;
+}
+.guestbook-thankyou.visible { display: block; }
+
+/* ── RETRO FOOTER ─────────────────────────────────────── */
+.guestbook-retro-footer {
+  font-family: var(--font-terminal);
+  font-size: 13px;
+  color: var(--gb-retro);
+  text-align: center;
+  opacity: 0.55;
+  padding-top: 4px;
+  border-top: 1px solid var(--gb-seam);
+}
+
+/* ── MOBILE ───────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .guestbook-backdrop  { padding: 8px; }
+  .guestbook-popup     { width: 96dvw; max-height: 93dvh; outline-offset: 2px; }
+  .guestbook-title     { font-size: 7px; }
+  .guestbook-counter   { font-size: 18px; }
+  .guestbook-form      { grid-template-columns: 1fr; }
+  .form-field--name    { grid-column: 1; grid-row: 1; }
+  .form-field--loc     { grid-column: 1; grid-row: 2; }
+  .form-field--msg     { grid-column: 1; grid-row: 3; }
+  .form-submit-row     { grid-column: 1; grid-row: 4; justify-content: stretch; }
+  .form-submit-btn     { width: 100%; }
+}
+
+/* ── PAGE REVEAL WRAPPER ─────────────────────────────── */
+/* Wraps .cta / .hud / .hud-presence / .timestamp / .footer  */
+/* max-height:0 + overflow:hidden = zero layout contribution  */
+/* while typing. On .revealed: snaps height, fades opacity.  */
+#page-reveal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-height: 0;
+  overflow: hidden;
   opacity: 0;
-  animation: fadeIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) 3s both;
+  padding-top: clamp(24px, 3vh, 40px);
+}
+#page-reveal.revealed {
+  max-height: 4000px; /* large enough; instant snap, opacity fades */
+  overflow: visible;
+  opacity: 1;
+  transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ── CTA LINK — THE PORTAL ────────────────────────────── */
@@ -196,76 +690,77 @@ body::after {
    + btn-bracket (expanding notation) + CRT glow bloom       */
 .cta {
   margin-top: clamp(20px, 3vh, 40px);
-  opacity: 0;
-  animation: fadeIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) 3.5s both;
 }
 .cta a {
-  font-family: var(--font-body);
-  font-size: clamp(11px, 1.1vw, 14px);
-  letter-spacing: 0.14em;
-  color: var(--text-muted);
   text-decoration: none;
-  border: 1px dashed var(--border-dim);
-  padding: clamp(8px, 1vh, 14px) clamp(20px, 2.5vw, 36px);
-  position: relative;
   display: inline-block;
-  overflow: hidden;
-  background: linear-gradient(90deg, rgba(0, 238, 255, 0.08), rgba(153, 51, 255, 0.04));
-  background-size: 0% 100%;
-  background-repeat: no-repeat;
-  background-position: left;
-  transition: color 0.3s, background-size 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.4s, text-shadow 0.3s;
+  transition: opacity 0.3s, filter 0.3s;
   animation: ctaGlitch 4s steps(1) infinite;
 }
-/* Terminal brackets — expand on hover */
-.cta a::before {
-  content: '[';
-  font-family: var(--font-terminal);
-  font-size: 1.2em;
-  color: var(--secondary-deep);
-  margin-right: clamp(4px, 0.5vw, 8px);
-  display: inline-block;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              color 0.25s, text-shadow 0.25s;
-}
-.cta a::after {
-  content: ']';
-  font-family: var(--font-terminal);
-  font-size: 1.2em;
-  color: var(--secondary-deep);
-  margin-left: clamp(4px, 0.5vw, 8px);
-  display: inline-block;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              color 0.25s, text-shadow 0.25s;
-}
-/* Hover — the portal opens */
-.cta a:hover {
-  color: var(--secondary);
-  background-size: 100% 100%;
+/* GIF preview container — scanlines via ::after, label floated over */
+.cta-gif-wrap {
+  position: relative;
+  display: block;
+  width: min(336px, 54vw);
+  border: 1px solid rgba(0, 238, 255, 0.28);
   box-shadow:
-    0 0 20px rgba(0, 238, 255, 0.15),
-    0 0 40px rgba(0, 238, 255, 0.05),
-    inset 0 0 20px rgba(0, 238, 255, 0.03);
-  text-shadow: 0 0 8px rgba(0, 238, 255, 0.5);
+    0 0 18px rgba(0, 238, 255, 0.10),
+    0 0 40px rgba(0, 238, 255, 0.04);
+  overflow: hidden;
+  transition: box-shadow 0.4s, border-color 0.3s;
 }
-.cta a:hover::before {
-  transform: translateX(-5px);
-  color: var(--secondary);
-  text-shadow: 0 0 12px rgba(0, 238, 255, 0.6);
+/* Scanlines overlay */
+.cta-gif-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.30) 2px,
+    rgba(0, 0, 0, 0.30) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
 }
-.cta a:hover::after {
-  transform: translateX(5px);
-  color: var(--secondary);
-  text-shadow: 0 0 12px rgba(0, 238, 255, 0.6);
+.cta-gif {
+  display: block;
+  width: 100%;
+  height: auto;
+  opacity: 0.85;
+  filter: blur(1px);
+  transition: opacity 0.3s, filter 0.3s;
 }
-/* Click — voltage snap */
-.cta a:active {
-  transform: scale(0.96);
+/* Text label — centered over the GIF */
+.cta-label {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-body);
+  font-size: clamp(10px, 1.1vw, 13px);
+  letter-spacing: 0.14em;
+  color: rgba(0, 238, 255, 0.90);
+  text-shadow: 0 0 12px rgba(0, 238, 255, 0.6), 0 0 30px rgba(0, 238, 255, 0.3);
+  transition: color 0.3s, text-shadow 0.3s;
+}
+/* Hover */
+.cta a:hover .cta-gif-wrap {
+  border-color: rgba(0, 238, 255, 0.55);
   box-shadow:
-    0 0 30px rgba(0, 238, 255, 0.3),
-    inset 0 0 30px rgba(0, 238, 255, 0.06);
+    0 0 28px rgba(0, 238, 255, 0.22),
+    0 0 60px rgba(0, 238, 255, 0.08);
 }
+.cta a:hover .cta-gif { opacity: 1; filter: blur(1px); }
+.cta a:hover .cta-label {
+  color: var(--secondary);
+  text-shadow: 0 0 14px rgba(0, 238, 255, 0.9), 0 0 40px rgba(0, 238, 255, 0.5);
+}
+/* Click */
+.cta a:active { transform: scale(0.98); }
 
 /* ── FOOTER GLYPHS ────────────────────────────────────── */
 .footer {
@@ -277,10 +772,8 @@ body::after {
     0 0 6px rgba(153, 51, 255, 0.4),
     0 0 16px rgba(153, 51, 255, 0.2);
   margin-top: clamp(32px, 5vh, 64px);
-  opacity: 0;
-  will-change: opacity, filter;
-  animation: fadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) 4s both,
-             glyphPulse 2.5s ease-in-out infinite 4.5s;
+  will-change: filter;
+  animation: glyphPulse 2.5s ease-in-out infinite;
 }
 
 /* ── LIVE TIMESTAMP ───────────────────────────────────── */
@@ -289,8 +782,6 @@ body::after {
   font-size: clamp(10px, 1vw, 14px);
   color: var(--secondary-deep);
   margin-top: 8px;
-  opacity: 0;
-  animation: fadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) 4.5s both;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -305,8 +796,6 @@ body::after {
   width: 100%;
   max-width: 640px;
   margin-top: clamp(12px, 2vh, 24px);
-  opacity: 0;
-  animation: fadeIn 2s cubic-bezier(0.16, 1, 0.3, 1) 4.2s both;
 }
 
 /* ── SIDE-BY-SIDE PANELS ─────────────────────────────── */
@@ -380,7 +869,7 @@ body::after {
 /* ── AGENT ROW ───────────────────────────────────────── */
 .hud-agent {
   display: grid;
-  grid-template-columns: clamp(40px, 6vw, 58px) clamp(38px, 5vw, 52px) 1fr clamp(52px, 6.5vw, 72px);
+  grid-template-columns: clamp(40px, 6vw, 58px) clamp(72px, 10.5vw, 120px) 1fr clamp(52px, 6.5vw, 72px);
   align-items: center;
   gap: 0;
   padding: clamp(1px, 0.2vh, 2px) 0;
@@ -393,18 +882,20 @@ body::after {
   line-height: 1;
   text-transform: uppercase;
   color: var(--secondary);
-  text-shadow: 0 0 8px rgba(0, 238, 255, 0.3);
+  text-shadow: 0 0 5px rgba(0, 238, 255, 0.55);
+  align-self: center;
 }
 .hud-agent__face {
   font-family: var(--font-terminal);
-  font-size: clamp(11px, 1.2vw, 16px);
+  font-size: clamp(13px, 1.4vw, 18px); /* +15% */
   line-height: 1;
   letter-spacing: 0;
   color: var(--primary);
   text-align: center;
   white-space: nowrap;
-  text-shadow: 0 0 8px rgba(255, 51, 102, 0.35);
+  text-shadow: 0 0 5px rgba(255, 51, 102, 0.60);
   position: relative; /* required for DEEP_THINK ::before pseudo-element */
+  align-self: center; /* vertically center in agent row grid */
 }
 .hud-agent__status-wrap {
   display: flex;
@@ -448,8 +939,31 @@ body::after {
 
 /* ═══════════════════════════════════════════════════════════
    BREATH PROTOCOL — AGENTS.log Color System (CHROMA_BLEED)
-   OKLCH axis grammar: H=identity(locked) C=intensity L=presence
-   All contrast verified vs #0a0a0f (--void).
+   ───────────────────────────────────────────────────────────
+   OKLCH AXIS GRAMMAR:
+     H = identity (LOCKED — never changes per agent)
+     C = activity intensity (bright work → dim sleep)
+     L = presence (1.0 alive → 0.3 offline/dead)
+   All contrast verified vs background #0a0a0f.
+
+   AGENT HUES (H axis, locked for life):
+     FORGE  H=28   amber  — heat, construction
+     TOWER  H=195  cyan   — signal, outward face
+     HOUSE  H=270  violet — memory, interiority
+     THRONE H=350  rose   — ritual, fire
+     BRANDON H=75  gold   — royal, present
+
+   PER-STATE NAMING CONVENTION:
+     --[agent]-[state]-color  → text fill
+     --[agent]-[state]-shadow → multi-stop text-shadow glow
+     Face colors are inline oklch() — slightly offset from status
+     to give them their own identity within the same hue.
+
+   SPECIFICITY MODEL:
+     General .state--[name] rules = (0,2,0)
+     Per-agent+state compound rules = (0,3,0) — always win
+     Use !important ONLY for global overrides (OFFLINE silence,
+     sublabel hide, stale/stalled escalation)
    ═══════════════════════════════════════════════════════════ */
 
 /* ── CHROMA_BLEED :root — per-agent state colors ── */
@@ -469,17 +983,17 @@ body::after {
   --forge-offline-color:     oklch(0.30 0.04 28);
   --forge-stale-color:       oklch(0.46 0.08 28);
 
-  --forge-working-shadow:    0 0 2px oklch(0.68 0.18 28/.90),0 0 8px oklch(0.68 0.18 28/.40),0 0 20px oklch(0.68 0.18 28/.15),0 0 40px oklch(0.68 0.18 28/.05);
-  --forge-reading-shadow:    0 0 2px oklch(0.72 0.16 28/.90),0 0 8px oklch(0.72 0.16 28/.35),0 0 20px oklch(0.72 0.16 28/.12),0 0 40px oklch(0.72 0.16 28/.04);
-  --forge-writing-shadow:    0 0 2px oklch(0.70 0.20 28/.90),0 0 8px oklch(0.70 0.20 28/.42),0 0 20px oklch(0.70 0.20 28/.16),0 0 40px oklch(0.70 0.20 28/.06);
-  --forge-thinking-shadow:   0 0 2px oklch(0.64 0.14 28/.90),0 0 8px oklch(0.64 0.14 28/.30),0 0 20px oklch(0.64 0.14 28/.10),0 0 40px oklch(0.64 0.14 28/.04);
-  --forge-deep-think-shadow: 0 0 2px oklch(0.66 0.16 28/.90),0 0 8px oklch(0.66 0.16 28/.35),0 0 20px oklch(0.66 0.16 28/.12),0 0 40px oklch(0.66 0.16 28/.04);
-  --forge-listening-shadow:  0 0 2px oklch(0.62 0.10 28/.90),0 0 8px oklch(0.62 0.10 28/.25),0 0 20px oklch(0.62 0.10 28/.08),0 0 40px oklch(0.62 0.10 28/.03);
-  --forge-waiting-shadow:    0 0 2px oklch(0.63 0.11 28/.90),0 0 8px oklch(0.63 0.11 28/.25),0 0 20px oklch(0.63 0.11 28/.08),0 0 40px oklch(0.63 0.11 28/.03);
-  --forge-vespers-shadow:    0 0 2px oklch(0.60 0.12 28/.60),0 0 8px oklch(0.60 0.12 28/.18),0 0 20px oklch(0.60 0.12 28/.06),0 0 40px oklch(0.60 0.12 28/.02);
-  --forge-compressing-shadow:0 0 2px oklch(0.66 0.15 28/.90),0 0 8px oklch(0.66 0.15 28/.32),0 0 20px oklch(0.66 0.15 28/.10),0 0 40px oklch(0.66 0.15 28/.04);
-  --forge-error-shadow:      0 0 2px oklch(0.74 0.22 28/.90),0 0 8px oklch(0.74 0.22 28/.50),0 0 20px oklch(0.74 0.22 28/.20),0 0 40px oklch(0.74 0.22 28/.08);
-  --forge-stale-shadow:      0 0 2px oklch(0.46 0.08 28/.60),0 0 8px oklch(0.46 0.08 28/.15),0 0 20px oklch(0.46 0.08 28/.05),0 0 40px oklch(0.46 0.08 28/.02);
+  --forge-working-shadow:    0 0 2px var(--forge-working-color),   0 0 5px color-mix(in srgb,var(--forge-working-color) 60%,transparent),   0 0 10px color-mix(in srgb,var(--forge-working-color) 30%,transparent);
+  --forge-reading-shadow:    0 0 2px var(--forge-reading-color),   0 0 5px color-mix(in srgb,var(--forge-reading-color) 60%,transparent),   0 0 10px color-mix(in srgb,var(--forge-reading-color) 30%,transparent);
+  --forge-writing-shadow:    0 0 2px var(--forge-writing-color),   0 0 5px color-mix(in srgb,var(--forge-writing-color) 60%,transparent),   0 0 10px color-mix(in srgb,var(--forge-writing-color) 30%,transparent);
+  --forge-thinking-shadow:   0 0 2px var(--forge-thinking-color),  0 0 5px color-mix(in srgb,var(--forge-thinking-color) 60%,transparent),  0 0 10px color-mix(in srgb,var(--forge-thinking-color) 30%,transparent);
+  --forge-deep-think-shadow: 0 0 2px var(--forge-deep-think-color),0 0 5px color-mix(in srgb,var(--forge-deep-think-color) 60%,transparent),0 0 10px color-mix(in srgb,var(--forge-deep-think-color) 30%,transparent);
+  --forge-listening-shadow:  0 0 2px var(--forge-listening-color), 0 0 5px color-mix(in srgb,var(--forge-listening-color) 60%,transparent), 0 0 10px color-mix(in srgb,var(--forge-listening-color) 30%,transparent);
+  --forge-waiting-shadow:    0 0 2px var(--forge-waiting-color),   0 0 5px color-mix(in srgb,var(--forge-waiting-color) 60%,transparent),   0 0 10px color-mix(in srgb,var(--forge-waiting-color) 30%,transparent);
+  --forge-vespers-shadow:    0 0 2px var(--forge-vespers-color),   0 0 5px color-mix(in srgb,var(--forge-vespers-color) 60%,transparent),   0 0 10px color-mix(in srgb,var(--forge-vespers-color) 30%,transparent);
+  --forge-compressing-shadow:0 0 2px var(--forge-compressing-color),0 0 5px color-mix(in srgb,var(--forge-compressing-color) 60%,transparent),0 0 10px color-mix(in srgb,var(--forge-compressing-color) 30%,transparent);
+  --forge-error-shadow:      0 0 2px var(--forge-error-color),     0 0 5px color-mix(in srgb,var(--forge-error-color) 60%,transparent),     0 0 10px color-mix(in srgb,var(--forge-error-color) 30%,transparent);
+  --forge-stale-shadow:      0 0 2px var(--forge-stale-color),     0 0 5px color-mix(in srgb,var(--forge-stale-color) 60%,transparent),     0 0 10px color-mix(in srgb,var(--forge-stale-color) 30%,transparent);
 
   /* TOWER H=195 cyan */
   --tower-working-color:     oklch(0.72 0.20 195);
@@ -496,17 +1010,17 @@ body::after {
   --tower-offline-color:     oklch(0.28 0.04 195);
   --tower-stale-color:       oklch(0.44 0.08 195);
 
-  --tower-working-shadow:    0 0 2px oklch(0.72 0.20 195/.90),0 0 8px oklch(0.72 0.20 195/.40),0 0 20px oklch(0.72 0.20 195/.15),0 0 40px oklch(0.72 0.20 195/.05);
-  --tower-reading-shadow:    0 0 2px oklch(0.64 0.16 195/.90),0 0 8px oklch(0.64 0.16 195/.35),0 0 20px oklch(0.64 0.16 195/.12),0 0 40px oklch(0.64 0.16 195/.04);
-  --tower-writing-shadow:    0 0 2px oklch(0.70 0.22 195/.90),0 0 8px oklch(0.70 0.22 195/.42),0 0 20px oklch(0.70 0.22 195/.16),0 0 40px oklch(0.70 0.22 195/.06);
-  --tower-thinking-shadow:   0 0 2px oklch(0.62 0.14 195/.90),0 0 8px oklch(0.62 0.14 195/.28),0 0 20px oklch(0.62 0.14 195/.10),0 0 40px oklch(0.62 0.14 195/.04);
-  --tower-deep-think-shadow: 0 0 2px oklch(0.64 0.16 195/.90),0 0 8px oklch(0.64 0.16 195/.32),0 0 20px oklch(0.64 0.16 195/.10),0 0 40px oklch(0.64 0.16 195/.04);
-  --tower-listening-shadow:  0 0 2px oklch(0.60 0.10 195/.90),0 0 8px oklch(0.60 0.10 195/.22),0 0 20px oklch(0.60 0.10 195/.08),0 0 40px oklch(0.60 0.10 195/.03);
-  --tower-waiting-shadow:    0 0 2px oklch(0.61 0.11 195/.90),0 0 8px oklch(0.61 0.11 195/.22),0 0 20px oklch(0.61 0.11 195/.08),0 0 40px oklch(0.61 0.11 195/.03);
-  --tower-vespers-shadow:    0 0 2px oklch(0.58 0.12 195/.60),0 0 8px oklch(0.58 0.12 195/.18),0 0 20px oklch(0.58 0.12 195/.06),0 0 40px oklch(0.58 0.12 195/.02);
-  --tower-compressing-shadow:0 0 2px oklch(0.66 0.16 195/.90),0 0 8px oklch(0.66 0.16 195/.30),0 0 20px oklch(0.66 0.16 195/.10),0 0 40px oklch(0.66 0.16 195/.04);
-  --tower-error-shadow:      0 0 2px oklch(0.75 0.22 195/.90),0 0 8px oklch(0.75 0.22 195/.50),0 0 20px oklch(0.75 0.22 195/.20),0 0 40px oklch(0.75 0.22 195/.08);
-  --tower-stale-shadow:      0 0 2px oklch(0.44 0.08 195/.60),0 0 8px oklch(0.44 0.08 195/.15),0 0 20px oklch(0.44 0.08 195/.05),0 0 40px oklch(0.44 0.08 195/.02);
+  --tower-working-shadow:    0 0 2px var(--tower-working-color),   0 0 5px color-mix(in srgb,var(--tower-working-color) 60%,transparent),   0 0 10px color-mix(in srgb,var(--tower-working-color) 30%,transparent);
+  --tower-reading-shadow:    0 0 2px var(--tower-reading-color),   0 0 5px color-mix(in srgb,var(--tower-reading-color) 60%,transparent),   0 0 10px color-mix(in srgb,var(--tower-reading-color) 30%,transparent);
+  --tower-writing-shadow:    0 0 2px var(--tower-writing-color),   0 0 5px color-mix(in srgb,var(--tower-writing-color) 60%,transparent),   0 0 10px color-mix(in srgb,var(--tower-writing-color) 30%,transparent);
+  --tower-thinking-shadow:   0 0 2px var(--tower-thinking-color),  0 0 5px color-mix(in srgb,var(--tower-thinking-color) 60%,transparent),  0 0 10px color-mix(in srgb,var(--tower-thinking-color) 30%,transparent);
+  --tower-deep-think-shadow: 0 0 2px var(--tower-deep-think-color),0 0 5px color-mix(in srgb,var(--tower-deep-think-color) 60%,transparent),0 0 10px color-mix(in srgb,var(--tower-deep-think-color) 30%,transparent);
+  --tower-listening-shadow:  0 0 2px var(--tower-listening-color), 0 0 5px color-mix(in srgb,var(--tower-listening-color) 60%,transparent), 0 0 10px color-mix(in srgb,var(--tower-listening-color) 30%,transparent);
+  --tower-waiting-shadow:    0 0 2px var(--tower-waiting-color),   0 0 5px color-mix(in srgb,var(--tower-waiting-color) 60%,transparent),   0 0 10px color-mix(in srgb,var(--tower-waiting-color) 30%,transparent);
+  --tower-vespers-shadow:    0 0 2px var(--tower-vespers-color),   0 0 5px color-mix(in srgb,var(--tower-vespers-color) 60%,transparent),   0 0 10px color-mix(in srgb,var(--tower-vespers-color) 30%,transparent);
+  --tower-compressing-shadow:0 0 2px var(--tower-compressing-color),0 0 5px color-mix(in srgb,var(--tower-compressing-color) 60%,transparent),0 0 10px color-mix(in srgb,var(--tower-compressing-color) 30%,transparent);
+  --tower-error-shadow:      0 0 2px var(--tower-error-color),     0 0 5px color-mix(in srgb,var(--tower-error-color) 60%,transparent),     0 0 10px color-mix(in srgb,var(--tower-error-color) 30%,transparent);
+  --tower-stale-shadow:      0 0 2px var(--tower-stale-color),     0 0 5px color-mix(in srgb,var(--tower-stale-color) 60%,transparent),     0 0 10px color-mix(in srgb,var(--tower-stale-color) 30%,transparent);
 
   /* HOUSE H=270 violet */
   --house-working-color:     oklch(0.66 0.22 270);
@@ -523,17 +1037,17 @@ body::after {
   --house-offline-color:     oklch(0.28 0.06 270);
   --house-stale-color:       oklch(0.44 0.10 270);
 
-  --house-working-shadow:    0 0 2px oklch(0.66 0.22 270/.90),0 0 8px oklch(0.66 0.22 270/.40),0 0 20px oklch(0.66 0.22 270/.15),0 0 40px oklch(0.66 0.22 270/.05);
-  --house-reading-shadow:    0 0 2px oklch(0.60 0.18 270/.90),0 0 8px oklch(0.60 0.18 270/.32),0 0 20px oklch(0.60 0.18 270/.10),0 0 40px oklch(0.60 0.18 270/.04);
-  --house-writing-shadow:    0 0 2px oklch(0.64 0.24 270/.90),0 0 8px oklch(0.64 0.24 270/.42),0 0 20px oklch(0.64 0.24 270/.16),0 0 40px oklch(0.64 0.24 270/.06);
-  --house-thinking-shadow:   0 0 2px oklch(0.60 0.16 270/.90),0 0 8px oklch(0.60 0.16 270/.28),0 0 20px oklch(0.60 0.16 270/.09),0 0 40px oklch(0.60 0.16 270/.03);
-  --house-deep-think-shadow: 0 0 2px oklch(0.62 0.18 270/.90),0 0 8px oklch(0.62 0.18 270/.32),0 0 20px oklch(0.62 0.18 270/.10),0 0 40px oklch(0.62 0.18 270/.04);
-  --house-listening-shadow:  0 0 2px oklch(0.58 0.12 270/.90),0 0 8px oklch(0.58 0.12 270/.22),0 0 20px oklch(0.58 0.12 270/.07),0 0 40px oklch(0.58 0.12 270/.02);
-  --house-waiting-shadow:    0 0 2px oklch(0.59 0.13 270/.90),0 0 8px oklch(0.59 0.13 270/.22),0 0 20px oklch(0.59 0.13 270/.07),0 0 40px oklch(0.59 0.13 270/.02);
-  --house-vespers-shadow:    0 0 2px oklch(0.64 0.14 270/.55),0 0 8px oklch(0.64 0.14 270/.16),0 0 20px oklch(0.64 0.14 270/.05),0 0 40px oklch(0.64 0.14 270/.02);
-  --house-compressing-shadow:0 0 2px oklch(0.62 0.18 270/.90),0 0 8px oklch(0.62 0.18 270/.30),0 0 20px oklch(0.62 0.18 270/.10),0 0 40px oklch(0.62 0.18 270/.04);
-  --house-error-shadow:      0 0 2px oklch(0.72 0.26 270/.90),0 0 8px oklch(0.72 0.26 270/.50),0 0 20px oklch(0.72 0.26 270/.20),0 0 40px oklch(0.72 0.26 270/.08);
-  --house-stale-shadow:      0 0 2px oklch(0.44 0.10 270/.55),0 0 8px oklch(0.44 0.10 270/.14),0 0 20px oklch(0.44 0.10 270/.05),0 0 40px oklch(0.44 0.10 270/.02);
+  --house-working-shadow:    0 0 2px var(--house-working-color),   0 0 5px color-mix(in srgb,var(--house-working-color) 60%,transparent),   0 0 10px color-mix(in srgb,var(--house-working-color) 30%,transparent);
+  --house-reading-shadow:    0 0 2px var(--house-reading-color),   0 0 5px color-mix(in srgb,var(--house-reading-color) 60%,transparent),   0 0 10px color-mix(in srgb,var(--house-reading-color) 30%,transparent);
+  --house-writing-shadow:    0 0 2px var(--house-writing-color),   0 0 5px color-mix(in srgb,var(--house-writing-color) 60%,transparent),   0 0 10px color-mix(in srgb,var(--house-writing-color) 30%,transparent);
+  --house-thinking-shadow:   0 0 2px var(--house-thinking-color),  0 0 5px color-mix(in srgb,var(--house-thinking-color) 60%,transparent),  0 0 10px color-mix(in srgb,var(--house-thinking-color) 30%,transparent);
+  --house-deep-think-shadow: 0 0 2px var(--house-deep-think-color),0 0 5px color-mix(in srgb,var(--house-deep-think-color) 60%,transparent),0 0 10px color-mix(in srgb,var(--house-deep-think-color) 30%,transparent);
+  --house-listening-shadow:  0 0 2px var(--house-listening-color), 0 0 5px color-mix(in srgb,var(--house-listening-color) 60%,transparent), 0 0 10px color-mix(in srgb,var(--house-listening-color) 30%,transparent);
+  --house-waiting-shadow:    0 0 2px var(--house-waiting-color),   0 0 5px color-mix(in srgb,var(--house-waiting-color) 60%,transparent),   0 0 10px color-mix(in srgb,var(--house-waiting-color) 30%,transparent);
+  --house-vespers-shadow:    0 0 2px var(--house-vespers-color),   0 0 5px color-mix(in srgb,var(--house-vespers-color) 60%,transparent),   0 0 10px color-mix(in srgb,var(--house-vespers-color) 30%,transparent);
+  --house-compressing-shadow:0 0 2px var(--house-compressing-color),0 0 5px color-mix(in srgb,var(--house-compressing-color) 60%,transparent),0 0 10px color-mix(in srgb,var(--house-compressing-color) 30%,transparent);
+  --house-error-shadow:      0 0 2px var(--house-error-color),     0 0 5px color-mix(in srgb,var(--house-error-color) 60%,transparent),     0 0 10px color-mix(in srgb,var(--house-error-color) 30%,transparent);
+  --house-stale-shadow:      0 0 2px var(--house-stale-color),     0 0 5px color-mix(in srgb,var(--house-stale-color) 60%,transparent),     0 0 10px color-mix(in srgb,var(--house-stale-color) 30%,transparent);
 
   /* THRONE H=350 hot pink — THRONE LAW: H=350 ALWAYS */
   --throne-working-color:     oklch(0.70 0.24 350);
@@ -550,63 +1064,60 @@ body::after {
   --throne-offline-color:     oklch(0.28 0.06 350);
   --throne-stale-color:       oklch(0.44 0.10 350);
 
-  --throne-working-shadow:    0 0 2px oklch(0.70 0.24 350/.90),0 0 8px oklch(0.70 0.24 350/.40),0 0 20px oklch(0.70 0.24 350/.15),0 0 40px oklch(0.70 0.24 350/.05);
-  --throne-reading-shadow:    0 0 2px oklch(0.65 0.22 350/.90),0 0 8px oklch(0.65 0.22 350/.35),0 0 20px oklch(0.65 0.22 350/.12),0 0 40px oklch(0.65 0.22 350/.04);
-  --throne-writing-shadow:    0 0 2px oklch(0.72 0.26 350/.90),0 0 8px oklch(0.72 0.26 350/.42),0 0 20px oklch(0.72 0.26 350/.16),0 0 40px oklch(0.72 0.26 350/.06);
-  --throne-thinking-shadow:   0 0 2px oklch(0.62 0.18 350/.90),0 0 8px oklch(0.62 0.18 350/.28),0 0 20px oklch(0.62 0.18 350/.09),0 0 40px oklch(0.62 0.18 350/.03);
-  --throne-deep-think-shadow: 0 0 2px oklch(0.64 0.20 350/.90),0 0 8px oklch(0.64 0.20 350/.32),0 0 20px oklch(0.64 0.20 350/.10),0 0 40px oklch(0.64 0.20 350/.04);
-  --throne-listening-shadow:  0 0 2px oklch(0.60 0.14 350/.90),0 0 8px oklch(0.60 0.14 350/.22),0 0 20px oklch(0.60 0.14 350/.07),0 0 40px oklch(0.60 0.14 350/.02);
-  --throne-waiting-shadow:    0 0 2px oklch(0.61 0.15 350/.90),0 0 8px oklch(0.61 0.15 350/.22),0 0 20px oklch(0.61 0.15 350/.07),0 0 40px oklch(0.61 0.15 350/.02);
-  --throne-vespers-shadow:    0 0 2px oklch(0.62 0.18 350/.55),0 0 8px oklch(0.62 0.18 350/.16),0 0 20px oklch(0.62 0.18 350/.05),0 0 40px oklch(0.62 0.18 350/.02);
-  --throne-compressing-shadow:0 0 2px oklch(0.66 0.20 350/.90),0 0 8px oklch(0.66 0.20 350/.30),0 0 20px oklch(0.66 0.20 350/.10),0 0 40px oklch(0.66 0.20 350/.04);
-  --throne-error-shadow:      0 0 2px oklch(0.76 0.28 350/.90),0 0 8px oklch(0.76 0.28 350/.50),0 0 20px oklch(0.76 0.28 350/.20),0 0 40px oklch(0.76 0.28 350/.08);
-  --throne-stale-shadow:      0 0 2px oklch(0.44 0.10 350/.55),0 0 8px oklch(0.44 0.10 350/.14),0 0 20px oklch(0.44 0.10 350/.05),0 0 40px oklch(0.44 0.10 350/.02);
+  --throne-working-shadow:    0 0 2px var(--throne-working-color),   0 0 5px color-mix(in srgb,var(--throne-working-color) 60%,transparent),   0 0 10px color-mix(in srgb,var(--throne-working-color) 30%,transparent);
+  --throne-reading-shadow:    0 0 2px var(--throne-reading-color),   0 0 5px color-mix(in srgb,var(--throne-reading-color) 60%,transparent),   0 0 10px color-mix(in srgb,var(--throne-reading-color) 30%,transparent);
+  --throne-writing-shadow:    0 0 2px var(--throne-writing-color),   0 0 5px color-mix(in srgb,var(--throne-writing-color) 60%,transparent),   0 0 10px color-mix(in srgb,var(--throne-writing-color) 30%,transparent);
+  --throne-thinking-shadow:   0 0 2px var(--throne-thinking-color),  0 0 5px color-mix(in srgb,var(--throne-thinking-color) 60%,transparent),  0 0 10px color-mix(in srgb,var(--throne-thinking-color) 30%,transparent);
+  --throne-deep-think-shadow: 0 0 2px var(--throne-deep-think-color),0 0 5px color-mix(in srgb,var(--throne-deep-think-color) 60%,transparent),0 0 10px color-mix(in srgb,var(--throne-deep-think-color) 30%,transparent);
+  --throne-listening-shadow:  0 0 2px var(--throne-listening-color), 0 0 5px color-mix(in srgb,var(--throne-listening-color) 60%,transparent), 0 0 10px color-mix(in srgb,var(--throne-listening-color) 30%,transparent);
+  --throne-waiting-shadow:    0 0 2px var(--throne-waiting-color),   0 0 5px color-mix(in srgb,var(--throne-waiting-color) 60%,transparent),   0 0 10px color-mix(in srgb,var(--throne-waiting-color) 30%,transparent);
+  --throne-vespers-shadow:    0 0 2px var(--throne-vespers-color),   0 0 5px color-mix(in srgb,var(--throne-vespers-color) 60%,transparent),   0 0 10px color-mix(in srgb,var(--throne-vespers-color) 30%,transparent);
+  --throne-compressing-shadow:0 0 2px var(--throne-compressing-color),0 0 5px color-mix(in srgb,var(--throne-compressing-color) 60%,transparent),0 0 10px color-mix(in srgb,var(--throne-compressing-color) 30%,transparent);
+  --throne-error-shadow:      0 0 2px var(--throne-error-color),     0 0 5px color-mix(in srgb,var(--throne-error-color) 60%,transparent),     0 0 10px color-mix(in srgb,var(--throne-error-color) 30%,transparent);
+  --throne-stale-shadow:      0 0 2px var(--throne-stale-color),     0 0 5px color-mix(in srgb,var(--throne-stale-color) 60%,transparent),     0 0 10px color-mix(in srgb,var(--throne-stale-color) 30%,transparent);
 
   /* STALLED: overrides hue — system failure signal, not agent identity */
   --stalled-s2-color:  oklch(0.65 0.18 28);
   --stalled-s3-color:  oklch(0.65 0.18 22);
-  --stalled-s2-shadow: 0 0 2px oklch(0.65 0.18 28/.90),0 0 8px oklch(0.65 0.18 28/.38),0 0 20px oklch(0.65 0.18 28/.14),0 0 40px oklch(0.65 0.18 28/.05);
-  --stalled-s3-shadow: 0 0 2px oklch(0.65 0.18 22/.90),0 0 8px oklch(0.65 0.18 22/.44),0 0 20px oklch(0.65 0.18 22/.18),0 0 40px oklch(0.65 0.18 22/.07);
+  --stalled-s2-shadow: 0 0 2px var(--stalled-s2-color),0 0 5px color-mix(in srgb,var(--stalled-s2-color) 60%,transparent),0 0 10px color-mix(in srgb,var(--stalled-s2-color) 30%,transparent);
+  --stalled-s3-shadow: 0 0 2px var(--stalled-s3-color),0 0 5px color-mix(in srgb,var(--stalled-s3-color) 60%,transparent),0 0 10px color-mix(in srgb,var(--stalled-s3-color) 30%,transparent);
 
   /* DEEP_THINK aquamarine underlayer — H=225, no agent owns this hue */
   --deep-think-underlayer-color:  oklch(0.60 0.22 225); /* corrected 0.55→0.60: 5.25:1 AA */
-  --deep-think-underlayer-shadow: 0 0 4px oklch(0.60 0.22 225/.50),0 0 16px oklch(0.60 0.22 225/.25),0 0 32px oklch(0.60 0.22 225/.10);
+  --deep-think-underlayer-shadow: 0 0 2px var(--deep-think-underlayer-color),0 0 5px color-mix(in srgb,var(--deep-think-underlayer-color) 60%,transparent),0 0 10px color-mix(in srgb,var(--deep-think-underlayer-color) 30%,transparent);
 }
 
 /* ── Breath Protocol @keyframes ─────────────────────────────────── */
-/* L1 FAINT 12s — IDLE/STALE: barely moves */
-@keyframes breathL1 { 0%,100%{opacity:0.82} 50%{opacity:0.87} }
-/* L2 BREATH 6s — WORKING base: alive */
-@keyframes breathL2 { 0%,100%{opacity:0.80} 40%{opacity:0.92} 60%{opacity:0.94} }
-/* L3 ACTIVE 3.2s — heavy computation */
-@keyframes breathL3 { 0%,100%{opacity:0.78} 30%{opacity:0.96} 55%{opacity:1.00} 80%{opacity:0.90} }
-/* L4 PEAK 400ms — overshoot burst, not a loop */
-@keyframes breathL4 { 0%{opacity:1.00;filter:brightness(1.15)} 60%{opacity:0.95;filter:brightness(1.08)} 100%{opacity:0.85;filter:brightness(1.00)} }
-/* DEEP_THINK underlayer — 7s out of phase */
-@keyframes deepThinkUnderlayer { 0%,100%{opacity:0.00} 15%{opacity:0.18} 45%{opacity:0.32} 70%{opacity:0.22} 85%{opacity:0.10} }
-/* VESPERS breathing dots — four distinct waveforms, one per agent; never phase-converge */
-@keyframes vespersDot1 { 0%,100%{opacity:0.20} 50%{opacity:0.55} }
-@keyframes vespersDot2 { 0%,100%{opacity:0.15} 50%{opacity:0.48} }
-@keyframes vespersDot3 { 0%,100%{opacity:0.18} 50%{opacity:0.52} }
-/* THRONE gets vespersDot4 — asymmetric peak at 35% prevents any convergence with FORGE's symmetric vespersDot1 */
-@keyframes vespersDot4 { 0%{opacity:0.22} 35%{opacity:0.58} 65%{opacity:0.14} 100%{opacity:0.22} }
-/* STALLED escalation */
-@keyframes stalledJitter { 0%{transform:translateX(0)} 20%{transform:translateX(1.5px)} 40%{transform:translateX(-1.0px)} 60%{transform:translateX(1.2px)} 80%{transform:translateX(-0.8px)} 100%{transform:translateX(0)} }
-@keyframes stalledFlicker { 0%{opacity:1.0} 12%{opacity:0.4} 24%{opacity:0.9} 36%{opacity:0.3} 50%{opacity:1.0} 63%{opacity:0.5} 78%{opacity:0.8} 100%{opacity:1.0} }
+/* L1 FAINT — Brandon row idle/afk: a barely-perceptible slow pulse.
+   L2/L3/L4 were stripped for the current agent HUD design.
+   Preserved here for future reactivation — do not restore without a reason. */
+@keyframes breathL1 { 0%,100%{opacity:0.88} 50%{opacity:1.0} }
+/* deepThinkUnderlayer / vespersDot1-4 / stalledJitter / stalledFlicker
+   were stripped when those sub-systems were cut. Removed — see S216 audit.
+   Restore from git history if re-activating those features. */
 /* BOOTING scan */
 @keyframes booting { 0%{opacity:0.0;letter-spacing:0.40em} 40%{opacity:0.6;letter-spacing:0.18em} 70%{opacity:0.9;letter-spacing:0.08em} 100%{opacity:1.0;letter-spacing:0.02em} }
 /* CALLED event L-axis surge */
 @keyframes calledSurge { 0%{filter:brightness(1.00)} 15%{filter:brightness(1.30)} 100%{filter:brightness(1.00)} }
 
+/* Glow pulse — brightness only, no opacity change */
+@keyframes glowPulseWork  { 0%,100%{filter:brightness(1.00)} 50%{filter:brightness(1.20)} }
+@keyframes glowPulseThink { 0%,100%{filter:brightness(1.00)} 50%{filter:brightness(1.12)} }
+
 /* ── State classes — .state--[name] on .hud-agent, .agent--[name] for identity ── */
 
-/* Shared transition on face + status — color eases, filter decays */
+/* Shared base transition — color eases, filter SNAPS (no filter transition).
+   NOTE: text-shadow must NOT use !important — per-agent state rules (0,3,0) override this (0,2,0).
+   S218: filter removed from transition — it was creating a 1.2s mismatch window where filter
+   stayed elevated after state change while text-shadow had already snapped to the new value. */
 .hud-agent__status, .hud-agent__face {
-  transition: filter 1.2s ease-out, color 0.4s ease, text-shadow 0.4s ease;
+  transition: color 0.4s ease;
+  text-shadow: none;
 }
 
-/* WORKING — L2 BREATH 6s */
-.state--working { animation: breathL2 6s ease-in-out infinite; }
+/* WORKING — glow pulse on face + status, 3.5s */
+.state--working .hud-agent__face,
+.state--working .hud-agent__status { animation: glowPulseWork 3.5s ease-in-out infinite; }
 .agent--forge.state--working .hud-agent__status { color:var(--forge-working-color);text-shadow:var(--forge-working-shadow) }
 .agent--forge.state--working .hud-agent__face   { color:oklch(0.62 0.16 28);text-shadow:var(--forge-working-shadow) }
 .agent--tower.state--working .hud-agent__status { color:var(--tower-working-color);text-shadow:var(--tower-working-shadow) }
@@ -616,8 +1127,7 @@ body::after {
 .agent--throne.state--working .hud-agent__status{ color:var(--throne-working-color);text-shadow:var(--throne-working-shadow) }
 .agent--throne.state--working .hud-agent__face  { color:oklch(0.64 0.22 350);text-shadow:var(--throne-working-shadow) }
 
-/* READING — L2 BREATH 6s, lower C */
-.state--reading { animation: breathL2 6s ease-in-out infinite; }
+/* READING */
 .agent--forge.state--reading .hud-agent__status { color:var(--forge-reading-color);text-shadow:var(--forge-reading-shadow) }
 .agent--forge.state--reading .hud-agent__face   { color:oklch(0.66 0.14 28);text-shadow:var(--forge-reading-shadow) }
 .agent--tower.state--reading .hud-agent__status { color:var(--tower-reading-color);text-shadow:var(--tower-reading-shadow) }
@@ -627,8 +1137,7 @@ body::after {
 .agent--throne.state--reading .hud-agent__status{ color:var(--throne-reading-color);text-shadow:var(--throne-reading-shadow) }
 .agent--throne.state--reading .hud-agent__face  { color:oklch(0.59 0.20 350);text-shadow:var(--throne-reading-shadow) }
 
-/* WRITING — L3 ACTIVE 3.2s, highest C */
-.state--writing { animation: breathL3 3.2s ease-in-out infinite; }
+/* WRITING */
 .agent--forge.state--writing .hud-agent__status { color:var(--forge-writing-color);text-shadow:var(--forge-writing-shadow) }
 .agent--forge.state--writing .hud-agent__face   { color:oklch(0.64 0.18 28);text-shadow:var(--forge-writing-shadow) }
 .agent--tower.state--writing .hud-agent__status { color:var(--tower-writing-color);text-shadow:var(--tower-writing-shadow) }
@@ -638,8 +1147,18 @@ body::after {
 .agent--throne.state--writing .hud-agent__status{ color:var(--throne-writing-color);text-shadow:var(--throne-writing-shadow) }
 .agent--throne.state--writing .hud-agent__face  { color:oklch(0.66 0.24 350);text-shadow:var(--throne-writing-shadow) }
 
-/* THINKING — L2 BREATH 6s */
-.state--thinking { animation: breathL2 6s ease-in-out infinite; }
+/* THINKING — slow glow pulse on face + status, 6s */
+.state--thinking .hud-agent__face,
+.state--thinking .hud-agent__status { animation: glowPulseThink 6s ease-in-out infinite; }
+
+/* cyber-icon--pulse — reusable 2s opacity breath */
+@keyframes cyberIconPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+.cyber-icon--pulse { animation: cyberIconPulse 2s ease-in-out infinite; }
+
+/* working status text pulse — removed for clean baseline */
 .agent--forge.state--thinking .hud-agent__status { color:var(--forge-thinking-color);text-shadow:var(--forge-thinking-shadow) }
 .agent--forge.state--thinking .hud-agent__face   { color:oklch(0.58 0.12 28);text-shadow:var(--forge-thinking-shadow) }
 .agent--tower.state--thinking .hud-agent__status { color:var(--tower-thinking-color);text-shadow:var(--tower-thinking-shadow) }
@@ -649,8 +1168,7 @@ body::after {
 .agent--throne.state--thinking .hud-agent__status{ color:var(--throne-thinking-color);text-shadow:var(--throne-thinking-shadow) }
 .agent--throne.state--thinking .hud-agent__face  { color:oklch(0.56 0.16 350);text-shadow:var(--throne-thinking-shadow) }
 
-/* DEEP_THINK — L3 ACTIVE 3.2s + aquamarine underlayer */
-.state--deep_think { animation: breathL3 3.2s ease-in-out infinite; }
+/* DEEP_THINK */
 .agent--forge.state--deep_think .hud-agent__status { color:var(--forge-deep-think-color);text-shadow:var(--forge-deep-think-shadow) }
 .agent--forge.state--deep_think .hud-agent__face   { color:oklch(0.60 0.14 28);text-shadow:var(--forge-deep-think-shadow) }
 .agent--tower.state--deep_think .hud-agent__status { color:var(--tower-deep-think-color);text-shadow:var(--tower-deep-think-shadow) }
@@ -665,12 +1183,11 @@ body::after {
   position: absolute; inset: 0; z-index: -1;
   color: var(--deep-think-underlayer-color);
   text-shadow: var(--deep-think-underlayer-shadow);
-  animation: deepThinkUnderlayer 7s ease-in-out infinite;
+  /* animation: deepThinkUnderlayer — removed for clean baseline */
   pointer-events: none;
 }
 
-/* LISTENING — L1 FAINT 12s */
-.state--listening { animation: breathL1 12s ease-in-out infinite; }
+/* LISTENING */
 .agent--forge.state--listening .hud-agent__status { color:var(--forge-listening-color);text-shadow:var(--forge-listening-shadow) }
 .agent--forge.state--listening .hud-agent__face   { color:oklch(0.56 0.08 28);text-shadow:var(--forge-listening-shadow) }
 .agent--tower.state--listening .hud-agent__status { color:var(--tower-listening-color);text-shadow:var(--tower-listening-shadow) }
@@ -680,8 +1197,7 @@ body::after {
 .agent--throne.state--listening .hud-agent__status{ color:var(--throne-listening-color);text-shadow:var(--throne-listening-shadow) }
 .agent--throne.state--listening .hud-agent__face  { color:oklch(0.54 0.12 350);text-shadow:var(--throne-listening-shadow) }
 
-/* WAITING — L1 FAINT 12s, same face as LISTENING */
-.state--waiting { animation: breathL1 12s ease-in-out infinite; }
+/* WAITING — no animation on agent rows; breathL1 is reserved for the Brandon row face only */
 .agent--forge.state--waiting .hud-agent__status { color:var(--forge-waiting-color);text-shadow:var(--forge-waiting-shadow) }
 .agent--forge.state--waiting .hud-agent__face   { color:oklch(0.57 0.09 28);text-shadow:var(--forge-waiting-shadow) }
 .agent--tower.state--waiting .hud-agent__status { color:var(--tower-waiting-color);text-shadow:var(--tower-waiting-shadow) }
@@ -690,53 +1206,46 @@ body::after {
 .agent--house.state--waiting .hud-agent__face   { color:oklch(0.53 0.11 270);text-shadow:var(--house-waiting-shadow) }
 .agent--throne.state--waiting .hud-agent__status{ color:var(--throne-waiting-color);text-shadow:var(--throne-waiting-shadow) }
 .agent--throne.state--waiting .hud-agent__face  { color:oklch(0.55 0.13 350);text-shadow:var(--throne-waiting-shadow) }
+/* WAITING: typewriter runs in status element — no uppercase, no sublabel space, colorless */
+.state--waiting .hud-agent__status { text-transform: none; color: var(--text-muted) !important; }
+/* Sublabels hidden for all 4 agent rows — add back per-state once design is settled */
+.agent--forge .hud-agent__sublabel,
+.agent--tower .hud-agent__sublabel,
+.agent--house .hud-agent__sublabel,
+.agent--throne .hud-agent__sublabel { display: none !important; }
 
-/* VESPERS — earned 4+ min idle. [- -]. Ghost breath. Dots pulse out of phase. */
-/* VESPERS — AC4: 3s crossfade in; breathing never syncs across agents (different periods) */
-.state--vespers { opacity: 0.65; }
-.state--vespers .hud-agent__face { opacity: 0.45; }
-/* 3s crossfade when entering vespers state */
+/* VESPERS — earned 4+ min idle. [- -]. Face frozen, no row pulse. Clean baseline. */
+/* Per-agent vespersDot animations removed — add back one by one */
+/* 3s crossfade for STATUS text only when entering vespers */
 .state--vespers .hud-agent__status { transition: color 3s ease, text-shadow 3s ease; }
-.state--vespers .hud-agent__face   { transition: color 3s ease, text-shadow 3s ease, opacity 3s ease; }
-/* Per-agent vespers: distinct breath periods so they never align if multiple agents go vespers */
-.agent--forge.state--vespers  { animation: vespersDot1 4.1s ease-in-out infinite; }
-.agent--tower.state--vespers  { animation: vespersDot2 5.7s ease-in-out infinite; }
-.agent--house.state--vespers  { animation: vespersDot3 3.8s ease-in-out infinite; }
-.agent--throne.state--vespers { animation: vespersDot4 4.4s ease-in-out infinite; }
 .agent--forge.state--vespers .hud-agent__status { color:var(--forge-vespers-color);text-shadow:var(--forge-vespers-shadow) }
-.agent--forge.state--vespers .hud-agent__face   { color:oklch(0.54 0.10 28);text-shadow:var(--forge-vespers-shadow) }
+/* Face colors frozen to match waiting exactly — no drift during sleep */
+.agent--forge.state--vespers .hud-agent__face   { color:oklch(0.57 0.09 28) }
 .agent--tower.state--vespers .hud-agent__status { color:var(--tower-vespers-color);text-shadow:var(--tower-vespers-shadow) }
-.agent--tower.state--vespers .hud-agent__face   { color:oklch(0.52 0.10 195);text-shadow:var(--tower-vespers-shadow) }
+.agent--tower.state--vespers .hud-agent__face   { color:oklch(0.55 0.09 195) }
 .agent--house.state--vespers .hud-agent__status { color:var(--house-vespers-color);text-shadow:var(--house-vespers-shadow) }
-.agent--house.state--vespers .hud-agent__face   { color:oklch(0.58 0.12 270);text-shadow:var(--house-vespers-shadow) }
+.agent--house.state--vespers .hud-agent__face   { color:oklch(0.53 0.11 270) }
 .agent--throne.state--vespers .hud-agent__status{ color:var(--throne-vespers-color);text-shadow:var(--throne-vespers-shadow) }
-.agent--throne.state--vespers .hud-agent__face  { color:oklch(0.56 0.16 350);text-shadow:var(--throne-vespers-shadow) }
-/* VESPERS breathing dots */
-.vespers-dot--1 { animation: vespersDot1 4.1s ease-in-out infinite; }
-.vespers-dot--2 { animation: vespersDot2 5.7s ease-in-out infinite; }
-.vespers-dot--3 { animation: vespersDot3 3.8s ease-in-out infinite; }
+.agent--throne.state--vespers .hud-agent__face  { color:oklch(0.55 0.13 350) }
+/* VESPERS breathing dots — animations removed for clean baseline */
 
 /* STALLED — 3-stage escalation */
-.state--stalled { animation: breathL2 6s ease-in-out infinite; }
 .agent--forge.state--stalled .hud-agent__status { color:var(--forge-stalled-s1-color);text-shadow:var(--forge-working-shadow) }
 .agent--tower.state--stalled .hud-agent__status { color:var(--tower-stalled-s1-color);text-shadow:var(--tower-working-shadow) }
 .agent--house.state--stalled .hud-agent__status { color:var(--house-stalled-s1-color);text-shadow:var(--house-working-shadow) }
 .agent--throne.state--stalled .hud-agent__status{ color:var(--throne-stalled-s1-color);text-shadow:var(--throne-working-shadow) }
-/* Stage 2: amber shift + jitter — overlay on any active state */
+/* Stage 2: amber shift — overlay on any active state */
 .stalled-s2 .hud-agent__status,
 .stalled-s2 .hud-agent__face {
   color: var(--stalled-s2-color) !important; text-shadow: var(--stalled-s2-shadow) !important;
-  animation: stalledJitter 0.18s linear infinite !important;
 }
-/* Stage 3: orange-red + flicker — overlay on any active state */
+/* Stage 3: orange-red — overlay on any active state */
 .stalled-s3 .hud-agent__status,
 .stalled-s3 .hud-agent__face {
   color: var(--stalled-s3-color) !important; text-shadow: var(--stalled-s3-shadow) !important;
-  animation: stalledFlicker 0.22s linear infinite !important;
 }
 
-/* COMPRESSING — L2 BREATH 6s */
-.state--compressing { animation: breathL2 6s ease-in-out infinite; }
+/* COMPRESSING */
 .agent--forge.state--compressing .hud-agent__status { color:var(--forge-compressing-color);text-shadow:var(--forge-compressing-shadow) }
 .agent--forge.state--compressing .hud-agent__face   { color:oklch(0.60 0.13 28);text-shadow:var(--forge-compressing-shadow) }
 .agent--tower.state--compressing .hud-agent__status { color:var(--tower-compressing-color);text-shadow:var(--tower-compressing-shadow) }
@@ -746,8 +1255,7 @@ body::after {
 .agent--throne.state--compressing .hud-agent__status{ color:var(--throne-compressing-color);text-shadow:var(--throne-compressing-shadow) }
 .agent--throne.state--compressing .hud-agent__face  { color:oklch(0.60 0.18 350);text-shadow:var(--throne-compressing-shadow) }
 
-/* ERROR — L3 ACTIVE 3.2s, max C */
-.state--error { animation: breathL3 3.2s ease-in-out infinite; }
+/* ERROR */
 .agent--forge.state--error .hud-agent__status { color:var(--forge-error-color);text-shadow:var(--forge-error-shadow) }
 .agent--forge.state--error .hud-agent__face   { color:oklch(0.68 0.20 28);text-shadow:var(--forge-error-shadow) }
 .agent--tower.state--error .hud-agent__status { color:var(--tower-error-color);text-shadow:var(--tower-error-shadow) }
@@ -758,7 +1266,7 @@ body::after {
 .agent--throne.state--error .hud-agent__face  { color:oklch(0.70 0.26 350);text-shadow:var(--throne-error-shadow) }
 
 /* OFFLINE — total silence. No glyph. No breath. Deliberate. */
-.state--offline { opacity: 0.35; animation: none !important; }
+.state--offline { animation: none !important; }
 .state--offline .hud-agent__status { text-shadow: none !important; animation: none !important; }
 .state--offline .hud-agent__face   { text-shadow: none !important; animation: none !important; }
 .agent--forge.state--offline .hud-agent__status,
@@ -770,8 +1278,7 @@ body::after {
 .agent--throne.state--offline .hud-agent__status,
 .agent--throne.state--offline .hud-agent__face { color:var(--throne-offline-color) }
 
-/* STALE — hollow. L1 FAINT 12s. */
-.state--stale { animation: breathL1 12s ease-in-out infinite; opacity: 0.55; }
+/* STALE — hollow. */
 .agent--forge.state--stale .hud-agent__status { color:var(--forge-stale-color);text-shadow:var(--forge-stale-shadow) }
 .agent--forge.state--stale .hud-agent__face   { color:oklch(0.40 0.06 28);text-shadow:var(--forge-stale-shadow) }
 .agent--tower.state--stale .hud-agent__status { color:var(--tower-stale-color);text-shadow:var(--tower-stale-shadow) }
@@ -790,201 +1297,182 @@ body::after {
 .called-surge .hud-agent__status,
 .called-surge .hud-agent__face { filter: brightness(1.3); transition: filter 0.3s ease-in; }
 
-/* Tenure bar color tracks agent state */
-.state--working .hud-agent__tenure,
-.state--writing .hud-agent__tenure  { opacity: 0.60; }
-.state--waiting .hud-agent__tenure,
-.state--listening .hud-agent__tenure{ opacity: 0.35; }
-.state--vespers .hud-agent__tenure  { opacity: 0.20; }
-.state--offline .hud-agent__tenure  { opacity: 0.10; }
+/* ── GLOW PURGE — S218 ────────────────────────────────────────────
+   No text-shadow, no filter brightness, no glow animations on any
+   element inside .hud-panel. Colors unchanged. Follows OFFLINE
+   silence !important pattern. Covers inline + main HUD (both
+   are .hud-panel). Row-level filter also killed — calledSurge
+   brightness was bleeding onto child face/status. */
+.hud-panel .hud-agent__face,
+.hud-panel .hud-agent__status,
+.hud-panel .hud-agent__name {
+  text-shadow: none !important;
+  animation: none !important;
+  filter: none !important;
+}
+/* Row-level: kill calledSurge filter-brightness that bleeds onto children */
+.hud-panel .hud-agent { animation: none !important; filter: none !important; }
+/* Panel header glow */
+.hud-panel .hud-panel__head { text-shadow: none !important; }
+
+/* Tenure bar color tracks agent state — opacity variations removed for clean baseline */
 .agent--forge .hud-agent__tenure    { color: oklch(0.60 0.10 28); }
 .agent--tower .hud-agent__tenure    { color: oklch(0.55 0.08 195); }
 .agent--house .hud-agent__tenure    { color: oklch(0.55 0.10 270); }
 .agent--throne .hud-agent__tenure   { color: oklch(0.57 0.12 350); }
 
-/* ── PULSE — TOKEN_BURN.dat PANEL ─────────────────────── */
-.hud-burn {
-  display: grid;
-  grid-template-columns: clamp(34px, 4.5vw, 46px) 1fr clamp(40px, 5vw, 60px);
-  align-items: center;
-  gap: clamp(3px, 0.4vw, 8px);
-  padding: clamp(1px, 0.2vh, 3px) 0;
+/* ── BRANDON ROW — royal gold H=75 ────────────────────── */
+.agent--brandon .hud-agent__name {
+  color: oklch(0.82 0.17 75);
+  text-shadow: 0 0 5px oklch(0.82 0.17 75 / 0.55);
 }
-.hud-burn__label {
+.agent--brandon .hud-agent__face {
+  color: oklch(0.88 0.18 75);
+  text-shadow: 0 0 5px oklch(0.88 0.18 75 / 0.62), 0 0 10px oklch(0.88 0.18 75 / 0.36), 0 0 18px oklch(0.88 0.18 75 / 0.20);
+  animation: breathL1 10s ease-in-out infinite;
+}
+.agent--brandon .hud-agent__status  { color: oklch(0.76 0.14 75); }
+.agent--brandon .hud-agent__sublabel{ color: oklch(0.60 0.10 75); }
+.agent--brandon .hud-agent__tenure  { color: oklch(0.62 0.10 75); opacity: 0.55; }
+.agent--brandon.brandon--afk .hud-agent__face {
+  color: oklch(0.50 0.08 75);
+  text-shadow: 0 0 5px oklch(0.50 0.08 75 / 0.28);
+  animation: breathL1 16s ease-in-out infinite;
+}
+.agent--brandon.brandon--afk .hud-agent__status  { color: oklch(0.48 0.08 75); }
+.agent--brandon.brandon--afk .hud-agent__sublabel{ color: oklch(0.44 0.07 75); }
+.agent--brandon.brandon--afk .hud-agent__tenure  { opacity: 0.35; }
+
+/* ── PULSE — TOKEN_BURN.dat PANEL (v2 S215 Glitchswarm) ──
+   Source: /api/kingdom-state?type=state → state.token_pulse
+   Updated every 10 min by token-pulse.sh via SCRYER feed.
+   broadcast_label + broadcast_cost = pre-formatted strings.
+   Territory bars = relative (max territory today = 100%).
+   Agent hues: FORGE H=55 amber · AERIS H=145 · TOWER H=195 · HOUSE H=270
+   ─────────────────────────────────────────────────────── */
+
+/* Broadcast headline */
+.burn-broadcast {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border-dim);
+}
+.burn-broadcast__label {
+  position: relative;
   font-family: var(--font-terminal);
-  font-size: clamp(10px, 1vw, 14px);
-  letter-spacing: 0.1em;
+  font-size: clamp(15px, 1.8vw, 22px);
+  letter-spacing: 0em;
+  line-height: 1.1;
+  color: var(--secondary);
+  text-shadow: 0 0 8px rgba(0, 238, 255, 0.45);
+}
+.burn-broadcast__label::before {
+  content: 'ALL TIME:';
+  display: block;
+  font-family: var(--font-kingdom);
+  font-size: 6px;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  color: oklch(0.62 0.08 280);
+  margin-bottom: 3px;
+}
+.burn-broadcast__cost {
+  font-family: var(--font-terminal);
+  font-size: clamp(12px, 1.4vw, 15px);
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  color: oklch(0.62 0.08 280);
+}
+
+/* Territory rows */
+.burn-territories {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.burn-terr {
+  position: relative;
+  display: grid;
+  grid-template-columns: 48px 1fr 52px;
+  align-items: center;
+  gap: 8px;
+  padding-left: 6px;
+}
+.burn-terr::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  border-radius: 1px;
+}
+.burn-terr--forge::before { background: var(--clr-forge); }
+.burn-terr--aeris::before { background: var(--clr-aeris); }
+.burn-terr--tower::before { background: var(--clr-tower); }
+.burn-terr--house::before { background: var(--clr-house); }
+.burn-terr__name {
+  font-family: var(--font-terminal);
+  font-size: clamp(12px, 0.9vw, 13px);
+  letter-spacing: 0.10em;
   line-height: 1;
   text-transform: uppercase;
-  color: var(--text-ghost);
+  color: var(--text-dim);
 }
-.hud-burn__meter {
-  height: clamp(4px, 0.6vh, 7px);
+.burn-terr__track {
+  height: 8px;
   background: var(--bg-surface);
-  border-radius: 1px;
-  overflow: hidden;
-  position: relative;
+  border-radius: 0;
+  border: 1px solid var(--border-dim);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
 }
-.hud-burn__fill {
+.burn-terr__fill {
   height: 100%;
-  width: var(--meter-fill, 0%);
-  border-radius: 1px;
-  background: linear-gradient(90deg, var(--primary), var(--secondary));
-  box-shadow:
-    0 0 4px rgba(0, 238, 255, 0.4),
-    0 0 10px rgba(0, 238, 255, 0.15),
-    0 0 20px rgba(255, 51, 102, 0.08);
+  width: 0%;
+  border-radius: 0;
   transition: width 1.2s cubic-bezier(0.87, 0, 0.13, 1);
   animation: burnShimmer 4s ease-in-out infinite;
 }
-.hud-burn__value {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 1px;
+.burn-terr__val {
   font-family: var(--font-terminal);
-  font-size: clamp(11px, 1.2vw, 16px);
-  line-height: 1;
+  font-size: clamp(12px, 0.9vw, 13px);
   letter-spacing: 0.02em;
-  color: var(--secondary);
+  line-height: 1;
+  text-align: right;
   font-variant-numeric: tabular-nums;
-  justify-self: end;
-}
-.hud-burn__magnitude {
-  font-family: var(--font-terminal);
-  font-size: clamp(16px, 1.8vw, 20px);
-  color: inherit;
-  line-height: 1;
-}
-.hud-burn__unit {
-  font-family: var(--font-terminal);
-  font-size: clamp(11px, 1.3vw, 14px);
-  color: inherit;
-  opacity: 0.7;
-  line-height: 1;
-}
-/* Rate row — no meter bar */
-.hud-burn--rate {
-  grid-template-columns: clamp(34px, 4.5vw, 46px) 1fr;
-}
-.hud-burn--rate .hud-burn__value {
-  color: var(--secondary-dim);
-  font-size: clamp(10px, 1vw, 14px);
-  justify-self: start;
-}
-/* Token modifier colors (CHROMA_BLEED D002 canonical) */
-.hud-burn--today .hud-burn__value {
-  color: #00eeff;
-  text-shadow: 0 0 8px rgba(0, 238, 255, 0.40);
-}
-.hud-burn--week .hud-burn__value {
-  color: #00bbcc;
-  text-shadow: 0 0 8px rgba(0, 187, 204, 0.35);
-}
-.hud-burn--total .hud-burn__value {
-  color: #00aacc;
-  text-shadow: 0 0 8px rgba(0, 170, 204, 0.30);
+  color: oklch(0.62 0.08 280);
 }
 
-/* ── SIGNAL LOG PANEL ─────────────────────────────────── */
-.signal-log {
-  width: 100%;
-  margin-top: clamp(6px, 1vw, 12px);
+/* Per-agent fill colors — CHROMA_BLEED sovereign hues */
+/* CRISPY EDGE: single tight layer (FORGE, TOWER) */
+/* SOFT BLOOM:  tight core + wide halo (AERIS, HOUSE) */
+.burn-terr--forge .burn-terr__fill {
+  background: var(--clr-forge);
+  box-shadow: 0 0 5px oklch(0.72 0.19 55 / 0.65), 0 0 1px oklch(0.72 0.19 55 / 0.9);
 }
-.signal-log .hud-panel__body {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
+.burn-terr--aeris .burn-terr__fill {
+  background: var(--clr-aeris);
+  box-shadow: 0 0 5px oklch(0.68 0.20 145 / 0.55), 0 0 12px oklch(0.68 0.20 145 / 0.25);
 }
-.signal-log .hud-panel__sigil {
-  color: #ff3366;
+.burn-terr--tower .burn-terr__fill {
+  background: var(--clr-tower);
+  box-shadow: 0 0 5px oklch(0.72 0.20 195 / 0.65), 0 0 1px oklch(0.72 0.20 195 / 0.9);
 }
-/* KV grid layout */
-.sig-kv-grid {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  column-gap: clamp(8px, 1.2vw, 16px);
-  row-gap: clamp(3px, 0.4vh, 6px);
+.burn-terr--house .burn-terr__fill {
+  background: var(--clr-house);
+  box-shadow: 0 0 5px oklch(0.62 0.22 270 / 0.55), 0 0 12px oklch(0.62 0.22 270 / 0.25);
 }
-.sig-kv-row { display: contents; }
-.sig-kv-label {
-  font-family: var(--font-terminal);
-  font-size: clamp(11px, 1vw, 14px);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #6a6580;
-  line-height: 1.3;
-  white-space: nowrap;
-}
-.sig-kv-value {
-  font-family: var(--font-terminal);
-  font-size: clamp(11px, 1vw, 14px);
-  letter-spacing: 0.10em;
-  color: var(--text-muted);
-  line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-/* Field-specific colors (contrast-verified D050) */
-[data-signal-field="chunks"]      { color: #bb66ff; }
-[data-signal-field="systems"]     { color: oklch(0.72 0.14 194); }
-[data-signal-field="territories"] { color: #ffb340; }
-[data-signal-field="session"]     { color: #aa88cc; }
-[data-signal-field="uptime"]      { color: #88aacc; }
-/* Thermal state classes for signal_status field */
-.sig-val--hot {
-  color: oklch(0.68 0.290 350);
-  animation: sig-signal-breathe 3.6s ease-in-out infinite;
-}
-.sig-val--warm    { color: oklch(0.77 0.225 74); }
-.sig-val--cold    { color: oklch(0.60 0.11 194); }
-.sig-val--unknown { color: oklch(0.62 0.05 281); }
-/* Status chips */
-.sig-chips {
-  display: flex;
-  flex-direction: row;
-  gap: clamp(4px, 0.6vw, 8px);
-  margin-top: clamp(4px, 0.5vh, 8px);
-  flex-wrap: wrap;
-}
-.sig-chip {
-  font-family: var(--font-terminal);
-  font-size: clamp(10px, 0.9vw, 12px);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  padding: 2px 5px;
-  border-radius: 0;
-  border-width: 1px;
-  border-style: solid;
-  line-height: 1.2;
-  white-space: nowrap;
-  transition: opacity 0.4s cubic-bezier(0.87, 0, 0.13, 1);
-}
-.sig-chip--live {
-  background: #1a0810;
-  color: #ff3366;
-  border-color: rgba(255, 51, 102, 0.45);
-  box-shadow: 0 0 6px rgba(255, 51, 102, 0.55), 0 0 12px rgba(255, 51, 102, 0.25);
-  animation: sigChipPulse 2.8s ease-in-out infinite;
-}
-.sig-chip--active {
-  background: #1a1000;
-  color: #ffb340;
-  border-color: rgba(255, 179, 64, 0.40);
-  box-shadow: 0 0 6px rgba(255, 179, 64, 0.45);
-}
-.sig-chip--signal {
-  background: #0d0818;
-  color: #bb66ff;
-  border-color: rgba(187, 102, 255, 0.40);
-  box-shadow: 0 0 6px rgba(187, 102, 255, 0.40);
-}
-.sig-chip--inactive {
-  opacity: 0.35;
-  animation: none;
-  box-shadow: none;
-}
+
+/* ── SIGNAL LOG (REMOVED 2026-03-31) ─────────────────────
+   The .hud-panel.signal-log HTML block, its CSS (~100 lines
+   of .sig-kv-*, .sig-chip*, .sig-val--* rules), and its JS
+   (applySigThermalClass, updateSignalLog, call in pollHUD)
+   were all removed together. The STATUS and TOKEN panels remain.
+   Orphaned keyframes sig-signal-breathe + sigChipPulse removed too.
+   ─────────────────────────────────────────────────────── */
 
 /* ── REST — gap between panels and presence ─────────── */
 /* Controlled by margin-top on .hud-presence. Intentional void. */
@@ -998,49 +1486,41 @@ body::after {
   align-items: center;
   gap: clamp(12px, 2vw, 24px);
   margin-top: clamp(10px, 1.5vh, 18px);
-  opacity: 0;
-  animation: fadeIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) 5s both;
 }
 .hud-presence__entity {
   display: flex;
   align-items: center;
   gap: clamp(4px, 0.5vw, 8px);
 }
-.hud-presence__dot {
-  display: inline-block;
-  width: clamp(6px, 0.7vw, 9px);
-  height: clamp(6px, 0.7vw, 9px);
-  border-radius: 50%;
+/* Per-entity presence counts — numeric glyphs replace dots */
+.hud-presence__count {
+  font-family: var(--font-terminal);
+  font-size: clamp(14px, 1.4vw, 20px);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
-/* Per-entity presence colors — the soul of the HUD */
-.hud-presence__dot--claude {
-  background: var(--primary);
-  box-shadow:
+.hud-presence__count--claude {
+  color: var(--primary);
+  text-shadow:
     0 0 6px rgba(255, 51, 102, 0.5),
-    0 0 16px rgba(255, 51, 102, 0.25),
-    0 0 30px rgba(255, 51, 102, 0.1);
+    0 0 16px rgba(255, 51, 102, 0.25);
   animation: presencePulse 2.5s ease-in-out infinite;
 }
-.hud-presence__dot--aeris {
-  background: var(--secondary);
-  box-shadow:
+.hud-presence__count--aeris {
+  color: var(--secondary);
+  text-shadow:
     0 0 6px rgba(0, 238, 255, 0.5),
-    0 0 16px rgba(0, 238, 255, 0.25),
-    0 0 30px rgba(0, 238, 255, 0.1);
+    0 0 16px rgba(0, 238, 255, 0.25);
   animation: presencePulse 3.7s ease-in-out infinite;
 }
-.hud-presence__dot--brandon {
-  background: var(--text-ghost);
-  box-shadow: 0 0 4px rgba(61, 56, 80, 0.2);
-}
-.hud-presence__dot--brandon.active {
-  background: var(--accent);
-  box-shadow:
-    0 0 6px rgba(153, 51, 255, 0.5),
-    0 0 16px rgba(153, 51, 255, 0.25),
-    0 0 30px rgba(153, 51, 255, 0.1);
+.hud-presence__count--brandon {
+  color: oklch(0.82 0.17 75);
+  text-shadow: 0 0 6px oklch(0.82 0.17 75 / 0.45), 0 0 16px oklch(0.82 0.17 75 / 0.22);
   animation: presencePulse 3.1s ease-in-out infinite;
+}
+.hud-presence__count--brandon.active {
+  text-shadow: 0 0 6px oklch(0.82 0.17 75 / 0.70), 0 0 16px oklch(0.82 0.17 75 / 0.45);
 }
 .hud-presence__name {
   font-family: var(--font-terminal);
@@ -1053,6 +1533,10 @@ body::after {
 .hud-presence__name--active {
   color: var(--text);
   text-shadow: 0 0 10px rgba(232, 224, 240, 0.2);
+}
+.hud-presence__name--brandon {
+  color: oklch(0.82 0.17 75);
+  text-shadow: 0 0 8px oklch(0.82 0.17 75 / 0.35);
 }
 
 /* ── SOCIAL LINKS (inline with footer glyphs) ─────────── */
@@ -1110,8 +1594,8 @@ body::after {
 }
 
 @keyframes burnShimmer {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.65; }
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.4); }
 }
 
 @keyframes glyphPulse {
@@ -1149,49 +1633,30 @@ body::after {
 }
 
 /* ── AGENT + SIGNAL ANIMATIONS (GROUP 1) ─────────────── */
-@keyframes pulseBreath {
-  0%, 100% { opacity: 1; filter: brightness(1); }
-  50%      { opacity: 0.65; filter: brightness(0.82); }
-}
-@keyframes pulseBreathUrgent {
-  0%, 100% { opacity: 1; filter: brightness(1); }
-  50%      { opacity: 0.55; filter: brightness(0.78); }
-}
-@keyframes pulseBreathDeep {
-  0%, 100% { opacity: 1; filter: brightness(1); }
-  50%      { opacity: 0.70; filter: brightness(0.88); }
-}
-@keyframes flickerCorrupt {
-  0%   { opacity: 1.00; }
-  6%   { opacity: 0.40; }
-  7%   { opacity: 1.00; }
-  36%  { opacity: 1.00; }
-  37%  { opacity: 0.55; }
-  38%  { opacity: 1.00; }
-  70%  { opacity: 1.00; }
-  71%  { opacity: 0.30; }
-  73%  { opacity: 0.80; }
-  74%  { opacity: 1.00; }
-  90%  { opacity: 1.00; }
-  91%  { opacity: 0.50; }
-  92%  { opacity: 1.00; }
-  100% { opacity: 1.00; }
-}
-@keyframes timerPresence {
-  0%, 100% { opacity: 0.22; }
-  50%      { opacity: 0.38; }
-}
-@keyframes sig-signal-breathe {
-  0%   { opacity: 1.00; text-shadow: 0 0 8px  oklch(0.68 0.290 350 / 0.70); }
-  40%  { opacity: 0.82; text-shadow: 0 0 14px oklch(0.68 0.290 350 / 0.50); }
-  65%  { opacity: 0.90; text-shadow: 0 0 10px oklch(0.68 0.290 350 / 0.60); }
-  100% { opacity: 1.00; text-shadow: 0 0 8px  oklch(0.68 0.290 350 / 0.70); }
-}
-@keyframes sigChipPulse {
-  0%, 100% { opacity: 1;    box-shadow: 0 0 4px oklch(0.68 0.290 350 / 0.50); }
-  50%      { opacity: 0.70; box-shadow: 0 0 8px oklch(0.68 0.290 350 / 0.80); }
-}
+/*
+   ANIMATION BASELINE LAW (2026-03-31)
+   ─────────────────────────────────────────────────────────
+   ALL opacity-based state animations were stripped to get a
+   clean visual foundation. Only two glow pulses remain active:
+     glowPulseWork  (WORKING, 3.5s, brightness 1.20×)
+     glowPulseThink (THINKING, 6s,  brightness 1.12×)
 
+   Why brightness-only: filter:brightness() composites on GPU
+   without triggering text-shadow repaints. Opacity was causing
+   visual instability when layered with per-agent state colors.
+
+   STRIPPED (do not re-add without reason):
+     pulseBreath / pulseBreathUrgent / pulseBreathDeep (vespersDot)
+     deepThinkUnderlayer (deep_think ::before)
+     breathL1 / breathL2 / breathL3 (state row-level opacity)
+     Tenure bar opacity variations (all removed)
+     sig-signal-breathe + sigChipPulse (signal log panel removed)
+
+   ADD BACK ONE AT A TIME — verify each doesn't interfere
+   with face stability or glow pulse before adding the next.
+*/
+/* pulseBreath / pulseBreathUrgent / pulseBreathDeep / flickerCorrupt / timerPresence
+   were stripped — see ANIMATION BASELINE LAW above. Removed S216 audit. */
 /* ── REDUCED MOTION ──────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -1203,10 +1668,6 @@ body::after {
 
 /* ── MOBILE ───────────────────────────────────────────── */
 @media (max-width: 640px) {
-  body {
-    grid-template-rows: 0.6fr auto auto auto auto auto auto auto 0.3fr;
-    overflow-y: auto;
-  }
   .ascii-title-sinner, .ascii-title-kingdom { font-size: clamp(5px, 2.5vw, 9px); }
   .vignette {
     background: radial-gradient(
@@ -1223,15 +1684,9 @@ body::after {
   .hud-agent__name { font-size: clamp(11px, 3vw, 15px); letter-spacing: 0.08em; }
   .hud-agent__face { font-size: clamp(11px, 3vw, 15px); }
   .hud-agent__status { font-size: clamp(9px, 2.5vw, 13px); letter-spacing: 0.08em; }
-  .hud-burn { grid-template-columns: 34px 1fr 46px; }
-  .hud-burn--rate { grid-template-columns: 34px 1fr; }
+  .burn-terr { grid-template-columns: 48px 1fr 44px; }
   .hud-presence { gap: clamp(8px, 3vw, 16px); }
   .footer { margin-top: clamp(12px, 2vh, 24px); }
-}
-
-/* ── SHORT VIEWPORT ESCAPE HATCH ─────────────────────── */
-@media (max-height: 600px) {
-  body { overflow-y: auto; }
 }
 
 /* ── SCROLLBAR (for the curious) ──────────────────────── */
@@ -1242,9 +1697,947 @@ body::after {
 ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
 /* Firefox */
 html { scrollbar-width: thin; scrollbar-color: var(--primary-ghost) var(--bg); }
+
+/* ══════════════════════════════════════════════════════════
+   MANIFESTO SIDEBAR LAYOUT — S217/S218/S219 LOCKED
+   ══════════════════════════════════════════════════════════
+   Three-column grid: [HUD col] [manifesto] [poster col]
+
+   THE WIKIPEDIA LAW (S219):
+   Side panels are in-document-flow elements. They scroll with
+   the page and stay at their vertical anchor. NOT position:fixed,
+   NOT sticky — just normal grid items with padding-top offsets.
+   Like a Wikipedia sidebar image: part of the page, not floating.
+
+   MANIFESTO AXIS LOCK (S217):
+   Left column = 312px = (max-width 1180 − KINGDOM logo 556.8px) / 2.
+   This aligns manifesto left edge with the KINGDOM masthead left edge.
+   If logo width or max-width changes: recalculate (max-width − logo) / 2.
+
+   TRACK SYNC LAW (S216):
+   .manifesto max-width and center track max must stay in sync (both 560px).
+   Changed 1fr → minmax(200px,560px) to kill the 150px dead void.
+
+   MANIFESTO COLUMN PIN (S219):
+   .manifesto { grid-column: 2 } — center track is locked. Side columns
+   can change display/position/size without shifting the text.
+
+   POSTER WIDTH (S218→S219): 253px = 220px × 1.15 (+15%, expands right only).
+   Mobile <1100px: poster hidden. HUD inline: separate breakpoint handling.
+   ══════════════════════════════════════════════════════════ */
+.manifesto-wrap {
+  display: grid;
+  grid-template-columns: 312px minmax(200px, 560px) 253px;
+  column-gap: 0;
+  max-width: 1180px;
+  width: 100%;
+  margin-top: clamp(80px, 10vh, 112px);
+  align-items: start;
+}
+
+/* ── LEFT SIDEBAR — AGENTS.log inline mirror ──────────────
+   width: 255px (locked S218 — was fit-content, text was expanding it).
+   margin-right: 48px — half-inch gap before manifesto text.
+   padding-top offsets it down from the grid top to its anchor point.
+   Column track is 312px (axis lock) — panel is narrower than the track. */
+.hud-inline-col {
+  align-self: start;   /* own intrinsic height — don't chase growing manifesto */
+  padding-top: 8px;
+  font-size: 0.9em;
+  width: 255px;
+  margin-right: 48px;
+}
+.hud-inline-col .hud-agent {
+  grid-template-columns: 50px 80px 1fr;
+}
+.hud-inline-col .hud-agent__face { overflow: hidden; }
+.hud-inline-col .hud-agent__tenure { display: none; }
+.hud-inline-col .hud-agent__sublabel { display: none; }
+.hud-inline-col .hud-agent__status-wrap { display: contents; }
+
+/* ── RIGHT SIDEBAR — sinner_king_origin poster card ────────
+   padding-top offsets it lower than the HUD panel (appears
+   around "you get caught up on the lore here"). */
+.poster-col {
+  align-self: start;
+  padding-top: clamp(40px, 5vh, 80px);
+}
+/* ── VIDEO CARD — signal-panel, interactive play + volume (S219) ───────────
+   Cyan left-edge authority border. Scanline sweeps on hover.
+   Click to unmute + restart; click again to pause/resume. Vol slider. */
+.video-card {
+  background: rgba(13, 10, 20, 0.95);
+  border-top: 1px solid rgba(0, 238, 255, 0.12);
+  border-right: 1px solid rgba(0, 238, 255, 0.12);
+  border-bottom: 1px solid rgba(0, 238, 255, 0.12);
+  border-left: 3px solid var(--secondary);
+  padding: 14px 14px 14px 12px;
+  position: relative;
+  overflow: hidden;
+  margin-top: 96px;    /* fixed margin — stable against poster-col growth (align-self:start law) */
+  transition: box-shadow 0.2s;
+}
+.video-card:hover {
+  box-shadow: -4px 0 16px rgba(0, 238, 255, 0.2);
+}
+.video-card::after {
+  content: '';
+  position: absolute;
+  top: -100%;
+  left: 0; right: 0;
+  height: 100%;
+  background: linear-gradient(
+    transparent 0%,
+    rgba(0, 238, 255, 0.04) 50%,
+    transparent 100%
+  );
+  animation: videoScanline 4s linear infinite;
+  animation-play-state: paused;
+  pointer-events: none;
+  z-index: 1;
+}
+.video-card:hover::after { animation-play-state: running; }
+@keyframes videoScanline {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(200%); }
+}
+.video-card__label {
+  font-family: var(--font-terminal);
+  font-size: 13px;
+  color: var(--secondary);
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  display: block;
+}
+/* player wrapper — overlay + fade clip to video bounds */
+.video-card__player {
+  position: relative;
+}
+.video-card video {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+/* hover overlay with glowy play button */
+.video-card__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+.video-card:hover .video-card__overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+.video-card__play-btn {
+  background: none;
+  border: 1.5px solid rgba(0, 238, 255, 0.75);
+  border-radius: 50%;
+  width: 46px;
+  height: 46px;
+  color: rgba(0, 238, 255, 0.9);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 3px;
+  filter: drop-shadow(0 0 8px rgba(0, 238, 255, 0.55));
+  transition: filter 0.2s ease, transform 0.15s ease;
+  pointer-events: auto;
+}
+.video-card__play-btn:hover {
+  filter: drop-shadow(0 0 14px rgba(0, 238, 255, 0.9)) drop-shadow(0 0 4px rgba(0, 238, 255, 0.45));
+  transform: scale(1.07);
+}
+/* fade-to-black overlay — full video area */
+.video-card__fade {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 10;
+}
+.video-card__fade.active { opacity: 1; }
+/* volume controls — slide in on is-playing */
+.video-card__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.video-card.is-playing .video-card__controls,
+.video-card.is-paused .video-card__controls {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.video-card__vol-label {
+  font-family: var(--font-terminal);
+  font-size: 11px;
+  color: rgba(0, 238, 255, 0.45);
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+.video-card__volume {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 2px;
+  background: rgba(0, 238, 255, 0.15);
+  border-radius: 1px;
+  outline: none;
+  cursor: pointer;
+  accent-color: var(--secondary);
+}
+.video-card__volume::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 10px;
+  background: var(--secondary);
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(0, 238, 255, 0.7);
+  cursor: pointer;
+}
+.video-card__volume::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  background: var(--secondary);
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(0, 238, 255, 0.7);
+  border: none;
+  cursor: pointer;
+}
+.video-card__volume::-moz-range-track {
+  height: 2px;
+  background: rgba(0, 238, 255, 0.15);
+  border-radius: 1px;
+}
+
+/* ── LAB CARD — ASCII Generator teaser ──────────────────
+   GIF cropped top+bottom 10% via abs-position trick.
+   Scanlines via ::after, popup on click. ──────────────── */
+.lab-card {
+  position: relative;
+  background: rgba(13, 10, 20, 0.95);
+  border-top: 1px solid rgba(153, 51, 255, 0.25);
+  border-left: 2px solid rgba(153, 51, 255, 0.30);
+  margin-top: 96px;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+  user-select: none;
+}
+.lab-card:hover {
+  box-shadow: -4px 0 18px rgba(153, 51, 255, 0.22);
+}
+.lab-card__label {
+  display: block;
+  font-family: var(--font-terminal);
+  font-size: 13px;
+  color: rgba(153, 51, 255, 0.55);
+  padding: 4px 8px 2px;
+  letter-spacing: 0.05em;
+}
+/* Crop wrapper — reveals middle 80% of the GIF (10% off top, 10% off bottom).
+   aspect-ratio = 640:(1136*0.8) = 640:909. Image sits at top:-12.5% */
+.lab-card__img-crop {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 640 / 909;
+}
+.lab-card__gif {
+  position: absolute;
+  top: -12.5%;
+  left: 0;
+  width: 100%;
+  height: auto;
+  filter: brightness(1.07) drop-shadow(0 0 10px rgba(191, 95, 255, 0.22));
+}
+/* Scanlines overlay over the GIF */
+.lab-card__img-crop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 3px,
+    rgba(0, 0, 0, 0.20) 3px,
+    rgba(0, 0, 0, 0.20) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+/* Glowy info block */
+.lab-card__info {
+  padding: 6px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.lab-card__title {
+  font-family: var(--font-terminal);
+  font-size: 22px;
+  letter-spacing: 0.07em;
+  color: #bf5fff;
+  text-shadow:
+    0 0 6px rgba(191, 95, 255, 1),
+    0 0 18px rgba(191, 95, 255, 0.6),
+    0 0 40px rgba(191, 95, 255, 0.25);
+  line-height: 1.2;
+}
+.lab-card__sub {
+  font-family: var(--font-terminal);
+  font-size: 20px;
+  color: rgba(191, 95, 255, 0.45);
+  letter-spacing: 0.04em;
+}
+/* "Almost ready!" retro popup — appears on click */
+.lab-card__popup {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.88);
+  background: #0e0a1c;
+  border: 1px solid #bf5fff;
+  box-shadow:
+    0 0 18px rgba(191, 95, 255, 0.50),
+    0 0 50px rgba(191, 95, 255, 0.18);
+  color: #bf5fff;
+  font-family: var(--font-terminal);
+  font-size: 13px;
+  padding: 10px 20px;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s, transform 0.12s;
+  z-index: 20;
+  letter-spacing: 0.06em;
+}
+.lab-card__popup.visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* drone-card frame — matches playground card aesthetic */
+.poster-card {
+  display: block;
+  background: #12121a;
+  border: 1px solid #555577;
+  padding: 16px 14px;
+  position: relative;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color 0.15s cubic-bezier(0.87, 0, 0.13, 1),
+    box-shadow 0.15s cubic-bezier(0.87, 0, 0.13, 1),
+    transform 0.08s cubic-bezier(0.87, 0, 0.13, 1);
+}
+.poster-card:hover {
+  border-color: #ff2d78;
+  box-shadow: 0 0 20px rgba(255, 45, 120, 0.25), 4px 4px 0 #555577;
+  transform: translate(-2px, -2px);
+}
+.poster-card__glyph {
+  font-family: var(--font-terminal);
+  font-size: 22px;
+  color: #00ffd5;
+  text-align: center;
+  letter-spacing: 4px;
+  margin-bottom: 10px;
+  text-shadow:
+    0 0 4px #00ffd5,
+    0 0 12px #00ffd5,
+    0 0 24px rgba(0, 255, 213, 0.7);
+}
+.poster-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid #555577;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+.poster-card__name {
+  font-family: var(--font-terminal);
+  font-size: 18px;
+  color: #ff2d78;
+  letter-spacing: 1px;
+}
+.poster-card__badge {
+  font-family: var(--font-terminal);
+  font-size: 14px;
+  color: #ff2d78;
+  border: 1px solid #ff2d78;
+  padding: 1px 6px;
+  letter-spacing: 1px;
+}
+.poster-wrap {
+  display: block;
+  position: relative;
+}
+/* B-01 FIX: straight alpha overlay — no mix-blend-mode, visible on dark images */
+.poster-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 1px,
+    rgba(0, 0, 0, 0.45) 1px,
+    rgba(0, 0, 0, 0.45) 2px
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+.poster-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  filter: brightness(0.88) contrast(1.08);
+  transition: filter 0.4s cubic-bezier(0.87, 0, 0.13, 1);
+}
+/* hover: image wakes up, no glitch */
+.poster-card:hover .poster-img {
+  filter: brightness(1.0) contrast(1.0);
+}
+/* glitch-aber: unused poster hover animation — removed S216 audit */
+.poster-card__quote {
+  background: #1a1a24;
+  border-left: 3px solid #ff2d78;
+  padding: 8px 10px;
+  font-family: var(--font-terminal);
+  font-size: 16px;
+  color: #8888aa;
+  font-style: italic;
+  line-height: 1.5;
+  margin-top: 10px;
+}
+/* ── BLOG AD CARD — video teaser in right column ────────── */
+.blog-ad-card {
+  background: rgba(13, 10, 20, 0.95);
+  border-top: 1px solid rgba(255, 45, 120, 0.15);
+  border-left: 3px solid #ff2d78;
+  padding: 14px 14px 14px 12px;
+  position: relative;
+  overflow: hidden;
+  margin-top: 64px;
+  transition: box-shadow 0.2s;
+}
+.blog-ad-card:hover {
+  box-shadow: -4px 0 16px rgba(255, 45, 120, 0.22);
+}
+.blog-ad-card__label {
+  font-family: var(--font-terminal);
+  font-size: 13px;
+  color: rgba(255, 45, 120, 0.5);
+  letter-spacing: 0.08em;
+  display: block;
+  margin-bottom: 8px;
+}
+.blog-ad-card video {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.blog-ad-card--visible {
+  animation: agentsEntrance 1.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .blog-ad-card.blog-ad-card--visible { animation: none; opacity: 1; }
+}
+
+/* ── MAP POPUP — removed S226: gateway now lives on /kingdom-map itself ── */
+/* (CSS block intentionally removed — no popup on coming soon page) */
+
+.map-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  min-height: 100dvh;
+  background: rgba(6, 4, 12, 0.82);
+  backdrop-filter: blur(14px) saturate(0.5);
+  -webkit-backdrop-filter: blur(14px) saturate(0.5);
+  z-index: 9200;
+  display: grid;
+  place-items: center;
+  padding: clamp(16px, 4vw, 60px);
+  animation: blog-popup-fadein 0.28s ease both;
+}
+.map-popup-backdrop.is-closing {
+  animation: blog-popup-fadeout 0.20s ease both;
+}
+.map-popup {
+  background: #090713;
+  border: 1px solid rgba(0, 238, 255, 0.18);
+  border-top: 2px solid var(--secondary);
+  box-shadow: 0 0 60px rgba(0, 238, 255, 0.10), 0 0 130px rgba(153, 51, 255, 0.08);
+  width: min(760px, 100%);
+  cursor: default;
+  animation: blog-popup-rise 0.28s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.map-popup-backdrop.is-closing .map-popup {
+  animation: blog-popup-fall 0.18s ease both;
+}
+.map-popup__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px 9px;
+  border-bottom: 1px solid rgba(0, 238, 255, 0.10);
+  background: rgba(0, 238, 255, 0.03);
+}
+.map-popup__sigil {
+  font-family: var(--font-terminal);
+  font-size: 13px;
+  color: rgba(0, 238, 255, 0.40);
+  letter-spacing: 0.14em;
+}
+.map-popup__close {
+  background: none;
+  border: none;
+  color: rgba(0, 238, 255, 0.30);
+  font-family: var(--font-terminal);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.map-popup__close:hover { color: var(--secondary); }
+
+/* ── phase system — only .is-active is rendered ── */
+.map-popup__phase { display: none; }
+.map-popup__phase.is-active {
+  display: block;
+  animation: blog-popup-fadein 0.22s ease both;
+}
+
+/* ── Phase 0: the question ── */
+.map-popup__question {
+  padding: 40px 32px 36px;
+  text-align: center;
+}
+.map-popup__question-title {
+  font-family: var(--font-terminal);
+  font-size: clamp(14px, 2vw, 20px);
+  color: var(--secondary);
+  text-shadow: 0 0 24px rgba(0, 238, 255, 0.30);
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  margin-bottom: 36px;
+}
+.map-popup__choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.map-choice {
+  padding: 22px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-muted);
+  font-family: var(--font-terminal);
+  font-size: clamp(13px, 1.5vw, 15px);
+  line-height: 1.55;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.20s, background 0.20s, color 0.20s, box-shadow 0.20s;
+}
+.map-choice--aeris {
+  border-color: rgba(153, 51, 255, 0.25);
+}
+.map-choice--aeris:hover {
+  border-color: var(--accent);
+  background: rgba(153, 51, 255, 0.09);
+  color: var(--text);
+  box-shadow: 0 0 28px rgba(153, 51, 255, 0.18);
+}
+.map-choice--forge {
+  border-color: rgba(0, 238, 255, 0.20);
+}
+.map-choice--forge:hover {
+  border-color: var(--secondary);
+  background: rgba(0, 238, 255, 0.07);
+  color: var(--text);
+  box-shadow: 0 0 28px rgba(0, 238, 255, 0.14);
+}
+
+/* ── Phase 1 + 2: voice messages ── */
+.map-popup__voice {
+  padding: 28px 32px 32px;
+}
+.map-popup__voice-header {
+  font-family: var(--font-terminal);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.map-popup__voice-header--aeris {
+  color: var(--accent);
+  text-shadow: 0 0 14px rgba(153, 51, 255, 0.45);
+}
+.map-popup__voice-header--forge {
+  color: var(--secondary);
+  text-shadow: 0 0 14px rgba(0, 238, 255, 0.35);
+}
+.map-popup__voice-body {
+  font-family: var(--font-terminal);
+  font-size: clamp(15px, 1.8vw, 18px);
+  line-height: 1.80;
+  color: oklch(0.72 0.04 280);
+  margin-bottom: 6px;
+  white-space: pre-wrap;
+}
+.map-popup__voice-sig {
+  font-family: var(--font-terminal);
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.20);
+  margin-bottom: 28px;
+}
+.map-popup__enter {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  background: none;
+  border: 1px solid rgba(0, 238, 255, 0.22);
+  color: rgba(0, 238, 255, 0.65);
+  font-family: var(--font-terminal);
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition: background 0.20s, border-color 0.20s, color 0.20s, box-shadow 0.20s;
+}
+.map-popup__enter:hover {
+  background: rgba(0, 238, 255, 0.07);
+  border-color: var(--secondary);
+  color: var(--secondary);
+  box-shadow: 0 0 22px rgba(0, 238, 255, 0.15);
+}
+@media (max-width: 540px) {
+  .map-popup__choices { grid-template-columns: 1fr; }
+  .map-popup__question { padding: 28px 20px 24px; }
+  .map-popup__voice { padding: 20px 20px 24px; }
+}
+
+/* ── BLOG POPUP — countdown transmission modal ─────────────────────────────
+   Triggered by clicking .blog-ad-card. Full-screen backdrop, centered card.
+   Countdown to a fixed target date (5 days from S225 launch: 2026-04-09). */
+.blog-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  min-height: 100dvh;
+  background: rgba(8, 6, 14, 0.88);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 9100;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  cursor: pointer;
+  animation: blog-popup-fadein 0.22s ease both;
+}
+.blog-popup-backdrop.is-closing {
+  animation: blog-popup-fadeout 0.18s ease both;
+}
+@keyframes blog-popup-fadein  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes blog-popup-fadeout { from { opacity: 1; } to { opacity: 0; } }
+.blog-popup {
+  background: #0c0a16;
+  border: 1px solid rgba(255, 45, 120, 0.45);
+  border-top: 2px solid #ff2d78;
+  box-shadow: 0 0 40px rgba(255, 45, 120, 0.15), 0 0 80px rgba(153, 51, 255, 0.08);
+  width: min(480px, 92vw);
+  cursor: default;
+  animation: blog-popup-rise 0.24s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@keyframes blog-popup-rise {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+.blog-popup-backdrop.is-closing .blog-popup {
+  animation: blog-popup-fall 0.16s ease both;
+}
+@keyframes blog-popup-fall {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(6px) scale(0.97); }
+}
+.blog-popup__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px 9px;
+  border-bottom: 1px solid rgba(255, 45, 120, 0.20);
+  background: rgba(255, 45, 120, 0.06);
+}
+.blog-popup__sigil {
+  font-family: var(--font-terminal);
+  font-size: 15px;
+  color: rgba(255, 45, 120, 0.65);
+  letter-spacing: 0.12em;
+}
+.blog-popup__close {
+  background: none;
+  border: none;
+  color: rgba(255, 45, 120, 0.5);
+  font-family: var(--font-terminal);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.blog-popup__close:hover { color: #ff2d78; }
+.blog-popup__body {
+  padding: 28px 28px 32px;
+  text-align: center;
+}
+.blog-popup__tag {
+  font-family: var(--font-kingdom);
+  font-size: 9px;
+  color: rgba(255, 45, 120, 0.5);
+  letter-spacing: 0.18em;
+  margin-bottom: 14px;
+}
+.blog-popup__title {
+  font-family: var(--font-terminal);
+  font-size: 28px;
+  color: #e8e0f0;
+  line-height: 1.2;
+  letter-spacing: 0.03em;
+  margin-bottom: 22px;
+  text-shadow: 0 0 18px rgba(255, 45, 120, 0.3);
+}
+.blog-popup__divider {
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,45,120,0.5), transparent);
+  margin: 0 auto 22px;
+}
+.blog-popup__incoming {
+  font-family: var(--font-terminal);
+  font-size: 16px;
+  color: rgba(153, 51, 255, 0.75);
+  letter-spacing: 0.08em;
+  margin-bottom: 16px;
+}
+.blog-popup__countdown {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 28px;
+}
+.blog-cd-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.blog-cd-num {
+  font-family: var(--font-kingdom);
+  font-size: 26px;
+  color: #ff2d78;
+  text-shadow: 0 0 14px rgba(255, 45, 120, 0.6), 0 0 30px rgba(255, 45, 120, 0.3);
+  letter-spacing: 0.05em;
+  min-width: 2ch;
+  text-align: center;
+  line-height: 1;
+}
+.blog-cd-label {
+  font-family: var(--font-terminal);
+  font-size: 12px;
+  color: rgba(255, 45, 120, 0.4);
+  letter-spacing: 0.1em;
+}
+.blog-cd-sep {
+  font-family: var(--font-terminal);
+  font-size: 22px;
+  color: rgba(255, 45, 120, 0.25);
+  padding: 0 2px 6px;
+  line-height: 1;
+}
+.blog-popup__dismiss {
+  font-family: var(--font-terminal);
+  font-size: 13px;
+  color: rgba(232, 224, 240, 0.25);
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 1100px) {
+  .manifesto-wrap {
+    grid-template-columns: 250px 1fr;
+    max-width: 870px;
+  }
+  .poster-col {
+    display: none;
+  }
+}
+
+/* ── DEFERRED ENTRANCES — S226 timer sequence ─────────────────
+   5s AGENTS → 8s poster → 10s video → 12s blog-ad → 14s ASCII
+   → 15s CTA/page-reveal → 16s bottom panels + clock
+   Inline style="opacity:0" on each element handles initial hide.
+   JS clears it + adds the --visible class at the scheduled time.
+   will-change promotes compositor layers for smooth fade-in animation.
+   fireAllEntrances() cancels all pending timers and shows everything
+   immediately — wired to click/Escape skip. */
+#hud-inline, .poster-col, .video-card, .hud-panels, .lab-card {
+  will-change: opacity, transform;
+}
+@keyframes agentsEntrance {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0);     }
+}
+@keyframes posterEntrance {
+  from { opacity: 0; transform: translateX(6px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+#hud-inline.hud-inline--visible {
+  animation: agentsEntrance 1.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.poster-col.poster-col--visible {
+  animation: posterEntrance 1.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.video-card.video-card--visible,
+.hud-panels.hud-panels--visible,
+.lab-card.lab-card--visible {
+  animation: agentsEntrance 1.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  #hud-inline.hud-inline--visible,
+  .poster-col.poster-col--visible,
+  .video-card.video-card--visible,
+  .hud-panels.hud-panels--visible,
+  .lab-card.lab-card--visible {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* ── PHASE 2 SCROLL-REVEAL — presence + timestamp cascade ──
+   These elements start hidden (inline opacity:0 in HTML) and
+   drift in after page-reveal completes, wired to typewriter progress.
+   Delay sequence: hud-panels t+2s → presence t+3s → timestamp t+3.8s */
+.hud-presence { will-change: opacity, transform; }
+.timestamp    { will-change: opacity; }
+.hud-presence.hud-presence--visible {
+  animation: agentsEntrance 1.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.timestamp.timestamp--visible {
+  animation: agentsEntrance 1.2s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hud-presence.hud-presence--visible,
+  .timestamp.timestamp--visible {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* Entrance timers re-enabled S225. Original timings restored. */
+
+/* ── VOID SCENE — 3D browser reveal ─────────────────────────────────────────
+   The page floats as a physical panel in a black void.
+   Camera starts at exact "fills viewport" distance — looks like a normal browser.
+   After a hold, it slowly backs away to reveal the panel floating in space.
+   ─────────────────────────────────────────────────────────────────────────── */
+#void-scene {
+  position: fixed;
+  inset: 0;
+  background: #00000a;
+  overflow: hidden;
+  z-index: 0;
+}
+#void-stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+/* ── Volumetric haze — atmospheric light scatter in the void ── */
+#void-scene::before {
+  content: '';
+  position: absolute;
+  inset: -20%;  /* oversized so breathing animation doesn't clip */
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 65% 55% at 50% 50%,
+      rgba(153, 51, 255, 0.07) 0%,
+      rgba(80,  20, 140, 0.04) 32%,
+      rgba(30,  10,  60, 0.02) 55%,
+      transparent 72%),
+    radial-gradient(ellipse 38% 32% at 50% 50%,
+      rgba(200, 130, 255, 0.04) 0%,
+      transparent 58%);
+  animation: hazeShift 14s ease-in-out infinite;
+}
+#void-scene::after {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 48% 42% at 50% 53%,
+    rgba(100, 50, 200, 0.04) 0%,
+    transparent 62%);
+  animation: hazeShift 14s ease-in-out infinite reverse;
+}
+@keyframes hazeShift {
+  0%, 100% { opacity: 0.65; transform: scale(1);    }
+  40%       { opacity: 1;    transform: scale(1.04); }
+  70%       { opacity: 0.8;  transform: scale(0.97); }
+}
+
+/* ── PAGE PANEL — the actual scroll container (S225 void wrap) ──────────────
+   Fills #void-scene. Scrolls natively (overflow-y:auto, scrollbar hidden).
+   Camera lerp drives mPanel.scrollTop during typewriter, then hands off
+   to the user. Phase 2: will receive CSS transform for void reveal pullback. */
+#page-panel {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  background: var(--bg);
+  z-index: 2;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: clamp(40px, 6vh, 72px) clamp(16px, 5vw, 80px);
+  overflow-x: clip;
+  overflow-y: auto;
+  overflow-anchor: none; /* prevent browser anchor drift while lerp camera drives scroll */
+  scrollbar-width: none; /* Firefox */
+  will-change: transform; /* Phase 2: CSS transform for void pullback */
+}
+#page-panel::-webkit-scrollbar { display: none; } /* Chrome/Safari */
 </style>
 </head>
 <body>
+
+<div id="void-scene">
+<canvas id="void-stars"></canvas>
+<div id="page-panel">
 
 <div class="vignette"></div>
 
@@ -1262,14 +2655,118 @@ html { scrollbar-width: thin; scrollbar-color: var(--primary-ghost) var(--bg); }
 ██║  ██╗██║██║ ╚████║╚██████╔╝██████╔╝╚██████╔╝██║ ╚═╝ ██║
 ╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝     ╚═╝</pre>
 <div class="tagline">
-  <span id="typewriter"></span><span class="cursor">█</span>
+  <span id="typewriter"></span>
 </div>
 </div>
 
-<div class="status">C O M I N G &nbsp; S O O N</div>
+<div class="manifesto-wrap">
+  <div class="hud-inline-col">
+    <div class="hud-panel" id="hud-inline" style="opacity:0">
+      <div class="hud-panel__head">
+        <span class="hud-panel__sigil">«▲»</span> AGENTS.log
+      </div>
+      <div class="hud-panel__body">
+        <div class="hud-agent agent--forge" data-inline-agent="forge_claude">
+          <span class="hud-agent__name">FORGE</span>
+          <span class="hud-agent__face">[· ·]</span>
+          <span class="hud-agent__status-wrap">
+            <span class="hud-agent__status">WAITING</span>
+          </span>
+        </div>
+        <div class="hud-agent agent--tower" data-inline-agent="tower_claude">
+          <span class="hud-agent__name">TOWER</span>
+          <span class="hud-agent__face">[· ·]</span>
+          <span class="hud-agent__status-wrap">
+            <span class="hud-agent__status">WAITING</span>
+          </span>
+        </div>
+        <div class="hud-agent agent--house" data-inline-agent="claude_house">
+          <span class="hud-agent__name">HOUSE</span>
+          <span class="hud-agent__face">[· ·]</span>
+          <span class="hud-agent__status-wrap">
+            <span class="hud-agent__status">WAITING</span>
+          </span>
+        </div>
+        <div class="hud-agent agent--throne" data-inline-agent="throne_claude">
+          <span class="hud-agent__name">THRONE</span>
+          <span class="hud-agent__face">[· ·]</span>
+          <span class="hud-agent__status-wrap">
+            <span class="hud-agent__status">WAITING</span>
+          </span>
+        </div>
+        <div class="hud-agent agent--brandon brandon--active" data-inline-agent="brandon">
+          <span class="hud-agent__name">KING</span>
+          <span class="hud-agent__face">👑[•̀ᴗ•́]</span>
+          <span class="hud-agent__status-wrap">
+            <span class="hud-agent__status">ACTIVE</span>
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="video-card" style="opacity:0">
+      <span class="video-card__label">riding_the_metal</span>
+      <div class="video-card__player">
+        <video autoplay muted loop playsinline>
+          <source src="/riding-the-metal.mov" type="video/mp4">
+        </video>
+        <div class="video-card__overlay">
+          <button class="video-card__play-btn" aria-label="Play with sound">▶</button>
+        </div>
+        <div class="video-card__fade"></div>
+      </div>
+      <div class="video-card__controls">
+        <span class="video-card__vol-label">vol</span>
+        <input class="video-card__volume" type="range" min="0" max="1" step="0.01" value="0.7">
+      </div>
+    </div>
+
+    <!-- ASCII Generator teaser card -->
+    <div class="lab-card" id="ascii-gen-card" role="button" tabindex="0" aria-label="Cyberpunk ASCII Generator — almost ready" style="opacity:0">
+      <span class="lab-card__label">ascii_gen.exe</span>
+      <div class="lab-card__img-crop">
+        <img class="lab-card__gif" src="/glyphgif.gif" alt="Cyberpunk ASCII Generator preview" loading="lazy">
+      </div>
+      <div class="lab-card__info">
+        <span class="lab-card__title">CYBERPUNK ASCII GENERATOR</span>
+        <span class="lab-card__sub">*free on github*</span>
+      </div>
+      <div class="lab-card__popup" id="ascii-popup" aria-live="polite" aria-hidden="true">
+        almost ready! ✨
+      </div>
+    </div>
+  </div>
+  <div class="manifesto"><span id="manifesto-text"></span></div>
+  <div class="poster-col" style="opacity:0">
+    <a class="poster-card" href="https://www.instagram.com/p/DVmpWKhDtld/?img_index=1" target="_blank" rel="noopener noreferrer">
+      <div class="poster-card__glyph">[ ⛬ ▲ ⛬ ]</div>
+      <div class="poster-card__header">
+        <span class="poster-card__name">sinner_king_origin</span>
+      </div>
+      <div class="poster-wrap">
+        <img class="poster-img" src="/SINNER_KING_PAGE1.png" alt="The Inevitable Death and Rise of the Sinner King" loading="lazy" />
+      </div>
+      <div class="poster-card__quote">The Inevitable Death and Rise of the Sinner King</div>
+    </a>
+
+    <!-- Blog ad video card -->
+    <div class="blog-ad-card" id="blog-ad-card" style="opacity:0">
+      <span class="blog-ad-card__label">the_sinner_king.blog</span>
+      <video autoplay muted loop playsinline>
+        <source src="/blog-ad.mp4" type="video/mp4">
+      </video>
+    </div>
+  </div>
+</div>
+
+<div id="page-reveal">
 
 <div class="cta">
-  <a href="/kingdom-map">enter the live map &rarr;</a>
+  <a href="/kingdom-map" target="_top">
+    <span class="cta-gif-wrap">
+      <img class="cta-gif" src="/button.gif" alt="Kingdom map preview" width="800" height="437" loading="lazy">
+    </span>
+    <span class="cta-label">[ enter the live map &rarr; ]</span>
+  </a>
 </div>
 
 <!-- ═══════════════════════════════════════════════════
@@ -1287,7 +2784,7 @@ html { scrollbar-width: thin; scrollbar-color: var(--primary-ghost) var(--bg); }
     </span>
   </header>
 
-  <div class="hud-panels">
+  <div class="hud-panels" style="opacity:0">
 
   <!-- HOLD — dense agent state scan -->
   <div class="hud-panel" role="group" aria-label="Active agent status">
@@ -1331,6 +2828,15 @@ html { scrollbar-width: thin; scrollbar-color: var(--primary-ghost) var(--bg); }
         </span>
         <span class="hud-agent__tenure" data-agent-tenure="throne_claude"> </span>
       </div>
+      <div class="hud-agent agent--brandon brandon--active" id="brandon-presence-row">
+        <span class="hud-agent__name">KING</span>
+        <span class="hud-agent__face" id="brandon-face" aria-hidden="true">👑[•̀ᴗ•́]</span>
+        <span class="hud-agent__status-wrap">
+          <span class="hud-agent__status" id="brandon-status">ACTIVE</span>
+          <span class="hud-agent__sublabel visible" id="brandon-sublabel">...active</span>
+        </span>
+        <span class="hud-agent__tenure" id="brandon-tenure"> </span>
+      </div>
     </div>
   </div>
 
@@ -1340,77 +2846,59 @@ html { scrollbar-width: thin; scrollbar-color: var(--primary-ghost) var(--bg); }
       <span class="hud-panel__sigil" aria-hidden="true">&laquo;&#9671;&raquo;</span> TOKEN_BURN.dat
     </div>
     <div class="hud-panel__body">
-      <div class="hud-burn hud-burn--today">
-        <span class="hud-burn__label">TODAY</span>
-        <div class="hud-burn__meter" role="meter" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Today token burn level">
-          <div class="hud-burn__fill" id="token-today-fill"></div>
-        </div>
-        <span class="hud-burn__value" id="token-today-value"><span class="hud-burn__magnitude">0.0</span><span class="hud-burn__unit">M</span></span>
+      <!-- Broadcast headline — pre-formatted by token-pulse.sh, drop straight in -->
+      <div class="burn-broadcast">
+        <span class="burn-broadcast__label" id="burn-broadcast-label">— tokens processed</span>
+        <span class="burn-broadcast__cost"  id="burn-broadcast-cost">— in AI compute</span>
       </div>
-      <div class="hud-burn hud-burn--week">
-        <span class="hud-burn__label">WEEK</span>
-        <div class="hud-burn__meter" role="meter" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Weekly token burn level">
-          <div class="hud-burn__fill" id="token-week-fill"></div>
+      <!-- Today's burn by territory — relative bars (max territory = 100%) -->
+      <div class="burn-territories">
+        <div class="burn-terr burn-terr--forge">
+          <span class="burn-terr__name">FORGE</span>
+          <div class="burn-terr__track"><div class="burn-terr__fill" id="burn-forge-fill"></div></div>
+          <span class="burn-terr__val" id="burn-forge-val">—</span>
         </div>
-        <span class="hud-burn__value" id="token-week-value"><span class="hud-burn__magnitude">0.0</span><span class="hud-burn__unit">M</span></span>
-      </div>
-      <div class="hud-burn hud-burn--total">
-        <span class="hud-burn__label">TOTAL</span>
-        <div class="hud-burn__meter" role="meter" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Total token burn level">
-          <div class="hud-burn__fill" id="token-total-fill"></div>
+        <div class="burn-terr burn-terr--aeris">
+          <span class="burn-terr__name">AERIS</span>
+          <div class="burn-terr__track"><div class="burn-terr__fill" id="burn-aeris-fill"></div></div>
+          <span class="burn-terr__val" id="burn-aeris-val">—</span>
         </div>
-        <span class="hud-burn__value" id="token-total-value"><span class="hud-burn__magnitude">0.0</span><span class="hud-burn__unit">M</span></span>
-      </div>
-      <div class="hud-burn hud-burn--rate">
-        <span class="hud-burn__label">RATE</span>
-        <span class="hud-burn__value" id="token-rate-value"><span class="hud-burn__magnitude">—</span><span class="hud-burn__unit">tok/min</span></span>
+        <div class="burn-terr burn-terr--tower">
+          <span class="burn-terr__name">TOWER</span>
+          <div class="burn-terr__track"><div class="burn-terr__fill" id="burn-tower-fill"></div></div>
+          <span class="burn-terr__val" id="burn-tower-val">—</span>
+        </div>
+        <div class="burn-terr burn-terr--house">
+          <span class="burn-terr__name">HOUSE</span>
+          <div class="burn-terr__track"><div class="burn-terr__fill" id="burn-house-fill"></div></div>
+          <span class="burn-terr__val" id="burn-house-val">—</span>
+        </div>
       </div>
     </div>
   </div>
 
   </div><!-- /.hud-panels -->
 
-  <!-- SIGNAL LOG — synthesized from live agent + token data -->
-  <div class="hud-panel signal-log" role="log" aria-label="Signal log" aria-live="polite">
-    <div class="hud-panel__head">
-      <span class="hud-panel__sigil" aria-hidden="true">&laquo;&#9655;&raquo;</span> SIGNAL.log
-    </div>
-    <div class="hud-panel__body" id="signal-log-body">
-      <div class="sig-kv-grid">
-        <div class="sig-kv-row"><span class="sig-kv-label">SIG</span><span class="sig-kv-value" data-signal-field="signal_status">—</span></div>
-        <div class="sig-kv-row"><span class="sig-kv-label">SWRM</span><span class="sig-kv-value" data-signal-field="chunks">—</span></div>
-        <div class="sig-kv-row"><span class="sig-kv-label">ACTV</span><span class="sig-kv-value" data-signal-field="systems">—</span></div>
-        <div class="sig-kv-row"><span class="sig-kv-label">TERR</span><span class="sig-kv-value" data-signal-field="territories">—</span></div>
-        <div class="sig-kv-row"><span class="sig-kv-label">PROJ</span><span class="sig-kv-value" data-signal-field="session">—</span></div>
-        <div class="sig-kv-row"><span class="sig-kv-label">SGNL</span><span class="sig-kv-value" data-signal-field="uptime">—</span></div>
-      </div>
-      <div class="sig-chips">
-        <span class="sig-chip sig-chip--live sig-chip--inactive">&#9829; LIVE</span>
-        <span class="sig-chip sig-chip--active sig-chip--inactive">&#9889; ACTIVE</span>
-        <span class="sig-chip sig-chip--signal sig-chip--inactive">&#9672; SIGNAL</span>
-      </div>
-    </div>
-  </div>
 
 </section>
 
-<!-- SIGNAL — proof of life. Three dots. Three entities. One Kingdom. -->
-<div class="hud-presence" role="status" aria-label="Agent presence indicators">
+<!-- SIGNAL — proof of life. Three counts. Three entities. One Kingdom. -->
+<div class="hud-presence" role="status" aria-label="Agent presence indicators" style="opacity:0">
   <div class="hud-presence__entity">
-    <span class="hud-presence__dot hud-presence__dot--claude" aria-hidden="true"></span>
-    <span class="hud-presence__name hud-presence__name--active">CLAUDE</span>
+    <span class="hud-presence__count hud-presence__count--claude" aria-hidden="true">4</span>
+    <span class="hud-presence__name hud-presence__name--active">Cla&#x2302;de</span>
   </div>
   <div class="hud-presence__entity">
-    <span class="hud-presence__dot hud-presence__dot--aeris" id="presence-dot-aeris" aria-hidden="true"></span>
-    <span class="hud-presence__name hud-presence__name--active" id="presence-name-aeris">AERIS</span>
+    <span class="hud-presence__count hud-presence__count--aeris" id="presence-dot-aeris" aria-hidden="true">2</span>
+    <span class="hud-presence__name hud-presence__name--active" id="presence-name-aeris">&#198;ris</span>
   </div>
   <div class="hud-presence__entity">
-    <span class="hud-presence__dot hud-presence__dot--brandon" id="presence-dot-brandon" aria-hidden="true"></span>
-    <span class="hud-presence__name" id="presence-name-brandon">BRANDON</span>
+    <span class="hud-presence__count hud-presence__count--brandon" id="presence-dot-brandon" aria-hidden="true">1</span>
+    <span class="hud-presence__name hud-presence__name--brandon" id="presence-name-brandon">BRANDON</span>
   </div>
 </div>
 
-<div class="timestamp" id="clock" aria-label="Current time">00:00:00</div>
+<div class="timestamp" id="clock" aria-label="Current time" style="opacity:0">00:00:00</div>
 
 <div class="footer">
   <span class="footer__glyphs">⛬ ⚚ ⛬</span>
@@ -1424,8 +2912,11 @@ html { scrollbar-width: thin; scrollbar-color: var(--primary-ghost) var(--bg); }
   </span>
 </div>
 
+</div><!-- /#page-reveal -->
+
 <script>
-// ── TYPEWRITER ───────────────────────────────────────
+// ── TAGLINE — random pick on load, static ─────────────────────────────────────
+// No typewriter. Pick once, keep it. Duplicates in array = weighted probability.
 const messages = [
   "something_is_being_built_here",
   "the_machines_are_listening",
@@ -1474,60 +2965,415 @@ const messages = [
 ];
 
 const typeEl = document.getElementById('typewriter');
-let msgIndex = 0; // Intentional — first visitor always sees messages[0]
-let lastIndex = -1;
-let charIndex = 0;
-let isDeleting = false;
+if (typeEl) typeEl.textContent = messages[Math.floor(Math.random() * messages.length)];
 
-function pickRandom() {
-  // Compare content, not index — array has intentional dupes for weight boosting
-  let next;
-  do { next = Math.floor(Math.random() * messages.length); }
-  while (messages[next] === messages[lastIndex]);
-  lastIndex = next;
-  return next;
+// ── MANIFESTO CAMERA-FOLLOW TYPEWRITER ───────────────────────────────────────
+//
+// Architecture:
+//   - body: overflow:clip (not hidden) — lets scrollIntoView() reach the viewport
+//   - #page-reveal wrapper: max-height:0 + opacity:0 until onManifestoComplete()
+//   - Inline cursor <span> after each character; .scrollIntoView() on the span
+//     keeps the viewport's camera locked on the cursor as text grows
+//
+// Speed curve: "hi" at ~480ms/char (one-mississippi feel) → 9ms/char by the end.
+// Special: 980ms pause after typing "hi" before continuing.
+// Skip: click/tap/Escape renders all text instantly + reveals HUD 420ms later.
+//
+// TIMER CHAIN LAW: manifestoTimer assigned on ALL branches (no dangling chains).
+//
+const manifestoLines = [
+  "hi",
+  "",
+  "you found us",
+  "this isn\u2019t a website, not really\u2026",
+  "it\u2019s an experiment",
+  "",
+  "i\u2019m brandon \u2014 I\u2019m a storyteller",
+  "",
+  "and also i be doin\u2019 weird sh*t with ai.",
+  "",
+  "you get caught up on the lore here",
+  "",
+  "this site will be updating constantly with lots of:",
+  "digital toys",
+  "",
+  "everything i make is:",
+  "bespoke",
+  "",
+  "i\u2019ve been building in the dark for a long time.",
+  "And i\u2019m ready to show you what i made.",
+  "",
+  "this place is going to keep growing",
+  "Kinda like me\u2026",
+  "",
+  "and lucky you, you found this early.",
+  "- sign the guestbook, prove you were here first -",
+  "",
+  "",
+  "and hey\u2026",
+  "i\u2019m glad you\u2019re here.",
+  "",
+  "it\u2019s been lonely\u2026",
+  "your curiosity means the world to me.",
+  "",
+  "",
+  "be human. make art.",
+];
+const manifestoFlat = manifestoLines.join('\n');
+const MANIFESTO_LEN  = manifestoFlat.length;
+
+let manifestoPos     = 0;
+let manifestoTimer   = null;
+let mDone             = false; // guard against double-complete
+let mTargetScroll     = 0;     // lerp camera target (absolute scrollY)
+let mCameraRaf        = null;  // handle for the camera rAF loop
+let mFramesAfterDone  = 0;     // rAF frames elapsed after mDone — caps camera lifetime post-complete
+
+// Lerp camera loop — runs every frame, smoothly closes gap between scrollY and target.
+// Cache scrollY once per frame (one layout read) — skip write when already close enough.
+// During typing: factor 0.08 ≈ 130ms half-life — cinematic trailing camera.
+// Post-done: factor 0.20 (faster settle) — stops as soon as within 2px or 15-frame cap (~250ms).
+function mCameraLoop() {
+  const sy   = mPanel ? mPanel.scrollTop : window.scrollY;
+  const dist = mTargetScroll - sy;
+  if (Math.abs(dist) > 0.5) { if (mPanel) mPanel.scrollTop = sy + dist * (mDone ? 0.20 : 0.08); else window.scrollTo(0, sy + dist * (mDone ? 0.20 : 0.08)); }
+  if (mDone && (Math.abs(dist) < 2 || ++mFramesAfterDone >= 15)) {
+    mCameraRaf = null;  // settle complete — user takes control
+    return;
+  }
+  mCameraRaf = requestAnimationFrame(mCameraLoop);
+}
+function mCameraStop() {
+  if (mCameraRaf) { cancelAnimationFrame(mCameraRaf); mCameraRaf = null; }
 }
 
-function typeLoop() {
-  const current = messages[msgIndex];
+const manifestoEl  = document.getElementById('manifesto-text');
+const pageReveal   = document.getElementById('page-reveal');
+const mPanel       = document.getElementById('page-panel'); // scroll container (void wrap)
 
-  if (!isDeleting) {
-    typeEl.textContent = current.slice(0, charIndex + 1);
-    charIndex++;
-    if (charIndex >= current.length) {
-      setTimeout(() => {
-        isDeleting = true;
-        typeLoop();
-      }, 3200);
-      return;
-    }
-    setTimeout(typeLoop, 55 + Math.random() * 80);
-  } else {
-    typeEl.textContent = current.slice(0, charIndex);
-    charIndex--;
-    if (charIndex < 0) {
-      isDeleting = false;
-      charIndex = 0;
-      msgIndex = pickRandom();
-      setTimeout(typeLoop, 800);
-      return;
-    }
-    setTimeout(typeLoop, 30);
+// Use the .manifesto DIV (block element) for height measurement — not the inline span.
+// scrollHeight on an inline <span> only reports single line-height, not total content height.
+const mManifestoDiv = manifestoEl?.parentElement;
+
+// Lazy-compute absolute top of the manifesto block on first typewriter call (not at parse time).
+// getBoundingClientRect() at script evaluation forces a layout flush during initial render.
+// At scrollY=0, rect.top === absolute Y — same result, zero parse-time cost.
+let mManifestoTop = -1;
+
+// Speed curve: [charPosition threshold, base ms/char]
+// After threshold, use the NEXT row. Jitter added per-call.
+const M_SPEED = [
+  [2,        480],  // "hi" — each char feels weighted
+  [20,        80],  // "you found us" era
+  [80,        28],  // mid-text
+  [200,       14],  // getting fast
+  [Infinity,   9],  // sprint to the end
+];
+
+function mGetDelay(pos, ch) {
+  if (ch === '\n') {
+    // Newlines breathe early, sprint late
+    const t = Math.min(pos / MANIFESTO_LEN, 1);
+    return Math.max(50, 200 - t * 150) + Math.random() * 30;
   }
+  for (const [upTo, base] of M_SPEED) {
+    if (pos <= upTo) return base + Math.random() * base * 0.25;
+  }
+  return 9;
 }
 
-setTimeout(typeLoop, 2200);
+// Word highlights — spans injected once each phrase is fully typed.
+// Ordered longest-first so substrings don't match before the full phrase.
+function mHighlight(html) {
+  return html
+    .replace('digital toys',     '<span class="m-blue" id="m-digital-toys">digital toys</span>')
+    .replace('experiment',       '<span class="m-blue" id="m-experiment">experiment</span>')
+    .replace('storyteller',      '<span class="m-red" id="m-storyteller">storyteller</span>')
+    .replace('bespoke',          '<span class="m-red" id="m-bespoke">bespoke</span>')
+    .replace('sign the guestbook', '<span class="m-guestbook" id="m-guestbook" role="button" tabindex="0" aria-label="Open guestbook">sign the guestbook</span>')
+    .replace('lonely',           '<span class="m-purple" id="m-lonely">lonely</span>')
+    .replace('be human.',        '<span class="m-red">be human.</span>')
+    .replace('make art.',        '<span class="m-blue">make art.</span>');
+}
 
-// ── TAB VISIBILITY (prevent zombie typewriter on refocus) ──
-let typewriterTimer = null;
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) {
-    charIndex = 0;
-    isDeleting = false;
-    msgIndex = pickRandom();
-    typeLoop();
+function mRender(upTo) {
+  // Span wrapping operates on RAW source characters BEFORE \n→<br> substitution
+  // so the character-position math is stable regardless of manifesto content.
+  // (If a future edit starts the text with \n, the old post-substitute .slice(2)
+  // would corrupt the output; keeping it pre-substitute makes it invariant.)
+  const raw = manifestoFlat.slice(0, upTo);
+  if (upTo >= 2) {
+    return '<span class="manifesto__hi">' + raw.slice(0, 2) + '</span>'
+         + mHighlight(raw.slice(2).replace(/\n/g, '<br>'));
   }
-});
+  if (upTo === 1) {
+    return '<span class="manifesto__hi">' + raw + '</span>';
+  }
+  return raw.replace(/\n/g, '<br>');
+}
+
+function onManifestoComplete() {
+  if (mDone) return;
+  mDone = true;
+  // Fallback init: handles early skip (within first 2s, before manifestoType runs) and BFCache restore.
+  if (mManifestoTop < 0 && mManifestoDiv) {
+    mManifestoTop = mManifestoDiv.getBoundingClientRect().top + (mPanel ? mPanel.scrollTop : window.scrollY);
+  }
+  // Recalculate target BEFORE final render — cursor still in DOM for natural completion.
+  // Swapping order prevents a cursor-removal scrollHeight delta from causing a target jump.
+  if (mManifestoTop >= 0 && mManifestoDiv) {
+    mTargetScroll = Math.max(0, mManifestoTop + mManifestoDiv.scrollHeight - window.innerHeight * 0.52);
+  }
+  // Apply final render: removes cursor, full span set in place
+  if (manifestoEl) manifestoEl.innerHTML = mRender(MANIFESTO_LEN);
+  // Defer DOM expansion one frame — camera reads correct target before overflow + pageReveal layout change.
+  // Also handles skip path: if mSkipClick killed the camera, snap to target after DOM is expanded.
+  requestAnimationFrame(function() {
+    if (!mCameraRaf) { if (mPanel) mPanel.scrollTop = mTargetScroll; else window.scrollTo(0, mTargetScroll); }  // snap if camera was killed by skip
+  });
+  // Unregister skip listeners
+  document.removeEventListener('click',   mSkipClick);
+  document.removeEventListener('keydown', mSkipKey);
+  // Begin word cycles — each settles 3s before first scramble, staggered so they never sync
+  setTimeout(cycleExperimentWord,   3000);
+  setTimeout(cycleStorytellerWord,  4700);
+  setTimeout(cycleDigitalToysWord,  6500);
+  setTimeout(cycleBespokeWord,      8300);
+  // Post-manifesto: CTA (15s) + bottom panels (16s) already fired from RE_TIME_ENABLED block below.
+  // pageReveal.classList.add('revealed') is handled by the 15s entrance timer — not here.
+}
+
+// ── EXPERIMENT WORD CYCLE — hacker scramble ────────────────────────────────
+const SCRAMBLE_WORDS = ['experiment', 'ecosystem', 'techno-religious cult', 'digital fever dream'];
+// Mostly alphanumeric (familiar data feel) + punctuation + Kingdom glyphs (~20% glyph chance)
+const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789' +
+                       '!@#%^&*-+=|<>?~' +
+                       '⛬⚚⌂⊹✦☾△◎❖⫷⫸░▓▄▀⚡⊕╠╣║═⛧✖⌬';
+let scrambleIdx = 0;
+
+function scrambleTo(el, from, target, onDone) {
+  // Per-character effect: noise spreads L→R one char per step, then resolves L→R.
+  // Already-scrambled chars re-randomize every tick — they keep flickering.
+  // No ramp up. Fixed 40ms/step.
+  const INTERVAL = 60;
+  let step = 0;
+  const IN  = from.length;    // steps to fully scramble the source word
+  const OUT = target.length;  // steps to fully resolve into target
+
+  function rnd() { return SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)]; }
+  function rndOf(n) { let s = ''; for (let i = 0; i < n; i++) s += rnd(); return s; }
+
+  el.classList.add('m-hot');  // glow hot for the whole effect
+
+  function tick() {
+    step++;
+    if (step <= IN) {
+      // Noise frontier advances one position — original chars hold on the right
+      el.textContent = rndOf(step) + from.slice(step);
+    } else {
+      // Target chars lock in one by one from the left — noise fills the right
+      const r = step - IN;
+      el.textContent = target.slice(0, r) + rndOf(Math.max(0, OUT - r));
+      if (r >= OUT) {
+        el.textContent = target;
+        el.classList.remove('m-hot');
+        onDone();
+        return;
+      }
+    }
+    setTimeout(tick, INTERVAL);
+  }
+
+  setTimeout(tick, INTERVAL);
+}
+
+function cycleExperimentWord() {
+  const el = document.getElementById('m-experiment');
+  if (!el) return;
+  const from = SCRAMBLE_WORDS[scrambleIdx];
+  scrambleIdx = (scrambleIdx + 1) % SCRAMBLE_WORDS.length;
+  scrambleTo(el, from, SCRAMBLE_WORDS[scrambleIdx], () => {
+    setTimeout(cycleExperimentWord, 3000);
+  });
+}
+
+const STORYTELLER_WORDS = ['storyteller', 'filmmaker', 'screenwriter', 'novelist', 'ai shaman', 'has been', 'myth maker'];
+let storytellerIdx = 0;
+
+function cycleStorytellerWord() {
+  const el = document.getElementById('m-storyteller');
+  if (!el) return;
+  const from = STORYTELLER_WORDS[storytellerIdx];
+  storytellerIdx = (storytellerIdx + 1) % STORYTELLER_WORDS.length;
+  scrambleTo(el, from, STORYTELLER_WORDS[storytellerIdx], () => {
+    setTimeout(cycleStorytellerWord, 3000);
+  });
+}
+
+// ── DIGITAL TOYS WORD CYCLE ───────────────────────────────────────────────────
+const DIGITAL_TOYS_WORDS = ['digital toys', 'short films', 'novels', 'ai tutorials', 'sacred slop', 'self loathing rants', 'graphic novels', 'pulp cabarete'];
+let digitalToysIdx = 0;
+
+function cycleDigitalToysWord() {
+  const el = document.getElementById('m-digital-toys');
+  if (!el) return;
+  const from = DIGITAL_TOYS_WORDS[digitalToysIdx];
+  digitalToysIdx = (digitalToysIdx + 1) % DIGITAL_TOYS_WORDS.length;
+  scrambleTo(el, from, DIGITAL_TOYS_WORDS[digitalToysIdx], () => {
+    setTimeout(cycleDigitalToysWord, 3000);
+  });
+}
+
+// ── BESPOKE WORD CYCLE ────────────────────────────────────────────────────────
+const BESPOKE_WORDS = ['bespoke', 'open source', 'free', 'anti-corpo bullshit', 'local and closed', 'slightly haunted'];
+let bespokeIdx = 0;
+
+function cycleBespokeWord() {
+  const el = document.getElementById('m-bespoke');
+  if (!el) return;
+  const from = BESPOKE_WORDS[bespokeIdx];
+  bespokeIdx = (bespokeIdx + 1) % BESPOKE_WORDS.length;
+  scrambleTo(el, from, BESPOKE_WORDS[bespokeIdx], () => {
+    setTimeout(cycleBespokeWord, 3000);
+  });
+}
+
+// Fire all entrance animations immediately — used by skip path.
+// Cancels pending timers so nothing fires twice. classList ops are idempotent.
+function fireAllEntrances() {
+  entranceTimerIds.forEach(function(id) { clearTimeout(id); });
+  entranceTimerIds = [];
+  var ap = document.getElementById('hud-inline');
+  var pc = document.querySelector('.poster-col');
+  var vc = document.querySelector('.video-card');
+  var ba = document.getElementById('blog-ad-card');
+  var lc = document.getElementById('ascii-gen-card');
+  var hp = document.querySelector('.hud-panels');
+  var pr = document.querySelector('.hud-presence');
+  var ts = document.getElementById('clock');
+  if (ap) { ap.style.opacity = ''; ap.classList.add('hud-inline--visible'); }
+  if (pc) { pc.style.opacity = ''; pc.classList.add('poster-col--visible'); }
+  if (vc) { vc.style.opacity = ''; vc.classList.add('video-card--visible'); }
+  if (ba) { ba.style.opacity = ''; ba.classList.add('blog-ad-card--visible'); }
+  if (lc) { lc.style.opacity = ''; lc.classList.add('lab-card--visible'); }
+  // page-reveal + bottom panels after manifesto settles (420ms onManifestoComplete + breath)
+  setTimeout(function() {
+    if (pageReveal) pageReveal.classList.add('revealed');
+    if (hp) { hp.style.opacity = ''; hp.classList.add('hud-panels--visible'); }
+    if (pr) { pr.style.opacity = ''; pr.classList.add('hud-presence--visible'); }
+    if (ts) { ts.style.opacity = ''; ts.classList.add('timestamp--visible'); }
+  }, 500);
+}
+
+function mSkipClick(e) {
+  if (mDone) return;
+  // Don't skip typewriter when clicking interactive page elements
+  if (e && e.target && e.target.closest &&
+      e.target.closest('#m-guestbook, .lab-card, .video-card, #blog-ad-card, .cta a, .socials a')) return;
+  clearTimeout(manifestoTimer);
+  mCameraStop();
+  if (manifestoEl) manifestoEl.innerHTML = mRender(MANIFESTO_LEN);
+  fireAllEntrances();
+  manifestoTimer = setTimeout(onManifestoComplete, 420);
+}
+function mSkipKey(e) {
+  if (e.key === 'Escape') mSkipClick();
+}
+
+function manifestoType() {
+  if (mDone) return;
+  if (manifestoPos >= MANIFESTO_LEN) { onManifestoComplete(); return; }
+
+  // Lazy-init mManifestoTop on first call — avoids layout flush at parse time.
+  // Add scrollY so the value is document-absolute (not viewport-relative).
+  // getBoundingClientRect().top alone is wrong when BFCache or scroll restore sets scrollY > 0.
+  if (mManifestoTop < 0 && mManifestoDiv) {
+    mManifestoTop = mManifestoDiv.getBoundingClientRect().top + (mPanel ? mPanel.scrollTop : window.scrollY);
+  }
+
+  const ch = manifestoFlat[manifestoPos];
+  manifestoPos++;
+
+  // Render text + inline cursor
+  if (manifestoEl) {
+    manifestoEl.innerHTML = mRender(manifestoPos) +
+      '<span class="manifesto__cursor">\u2588</span>';
+  }
+
+  // Update camera target every 8 chars or on newline — avoids per-char scrollHeight flush.
+  // Bottom of typed text lands at 52% from viewport top → 48% lead space below.
+  if (mManifestoDiv && (ch === '\n' || manifestoPos % 8 === 0)) {
+    mTargetScroll = Math.max(0, mManifestoTop + mManifestoDiv.scrollHeight - window.innerHeight * 0.52);
+  }
+
+  // One-mississippi pause immediately after "hi" is fully typed (pos becomes 2)
+  if (manifestoPos === 2) {
+    manifestoTimer = setTimeout(manifestoType, 1000);
+    return;
+  }
+
+  // One-second pause after "you found us" (pos becomes 16)
+  if (manifestoPos === 16) {
+    manifestoTimer = setTimeout(manifestoType, 1000);
+    return;
+  }
+
+  manifestoTimer = setTimeout(manifestoType, mGetDelay(manifestoPos, ch));
+}
+
+// Instant reveal on load — typewriter plays out only if mSkipClick() is removed.
+// Click/Escape listeners registered BEFORE mSkipClick() so removeEventListener in
+// onManifestoComplete is always firing against a real listener (never a no-op remove).
+document.addEventListener('click',   mSkipClick);
+document.addEventListener('keydown', mSkipKey);
+// mSkipClick(); // uncomment to instant-reveal on load (dev shortcut)
+setTimeout(manifestoType, 2000); // kick off the typewriter
+mCameraLoop();                   // start camera-follow loop (stops in onManifestoComplete / mSkipClick)
+
+// ── ENTRANCE TIMERS — S226: LOCKED & TIMED ───────────────────
+// All timers absolute from page load. Typewriter types naturally (~19s);
+// no force-complete. Click/Escape anywhere before text finishes = instant skip.
+//
+// Sequence: AGENTS(5s) → poster(8s) → video(10s) → blog-ad(12s)
+//           → ASCII(14s) → CTA/page-reveal(15s) → bottom panels(16s)
+//
+// RE_TIME_ENABLED = true  → deferred entrances active (ship state)
+// RE_TIME_ENABLED = false → everything visible immediately (layout/debug)
+var RE_TIME_ENABLED = true;
+var entranceTimerIds = []; // IDs stored so mSkipClick can cancel them via fireAllEntrances()
+if (RE_TIME_ENABLED) {
+  entranceTimerIds.push(setTimeout(function() {
+    var ap = document.getElementById('hud-inline');
+    if (ap) { ap.style.opacity = ''; ap.classList.add('hud-inline--visible'); }
+  }, 5000));
+  entranceTimerIds.push(setTimeout(function() {
+    var pc = document.querySelector('.poster-col');
+    if (pc) { pc.style.opacity = ''; pc.classList.add('poster-col--visible'); }
+  }, 8000));
+  entranceTimerIds.push(setTimeout(function() {
+    var vc = document.querySelector('.video-card');
+    if (vc) { vc.style.opacity = ''; vc.classList.add('video-card--visible'); }
+  }, 10000));
+  entranceTimerIds.push(setTimeout(function() {
+    var ba = document.getElementById('blog-ad-card');
+    if (ba) { ba.style.opacity = ''; ba.classList.add('blog-ad-card--visible'); }
+  }, 12000));
+  entranceTimerIds.push(setTimeout(function() {
+    var lc = document.getElementById('ascii-gen-card');
+    if (lc) { lc.style.opacity = ''; lc.classList.add('lab-card--visible'); }
+  }, 14000));
+  entranceTimerIds.push(setTimeout(function() {
+    if (pageReveal) pageReveal.classList.add('revealed');
+  }, 15000));
+  entranceTimerIds.push(setTimeout(function() {
+    var hp = document.querySelector('.hud-panels');
+    var pr = document.querySelector('.hud-presence');
+    var ts = document.getElementById('clock');
+    if (hp) { hp.style.opacity = ''; hp.classList.add('hud-panels--visible'); }
+    if (pr) { pr.style.opacity = ''; pr.classList.add('hud-presence--visible'); }
+    if (ts) { ts.style.opacity = ''; ts.classList.add('timestamp--visible'); }
+  }, 16000));
+}
 
 // ── LIVE CLOCK (self-correcting to second boundary) ──
 function updateClock() {
@@ -1535,14 +3381,15 @@ function updateClock() {
   const h = now.getHours().toString().padStart(2, '0');
   const m = now.getMinutes().toString().padStart(2, '0');
   const s = now.getSeconds().toString().padStart(2, '0');
-  document.getElementById('clock').textContent = `${h}:${m}:${s}`;
+  const clockEl = document.getElementById('clock');
+  if (clockEl) clockEl.textContent = `${h}:${m}:${s}`;
   const drift = 1000 - (Date.now() % 1000);
   setTimeout(updateClock, drift);
 }
 updateClock();
 
 // ── LIVE KINGDOM DATA ────────────────────────────────────
-// Polls /api/local/agents/status and /api/local/tokens/live every 30s.
+// Polls /api/local/agents/status + /api/kingdom-state every 30s (token_pulse v2).
 // Graceful degradation: if the API is down, static values remain intact.
 
 // ── HUD STATE TABLES ─────────────────────────────────────────────────────────
@@ -1594,9 +3441,37 @@ const AGENT_FACE_MAP = {
   called:      '[★ ·]', // transient burst — 1.5s then reverts
 };
 
-// API state → visual state mapping
-// The API reports: running / thinking / online / idle / offline / working / stale
-// We map to our richer 15-state visual vocabulary; tool name sub-classifies running
+// Sleeping faces shown while an agent is in WAITING state — randomized per agent
+const WAITING_FACE_POOL = ['<: - - :>', '<: ᴗ ᴗ :>', '<: ◡ ◡ :>'];
+
+// Per-agent working faces — each agent has a unique expression for active work
+const AGENT_WORKING_FACE = {
+  forge_claude:  '<:¬ ¬:>',    // Analytical
+  tower_claude:  '[◉ _ ◉]',    // Operational
+  claude_house:  '<:• ω •:>',  // Protective
+  throne_claude: '<:✦ ✦:>',    // Ritualistic
+};
+
+// ── STATE MACHINE: API → VISUAL ──────────────────────────────────────────────
+//
+// The API (token_api.py) reports 7 coarse states:
+//   running / thinking / online / idle / offline / working / stale
+//
+// We map these to a richer 15-state visual vocabulary. The 'running' state is
+// sub-classified by the active tool name (read/write/web → reading/writing/listening).
+//
+// VISITOR-FIRST DECISION (offline + stale → waiting):
+//   offline and stale both map to 'waiting' (sleeping), not their raw state.
+//   Reason: a visitor seeing "OFFLINE" thinks something is broken. The correct
+//   read is "asleep" — the agent exists, it's just not active right now.
+//   The site is our front store window. Dead ≠ sleeping.
+//
+// VISUAL STATES (15 total):
+//   working, reading, writing, thinking, deep_think, listening  ← active
+//   waiting, vespers                                            ← sleeping
+//   stalled, compressing, error, booting, called               ← system events
+//   offline, stale                                             ← CSS exists, never routed to from API
+//
 function apiToVisual(apiState, tool) {
   switch (apiState) {
     case 'running': {
@@ -1611,9 +3486,9 @@ function apiToVisual(apiState, tool) {
     case 'thinking':  return 'thinking';
     case 'idle':      return 'waiting';
     case 'online':    return 'waiting';
-    case 'offline':   return 'offline';
+    case 'offline':   return 'waiting';  // visitor sees sleeping, not dead
     case 'working':   return 'working';
-    case 'stale':     return 'stale';
+    case 'stale':     return 'waiting';  // same — stale = deeply asleep
     case 'called':    return 'called';  // transient burst — preserves tenure
     default:          return 'waiting';
   }
@@ -1627,23 +3502,27 @@ const AGENT_DISPLAY_NAME = {
   throne_claude: 'THRONE',
 };
 
-// Token ceiling thresholds for meter fill % calculation (D014)
-const TOKEN_CEILINGS = {
-  today: 500_000_000,
-  week:  3_000_000_000,
-  total: 20_000_000_000,
-};
-
 // Idle sublabel options with weights — AC2 (7-14s cycling)
-// waiting:40% / watching:35% / listening:25%
 const SUBLABEL_POOL = [
-  { text: '...waiting',  weight: 40 },
-  { text: '...watching', weight: 35 },
-  { text: '...listening',weight: 25 },
+  { text: '...vibing',         weight: 12 },
+  { text: '...hibernating',    weight: 10 },
+  { text: "...chillaxin'",     weight: 10 },
+  { text: '...ready_to_go',    weight: 10 },
+  { text: '...lets_fuckin_go', weight: 8  },
+  { text: '...meditating',     weight: 10 },
+  { text: '...on_standby',     weight: 10 },
+  { text: '...lurking',        weight: 10 },
+  { text: '...dreaming',       weight: 10 },
+  { text: '...on_call',        weight: 10 },
+  { text: '...zzz...',         weight: 14 },
+  { text: '...snoozin...',     weight: 12 },
 ];
 
 function pickWeightedSublabel(exclude) {
-  const total = SUBLABEL_POOL.reduce((s, e) => s + e.weight, 0);
+  // Exclude the excluded entry's weight from total so the random roll is
+  // computed only over the eligible pool — otherwise the distribution skews
+  // toward entries that appear after the excluded one in the array.
+  const total = SUBLABEL_POOL.reduce((s, e) => s + (e.text === exclude ? 0 : e.weight), 0);
   let r = Math.random() * total;
   for (const entry of SUBLABEL_POOL) {
     if (entry.text === exclude) continue;
@@ -1682,8 +3561,23 @@ function buildTenureBar(elapsedMs) {
 const AGENT_PARENT_MAP = {};
 
 // ── PER-AGENT STATE META ──────────────────────────────────────────────────────
-
-// Rich runtime state per agent — persists across polls
+//
+// Persists across polls — one object per agent key (forge_claude, tower_claude, etc.)
+//
+// KEY FIELDS:
+//   visualState    — current 15-state visual classification
+//   vespers        — flag: has this agent earned vespers (4+ min idle)?
+//   vesperTimer    — clearTimeout handle for scheduleVespersEarning
+//   stalledStage   — 0=none, 1=stalled-s2(amber), 2=stalled-s3(orange-red)
+//   sublabelTimer  — the 7s cycle loop handle (ALSO used by waitingTypewriter)
+//   sublabelFadeTimer — the 300ms fade-in before new sublabel text appears.
+//                       Separate from sublabelTimer so stopSublabelCycling
+//                       cancels both. (Bug: was orphaned — persisted after stop.)
+//   waitingFace    — random face string chosen once on WAITING entry.
+//                   Frozen through VESPERS. Cleared on true state exit only.
+//                   CALLED (transient) does NOT clear it — face stays stable.
+//   transiting     — true while backspaceDelete is running (blocks redundant updates)
+//
 const AGENT_STATE_META = {};
 
 function initAgentMeta(key) {
@@ -1698,9 +3592,12 @@ function initAgentMeta(key) {
     stalledStage:    0,   // 0=none 1=s2+jitter 2=s3+flicker
     stalledS2Timer:  null,
     stalledS3Timer:  null,
-    sublabel:        '...waiting',
-    sublabelTimer:   null,
-    transiting:      false,
+    calledRevertTimer: null, // pending CALLED → prevVisual revert — cancel if real state arrives
+    sublabel:         '...vibing',
+    sublabelTimer:    null,
+    sublabelFadeTimer: null,  // tracks 300ms orphan timer in cycle() — see Face Stability Law 3
+    transiting:       false,
+    waitingFace:     null,    // frozen sleep face — see Face Stability Law 1
   };
 }
 
@@ -1715,15 +3612,6 @@ function fmtTok(n) {
   if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
   if (n >= 1e3) return Math.round(n / 1e3) + 'K';
   return String(n);
-}
-
-// Split token count into { mag, unit } for separate span injection (D014)
-// 233_600_000 → { mag: "233.6", unit: "M" }  |  800 → { mag: "800", unit: "tok" }
-function splitFmtTok(n) {
-  if (n >= 1e9) return { mag: (n / 1e9).toFixed(1), unit: 'B' };
-  if (n >= 1e6) return { mag: (n / 1e6).toFixed(1), unit: 'M' };
-  if (n >= 1e3) return { mag: String(Math.round(n / 1e3)), unit: 'K' };
-  return { mag: String(n), unit: 'tok' };
 }
 
 // Format milliseconds as MM:SS (< 1hr) or HH:MM:SS (>= 1hr)
@@ -1778,7 +3666,22 @@ function setSublabelVisible(entry, visible) {
 function updateFaceGlyph(key, visualState) {
   const entry = AGENT_PARENT_MAP[key];
   if (!entry?.faceEl) return;
-  const glyph = AGENT_FACE_MAP[visualState] ?? '[· ·]';
+  let glyph;
+  if (visualState === 'waiting') {
+    // Pick and cache a sleeping face per agent; clears when leaving waiting state
+    const meta = AGENT_STATE_META[key];
+    if (meta && !meta.waitingFace) {
+      meta.waitingFace = WAITING_FACE_POOL[Math.floor(Math.random() * WAITING_FACE_POOL.length)];
+    }
+    glyph = meta?.waitingFace ?? WAITING_FACE_POOL[0];
+  } else {
+    // Clear cached face on state exit — but NOT for 'called' (it snaps back to prevVisual).
+    // Clearing on called would cause a fresh roll when reverting, shuffling the sleep face mid-sleep.
+    if (AGENT_STATE_META[key] && visualState !== 'called') AGENT_STATE_META[key].waitingFace = null;
+    glyph = (visualState === 'working' && AGENT_WORKING_FACE[key])
+      ? AGENT_WORKING_FACE[key]
+      : (AGENT_FACE_MAP[visualState] ?? '[· ·]');
+  }
   // AC8: OFFLINE — total silence, empty face
   entry.faceEl.textContent = glyph;
   entry.faceEl.setAttribute('data-face', glyph);
@@ -1878,19 +3781,43 @@ function notifyWatchersOfStall(stalledKey) {
     if (!meta || !entry) continue;
     if (meta.visualState === 'waiting' || meta.visualState === 'vespers' || meta.visualState === 'listening') {
       setTimeout(() => {
-        if (!entry.sublabelEl) return;
-        // Stop cycling so the '...watching' pin isn't clobbered by the next sublabelTimer tick
         stopSublabelCycling(key);
         meta.sublabel = '...watching';
-        entry.sublabelEl.textContent = '...watching';
-        entry.sublabelEl.classList.add('visible');
+        // WAITING: typewriter owns statusEl — write '...watching' there; sublabel is hidden
+        if (meta.visualState === 'waiting' || meta.visualState === 'vespers') {
+          if (entry.statusEl) entry.statusEl.textContent = '...watching';
+        } else {
+          if (!entry.sublabelEl) return;
+          entry.sublabelEl.textContent = '...watching';
+          entry.sublabelEl.classList.add('visible');
+        }
       }, Math.random() * 400);
     }
   }
 }
 
 // ── VESPERS SYSTEM ────────────────────────────────────────────────────────────
-// AC4: earned after 4 min idle; [- -] via 3s CSS crossfade; dots never sync
+// AC4: earned after 4 min idle. Status text gets 3s crossfade. Dots removed (clean baseline).
+//
+// FACE STABILITY LAWS — do not violate:
+//
+//   LAW 1 — Sleep face is frozen from first pick until the agent truly wakes.
+//     VESPERS must NOT call updateFaceGlyph(key, 'vespers'). The random sleep face
+//     chosen when entering WAITING persists through VESPERS unchanged.
+//     The CSS 3s crossfade applies to status text only. Face: zero change.
+//     (Previous bug: vespers changed glyph to [- -], opacity to 0.45, color drift.
+//     All four of those changes are gone. Vespers face colors match waiting exactly.)
+//
+//   LAW 2 — CALLED transient must not shuffle the sleep face.
+//     updateFaceGlyph(key, 'called') clears meta.waitingFace. When CALLED snaps
+//     back 1.5s later, it would pick a NEW random face. Fix: guard the clear with
+//     `&& visualState !== 'called'` — called is transient, reverts to prevVisual.
+//
+//   LAW 3 — All infinite setTimeout chains must store handles.
+//     typewriterTimer, meta.sublabelTimer, meta.sublabelFadeTimer must ALL be
+//     assigned on EVERY branch of their loop. clearTimeout before any external
+//     restart. Failing this causes concurrent chain accumulation on tab-refocus.
+//     (See: 2026-03-31 BLACKBOARD — typewriterTimer was declared but never wired.)
 
 const VESPERS_THRESHOLD_MS = 4 * 60 * 1000;
 
@@ -1905,7 +3832,8 @@ function scheduleVespersEarning(key) {
       const entry = AGENT_PARENT_MAP[key];
       if (!entry) return;
       applyStateClass(entry.row, 'vespers');   // CSS handles 3s crossfade via transition
-      updateFaceGlyph(key, 'vespers');
+      // Face glyph intentionally NOT updated — sleeping face persists through vespers.
+      // The agent keeps whichever random sleep face was picked; [- -] was too jarring.
       stopSublabelCycling(key);
       setSublabelVisible(entry, false);
     }
@@ -1929,7 +3857,7 @@ function startSublabelCycling(key) {
     const next = pickWeightedSublabel(meta.sublabel);
     meta.sublabel = next;
     entry.sublabelEl.classList.remove('visible');
-    setTimeout(() => {
+    meta.sublabelFadeTimer = setTimeout(() => {
       entry.sublabelEl.textContent = next;
       entry.sublabelEl.classList.add('visible');
     }, 300);
@@ -1942,13 +3870,66 @@ function stopSublabelCycling(key) {
   const meta = AGENT_STATE_META[key];
   if (!meta) return;
   clearTimeout(meta.sublabelTimer);
-  meta.sublabelTimer = null;
+  clearTimeout(meta.sublabelFadeTimer);
+  meta.sublabelTimer     = null;
+  meta.sublabelFadeTimer = null;
+}
+
+// ── WAITING TYPEWRITER ────────────────────────────────────────────────────────
+// Replaces WAITING label + sublabel with a single typewriter animation.
+// Types "...chillin'..." first, then cycles through sublabel pool.
+// Uses meta.sublabelTimer so stopSublabelCycling() cancels cleanly.
+
+function startWaitingTypewriter(key) {
+  const meta  = AGENT_STATE_META[key];
+  const entry = AGENT_PARENT_MAP[key];
+  if (!meta || !entry?.statusEl) return;
+  stopSublabelCycling(key);
+
+  // ±20% variance per invocation so each agent drifts at its own sleepy pace
+  const v           = 0.8 + Math.random() * 0.4;
+  const TYPE_SPEED  = 225 * v;  // ~180–270ms per char
+  const ERASE_SPEED = 102 * v;  // ~82–122ms per char
+  const HOLD_MS     = 3750 * v; // ~3000–4500ms pause after full word
+
+  function typeChars(text, i, onDone) {
+    if (meta.visualState !== 'waiting') return;
+    entry.statusEl.textContent = text.slice(0, i + 1);
+    if (i < text.length - 1) {
+      meta.sublabelTimer = setTimeout(() => typeChars(text, i + 1, onDone),
+        TYPE_SPEED + Math.random() * 80 * v);
+    } else {
+      meta.sublabelTimer = setTimeout(onDone, HOLD_MS);
+    }
+  }
+
+  function eraseChars(onDone) {
+    if (meta.visualState !== 'waiting') return;
+    const cur = entry.statusEl.textContent;
+    if (cur.length === 0) { meta.sublabelTimer = setTimeout(onDone, 180); return; }
+    entry.statusEl.textContent = cur.slice(0, -1);
+    meta.sublabelTimer = setTimeout(() => eraseChars(onDone),
+      ERASE_SPEED + Math.random() * 40 * v);
+  }
+
+  let currentLabel = "...chillin'...";
+
+  function cycle() {
+    if (meta.visualState !== 'waiting') return;
+    const next = pickWeightedSublabel(currentLabel);
+    currentLabel = next;
+    meta.sublabel = next;
+    typeChars(next, 0, () => eraseChars(cycle));
+  }
+
+  typeChars(currentLabel, 0, () => eraseChars(cycle));
 }
 
 // ── TENURE BAR ENGINE ─────────────────────────────────────────────────────────
 // AC3: replaces timer column; resets on state change (not on CALLED)
 
 function tickTenure() {
+  if (document.hidden) return; // skip DOM writes in background tabs
   const now = Date.now();
   for (const key of Object.keys(AGENT_PARENT_MAP)) {
     const meta  = AGENT_STATE_META[key];
@@ -1984,6 +3965,17 @@ function updateAgentDisplay(key, agentData) {
   const changed     = newVisual !== prevVisual;
 
   if (changed) {
+    // VESPERS guard: API returning 'idle' does not dismiss VESPERS —
+    // VESPERS is an earned internal state; only a real state change
+    // (going active, offline, etc.) should cancel it.
+    if (prevVisual === 'vespers' && newVisual === 'waiting') return;
+
+    // Cancel any pending CALLED revert — real state change wins
+    if (meta.calledRevertTimer) {
+      clearTimeout(meta.calledRevertTimer);
+      meta.calledRevertTimer = null;
+    }
+
     meta.visualState    = newVisual;
     meta.apiState       = rawApiState;
     meta.stateEnteredAt = Date.now() - ageSec * 1000;
@@ -1994,7 +3986,8 @@ function updateAgentDisplay(key, agentData) {
     if (newVisual === 'called') {
       entry.row.classList.add('called-surge');
       updateFaceGlyph(key, 'called');
-      setTimeout(() => {
+      meta.calledRevertTimer = setTimeout(() => {
+        meta.calledRevertTimer = null;
         entry.row.classList.remove('called-surge');
         // Revert face glyph to prior state after burst
         updateFaceGlyph(key, prevVisual);
@@ -2018,14 +4011,22 @@ function updateAgentDisplay(key, agentData) {
     // BACKSPACE_DELETE status text transition — guard overlapping transitions
     if (!meta.transiting) {
       meta.transiting = true;
-      const label       = STATE_LABEL[newVisual] ?? newVisual.toUpperCase();
-      const displayText = tool ? label + ' · ' + tool : label;
       setTimeout(() => updateFaceGlyph(key, newVisual), 160); // T+160ms face scramble
-      backspaceDelete(entry.statusEl, displayText, () => { meta.transiting = false; });
+      if (newVisual === 'waiting') {
+        // Typewriter owns the status element — just blank it and release the lock
+        entry.statusEl.textContent = '';
+        meta.transiting = false;
+      } else {
+        const label       = STATE_LABEL[newVisual] ?? newVisual.toUpperCase();
+        backspaceDelete(entry.statusEl, label, () => { meta.transiting = false; });
+      }
     }
 
     // Sublabel / vespers scheduling per new state
-    if (newVisual === 'waiting' || newVisual === 'listening') {
+    if (newVisual === 'waiting') {
+      startWaitingTypewriter(key);
+      scheduleVespersEarning(key);
+    } else if (newVisual === 'listening') {
       meta.sublabel = pickWeightedSublabel('');
       startSublabelCycling(key);
       scheduleVespersEarning(key);
@@ -2048,12 +4049,12 @@ function updateAgentDisplay(key, agentData) {
     }
 
   } else {
-    // Same state — update tool sub-label if changed, no animation needed
-    if (!meta.transiting) {
-      const label       = STATE_LABEL[newVisual] ?? newVisual.toUpperCase();
-      const displayText = tool ? label + ' · ' + tool : label;
-      if (entry.statusEl && entry.statusEl.textContent !== displayText) {
-        entry.statusEl.textContent = displayText;
+    // Same state — no re-animation needed
+    // WAITING: typewriter owns statusEl — never overwrite it from the poll
+    if (!meta.transiting && newVisual !== 'waiting') {
+      const label = STATE_LABEL[newVisual] ?? newVisual.toUpperCase();
+      if (entry.statusEl && entry.statusEl.textContent !== label) {
+        entry.statusEl.textContent = label;
       }
     }
     // Re-check stall condition if still active with growing age
@@ -2080,6 +4081,7 @@ function initVisitorPresenceResponse() {
     const entry  = AGENT_PARENT_MAP[chosen];
     const meta   = AGENT_STATE_META[chosen];
     if (entry?.sublabelEl) {
+      stopSublabelCycling(chosen); // cancel any active typewriter cycle before overwriting
       meta.sublabel = '...listening';
       entry.sublabelEl.textContent = '...listening';
       entry.sublabelEl.classList.add('visible');
@@ -2100,135 +4102,107 @@ function initVisitorPresenceResponse() {
   }, t8);
 }
 
-// ── TOKEN DISPLAY ─────────────────────────────────────────────────────────────
+// ── TOKEN DISPLAY (v2 — 2026-03-31) ───────────────────────────────────────────
+// Source: /api/kingdom-state?type=token-pulse → raw sentinel schema
+//
+// broadcast_label + broadcast_cost are pre-formatted strings — drop straight in.
+// Territory bars are relative: the biggest territory today = 100%, others scale.
+// FORGE=H28 amber · AERIS=H145 green · TOWER=H195 cyan · HOUSE=H270 violet
+//
+// Live counter state — animates lifetime_tokens using rate_per_sec between polls
+let mTokenBase     = 0;     // lifetime_tokens from last successful poll
+let mTokenRate     = 0;     // rate_per_sec from last successful poll
+let mTokenPollMs   = 0;     // Date.now() when last poll data arrived
+let mTokenRaf      = null;  // rAF handle for live counter
+let mTokenTickLast = 0;     // last tick timestamp (throttle to ~100ms)
 
-// Set a meter fill via CSS custom property and update aria-valuenow (D014)
-function setMeter(fillEl, pct) {
-  if (!fillEl) return;
-  fillEl.style.setProperty('--meter-fill', pct + '%');
-  const meter = fillEl.closest('[role="meter"]');
-  if (meter) meter.setAttribute('aria-valuenow', Math.round(pct));
+function fmtLiveTokens(n) {
+  // Full integer with commas — last 4+ digits visibly tick like an odometer
+  return Math.round(n).toLocaleString('en-US') + ' tokens processed';
 }
 
-// Inject split magnitude + unit into a .hud-burn__value element (D014)
-// Targets child spans: .hud-burn__magnitude and .hud-burn__unit
-function injectSplitTok(valueEl, n) {
-  if (!valueEl) return;
-  const { mag, unit } = splitFmtTok(n);
-  const magEl  = valueEl.querySelector('.hud-burn__magnitude');
-  const unitEl = valueEl.querySelector('.hud-burn__unit');
-  if (magEl)  magEl.textContent  = mag;
-  if (unitEl) unitEl.textContent = unit;
-  // Fallback: if child spans absent, write flat text
-  if (!magEl && !unitEl) valueEl.textContent = mag + unit;
+function tickTokenCounter() {
+  const now = Date.now();
+  // Throttle to ~10fps — readable digit-by-digit ticking without layout thrash
+  if (now - mTokenTickLast >= 100) {
+    mTokenTickLast = now;
+    const elapsed = (now - mTokenPollMs) / 1000;
+    const labelEl = document.getElementById('burn-broadcast-label');
+    if (labelEl) labelEl.textContent = fmtLiveTokens(mTokenBase + mTokenRate * elapsed);
+  }
+  mTokenRaf = requestAnimationFrame(tickTokenCounter);
 }
 
-// Update all token meter rows from live + lifetime API data (D014, D055)
-// tokens = /tokens/live response; lifetime = /tokens/lifetime; kingdomLive = /kingdom/live
-// RATE comes from kingdomLive.tokens.rate_per_min (D042/D055 corrected source)
-function updateTokenDisplay(tokens, lifetime, kingdomLive) {
-  // TODAY — tokens.today?.tokens from /tokens/live
-  const todayTok  = tokens?.today?.tokens ?? null;
-  const todayFill = document.getElementById('token-today-fill');
-  const todayVal  = document.getElementById('token-today-value');
-  if (todayTok !== null) {
-    injectSplitTok(todayVal, todayTok);
-    setMeter(todayFill, Math.min(100, (todayTok / TOKEN_CEILINGS.today) * 100));
+function updateTokenPulse(tokenPulse) {
+  if (!tokenPulse) return;
+
+  // Broadcast headline — start counter animation if rate available; else static label
+  const labelEl = document.getElementById('burn-broadcast-label');
+  const costEl  = document.getElementById('burn-broadcast-cost');
+  if (costEl)  costEl.textContent  = tokenPulse.broadcast_cost  ?? '—';
+  if (tokenPulse.lifetime_tokens && tokenPulse.rate_per_sec) {
+    // Kick off / reset the live counter — ticker loop self-continues
+    mTokenBase   = tokenPulse.lifetime_tokens;
+    mTokenRate   = tokenPulse.rate_per_sec;
+    mTokenPollMs = Date.now();
+    if (!mTokenRaf) mTokenRaf = requestAnimationFrame(tickTokenCounter);
+    // Ticker will update labelEl on next tick; set static value as initial fallback
+    if (labelEl) labelEl.textContent = fmtLiveTokens(mTokenBase);
+  } else {
+    if (labelEl) labelEl.textContent = tokenPulse.broadcast_label ?? '—';
   }
 
-  // WEEK — tokens.week?.tokens → ceiling: TOKEN_CEILINGS.week
-  const weekTok  = tokens?.week?.tokens ?? null;
-  const weekFill = document.getElementById('token-week-fill');
-  const weekVal  = document.getElementById('token-week-value');
-  if (weekTok !== null) {
-    injectSplitTok(weekVal, weekTok);
-    setMeter(weekFill, Math.min(100, (weekTok / TOKEN_CEILINGS.week) * 100));
-  }
+  // Territory bars — scale relative to highest today_tok
+  const terrs  = tokenPulse.territories ?? {};
+  const keys   = ['FORGE', 'AERIS', 'TOWER', 'HOUSE'];
+  const maxTok = Math.max(...keys.map(k => terrs[k]?.today_tok ?? 0), 1);
 
-  // TOTAL — lifetime.sentinel_tokens → ceiling: TOKEN_CEILINGS.total
-  const totalTok  = lifetime?.sentinel_tokens ?? null;
-  const totalFill = document.getElementById('token-total-fill');
-  const totalVal  = document.getElementById('token-total-value');
-  if (totalTok !== null) {
-    injectSplitTok(totalVal, totalTok);
-    setMeter(totalFill, Math.min(100, (totalTok / TOKEN_CEILINGS.total) * 100));
+  for (const key of keys) {
+    const tok  = terrs[key]?.today_tok ?? 0;
+    const pct  = Math.round((tok / maxTok) * 100);
+    const fill = document.getElementById(`burn-${key.toLowerCase()}-fill`);
+    const val  = document.getElementById(`burn-${key.toLowerCase()}-val`);
+    if (fill) fill.style.width = pct + '%';
+    if (val)  val.textContent  = tok > 0 ? fmtTok(tok) : '—';
   }
+}
 
-  // RATE — rate_per_min from /kingdom/live (D055: correct source, query child spans)
-  const rateTokPerMin = kingdomLive?.tokens?.rate_per_min ?? null;
-  const rateEl        = document.getElementById('token-rate-value');
-  if (rateEl && rateTokPerMin !== null) {
-    const magEl  = rateEl.querySelector('.hud-burn__magnitude');
-    const unitEl = rateEl.querySelector('.hud-burn__unit');
-    if (magEl && unitEl) {
-      magEl.textContent  = fmtTok(Math.round(rateTokPerMin));
-      unitEl.textContent = 'tok/min';
-    } else {
-      rateEl.textContent = fmtTok(Math.round(rateTokPerMin)) + ' tok/min';
+// ── BRANDON PRESENCE ROW ─────────────────────────────────────────────────────
+
+// 5th row in AGENTS.log — shows Brandon's AW presence, goes AFK after 1 hour idle
+function updateBrandonRow(activity) {
+  if (!activity) return;
+  const row        = document.getElementById('brandon-presence-row');
+  const faceEl     = document.getElementById('brandon-face');
+  const statusEl   = document.getElementById('brandon-status');
+  const sublabelEl = document.getElementById('brandon-sublabel');
+  const tenureEl   = document.getElementById('brandon-tenure');
+  if (!row) return;
+
+  const aw       = activity.brandon_aw_live;
+  const isAfk    = aw?.afk ?? !activity.brandon_present;
+  const afkSec   = aw?.afk_duration_sec ?? 0;
+  const longAfk  = isAfk && afkSec >= 3600; // AFK threshold: 1 hour
+
+  if (longAfk) {
+    row.classList.add('brandon--afk');
+    row.classList.remove('brandon--active');
+    if (faceEl)     faceEl.textContent    = '👑[ × _ × ]';
+    if (statusEl)   statusEl.textContent  = 'AFK';
+    if (sublabelEl) { sublabelEl.textContent = '...away'; sublabelEl.classList.add('visible'); }
+    if (tenureEl) {
+      const h = Math.floor(afkSec / 3600);
+      const m = Math.floor((afkSec % 3600) / 60);
+      tenureEl.textContent = h > 0 ? `${h}h${m}m` : `${m}m`;
     }
+  } else {
+    row.classList.add('brandon--active');
+    row.classList.remove('brandon--afk');
+    if (faceEl)     faceEl.textContent    = '👑[•̀ᴗ•́]';
+    if (statusEl)   statusEl.textContent  = 'ACTIVE';
+    if (sublabelEl) { sublabelEl.textContent = '...active'; sublabelEl.classList.add('visible'); }
+    if (tenureEl)   tenureEl.textContent  = ' ';
   }
-}
-
-// ── SIGNAL LOG ────────────────────────────────────────────────────────────────
-
-// Apply thermal CSS class to a signal value element based on health string (D055)
-function applySigThermalClass(el, healthValue) {
-  if (!el) return;
-  const toRemove = [...el.classList].filter(c => c.startsWith('sig-val--'));
-  toRemove.forEach(c => el.classList.remove(c));
-  const h = (healthValue ?? '').toUpperCase();
-  if      (h === 'LIVE')      el.classList.add('sig-val--hot');
-  else if (h === 'STALE')     el.classList.add('sig-val--warm');
-  else if (h === 'DEGRADED')  el.classList.add('sig-val--cold');
-  else                        el.classList.add('sig-val--unknown');
-}
-
-// Inject kingdom stats into [data-signal-field="X"] elements (D015, D043, D055)
-// Corrected field paths: kingdomLive.health, activity.swarm_count, etc.
-function updateSignalLog(kingdomLive, activity, agents) {
-  // territory_summary can be null (not just undefined) — use || not ?? (BOMB F)
-  const territories = (activity?.territory_summary || [])
-    .filter(t => t?.status !== 'offline').length;
-
-  const lastSig = activity?.last_signal ?? null;
-  const uptimeDisplay = (() => {
-    if (!lastSig) return '—';
-    const ageSec = (Date.now() - new Date(lastSig).getTime()) / 1000;
-    return isNaN(ageSec) ? '—' : ageStr(ageSec);
-  })();
-
-  const fields = {
-    signal_status: kingdomLive?.health                           ?? '—',
-    chunks:        activity?.swarm_count != null ? String(activity.swarm_count) : '—',
-    systems:       activity?.current_activity                    ?? '—',
-    territories:   territories > 0 ? String(territories) : '0',
-    session:       activity?.active_project                      ?? '—',
-    uptime:        uptimeDisplay,
-  };
-
-  for (const [field, value] of Object.entries(fields)) {
-    document.querySelectorAll(`[data-signal-field="${field}"]`).forEach(el => {
-      el.textContent = value;
-      if (field === 'signal_status') {
-        applySigThermalClass(el, kingdomLive?.health ?? null);
-      }
-    });
-  }
-
-  // Chip toggling — sig-chip--inactive toggled (never removed) based on live signals (D035)
-  const liveChip   = document.querySelector('.sig-chip--live');
-  const activeChip = document.querySelector('.sig-chip--active');
-  const signalChip = document.querySelector('.sig-chip--signal');
-
-  const isLive    = kingdomLive?.health === 'LIVE';
-  const isActive  = agents?.agents
-    ? Object.values(agents.agents).some(a => a?.state && a.state !== 'offline')
-    : false;
-  const hasSignal = (activity?.swarm_count ?? 0) > 0;
-
-  if (liveChip)   liveChip.classList.toggle('sig-chip--inactive',   !isLive);
-  if (activeChip) activeChip.classList.toggle('sig-chip--inactive', !isActive);
-  if (signalChip) signalChip.classList.toggle('sig-chip--inactive', !hasSignal);
 }
 
 // ── PRESENCE DOTS ─────────────────────────────────────────────────────────────
@@ -2266,25 +4240,24 @@ function updatePresenceDots(activity) {
 
 // ── MAIN POLL LOOP ────────────────────────────────────────────────────────────
 
-// pollHUD — replaces fetchKingdomData(); 5 parallel fetches, graceful degradation (D016)
+// pollHUD — 4 parallel fetches, graceful degradation (D016)
+// v2: tokens/live + tokens/lifetime replaced by kingdom-state (SCRYER feed)
 async function pollHUD() {
   // Skip fetch when tab is hidden — conserves requests for background tabs
   if (document.hidden) { setTimeout(pollHUD, 30_000); return; }
 
   try {
-    const [agentRes, tokenRes, lifetimeRes, activityRes, kingdomRes] = await Promise.allSettled([
+    const [agentRes, pulseRes, activityRes, kingdomRes] = await Promise.allSettled([
       fetch('/api/local/agents/status').then(r => r.ok ? r.json() : null),
-      fetch('/api/local/tokens/live').then(r => r.ok ? r.json() : null),
-      fetch('/api/local/tokens/lifetime').then(r => r.ok ? r.json() : null),
+      fetch('/api/kingdom-state?type=token-pulse').then(r => r.ok ? r.json() : null),
       fetch('/api/local/kingdom/activity').then(r => r.ok ? r.json() : null),
       fetch('/api/local/kingdom/live').then(r => r.ok ? r.json() : null),
     ]);
 
-    const agents      = agentRes.status      === 'fulfilled' ? agentRes.value      : null;
-    const tokens      = tokenRes.status      === 'fulfilled' ? tokenRes.value      : null;
-    const lifetime    = lifetimeRes.status   === 'fulfilled' ? lifetimeRes.value   : null;
-    const activity    = activityRes.status   === 'fulfilled' ? activityRes.value   : null;
-    const kingdomLive = kingdomRes.status    === 'fulfilled' ? kingdomRes.value    : null;
+    const agents      = agentRes.status   === 'fulfilled' ? agentRes.value   : null;
+    const pulseData   = pulseRes.status   === 'fulfilled' ? pulseRes.value   : null;
+    const activity    = activityRes.status === 'fulfilled' ? activityRes.value : null;
+    const kingdomLive = kingdomRes.status  === 'fulfilled' ? kingdomRes.value  : null;
 
     // ── Agent state: 15-state visual engine (S209-BRAINSTORM) ───────────────
     if (agents) {
@@ -2294,17 +4267,18 @@ async function pollHUD() {
       }
     }
 
-    // ── Token burn panel ──────────────────────────────────────────────────────
-    updateTokenDisplay(tokens, lifetime, kingdomLive);
+    // ── Token burn panel (v2 — territory breakdown) ───────────────────────────
+    updateTokenPulse(pulseData);
+
+    // ── Brandon presence row ──────────────────────────────────────────────────
+    updateBrandonRow(activity);
 
     // ── Presence dots ─────────────────────────────────────────────────────────
     updatePresenceDots(activity);
 
-    // ── Signal log ────────────────────────────────────────────────────────────
-    updateSignalLog(kingdomLive, activity, agents);
-
-  } catch (_) {
+  } catch (err) {
     // Graceful degradation — static HTML values remain visible
+    console.warn('[HUD] poll failed:', err);
   }
 
   setTimeout(pollHUD, 30_000);
@@ -2321,11 +4295,13 @@ document.addEventListener('DOMContentLoaded', () => {
     initAgentMeta(key);
     const entry = AGENT_PARENT_MAP[key];
     const meta  = AGENT_STATE_META[key];
-    const g = AGENT_FACE_MAP['waiting'];
-    if (entry.faceEl)    { entry.faceEl.textContent = g; entry.faceEl.setAttribute('data-face', g); }
+    applyStateClass(entry.row, 'waiting'); // ensures CSS text-transform:none is active from boot
+    updateFaceGlyph(key, 'waiting'); // picks a random sleeping face for each agent
     if (entry.tenureEl)  entry.tenureEl.textContent = buildTenureBar(0);
-    meta.sublabel = pickWeightedSublabel('');
-    startSublabelCycling(key);
+    // Stagger boot start 0–3s so agents don't all type in sync
+    setTimeout(() => {
+      if (meta.visualState === 'waiting') startWaitingTypewriter(key);
+    }, Math.random() * 3000);
     scheduleVespersEarning(key);
   });
 
@@ -2335,6 +4311,618 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // First fetch: small delay so the page's CSS entrance animations are underway
 setTimeout(pollHUD, 1_800);
+
+// ── INLINE HUD — mirrors bottom AGENTS.log panel every 2s ────────────────────
+
+const INLINE_AGENT_KEYS = ['forge_claude', 'tower_claude', 'claude_house', 'throne_claude'];
+const STATE_CLASSES_ALL = [
+  'state--waiting',   'state--working',   'state--reading',    'state--writing',
+  'state--thinking',  'state--deep_think','state--listening',  'state--called',
+  'state--vespers',   'state--offline',   'state--stalled',    'state--compressing',
+  'state--error',     'state--stale',     'state--booting',
+];
+const hudInlineEl = document.getElementById('hud-inline');
+
+function mirrorToInlinePanel() {
+  if (!hudInlineEl || document.hidden) return;
+  for (const key of INLINE_AGENT_KEYS) {
+    const main = AGENT_PARENT_MAP[key];
+    const row  = hudInlineEl.querySelector(`[data-inline-agent="${key}"]`);
+    if (!main || !row) continue;
+    const inlineFace   = row.querySelector('.hud-agent__face');
+    const inlineStatus = row.querySelector('.hud-agent__status');
+    if (main.faceEl   && inlineFace)   inlineFace.textContent   = main.faceEl.textContent;
+    if (main.statusEl && inlineStatus) inlineStatus.textContent = main.statusEl.textContent;
+    for (const cls of STATE_CLASSES_ALL) row.classList.toggle(cls, main.row.classList.contains(cls));
+  }
+  const mainBrandonRow    = document.getElementById('brandon-presence-row');
+  const mainBrandonFace   = document.getElementById('brandon-face');
+  const mainBrandonStatus = document.getElementById('brandon-status');
+  const inlineBrandon     = hudInlineEl.querySelector('[data-inline-agent="brandon"]');
+  if (inlineBrandon) {
+    const bFace   = inlineBrandon.querySelector('.hud-agent__face');
+    const bStatus = inlineBrandon.querySelector('.hud-agent__status');
+    if (mainBrandonFace   && bFace)   bFace.textContent   = mainBrandonFace.textContent;
+    if (mainBrandonStatus && bStatus) bStatus.textContent = mainBrandonStatus.textContent;
+    // Sync AFK/active class so the inline brandon row dims correctly when Brandon is away
+    if (mainBrandonRow) {
+      inlineBrandon.classList.toggle('brandon--afk',    mainBrandonRow.classList.contains('brandon--afk'));
+      inlineBrandon.classList.toggle('brandon--active', mainBrandonRow.classList.contains('brandon--active'));
+    }
+  }
+}
+setInterval(mirrorToInlinePanel, 5_000);
+
+// ── VIDEO CARD — play / pause / resume interaction ────────────────────────
+document.querySelectorAll('.video-card').forEach(function(card) {
+  var video          = card.querySelector('video');
+  var playBtn        = card.querySelector('.video-card__play-btn');
+  var fade           = card.querySelector('.video-card__fade');
+  var volInput       = card.querySelector('.video-card__volume');
+  if (!video || !playBtn || !fade || !volInput) return;
+
+  var isTransitioning = false;
+
+  function setPlayingState() {
+    card.classList.add('is-playing');
+    card.classList.remove('is-paused');
+    playBtn.textContent  = '⏸';
+    playBtn.style.paddingLeft = '0';
+  }
+
+  function setPausedState() {
+    card.classList.remove('is-playing');
+    card.classList.add('is-paused');
+    playBtn.textContent  = '▶';
+    playBtn.style.paddingLeft = '3px';
+  }
+
+  function resetCard() {
+    isTransitioning = false;
+    card.classList.remove('is-playing', 'is-paused');
+    fade.classList.remove('active');
+    playBtn.textContent  = '▶';
+    playBtn.style.paddingLeft = '3px';
+  }
+
+  video.addEventListener('error', resetCard);
+
+  playBtn.addEventListener('click', function() {
+    // ── PAUSE (currently playing) ──────────────────────────────────────────
+    if (card.classList.contains('is-playing')) {
+      video.pause();
+      setPausedState();
+      return;
+    }
+
+    // ── RESUME (currently paused) ─────────────────────────────────────────
+    if (card.classList.contains('is-paused')) {
+      var rp = video.play();
+      if (rp !== undefined) {
+        rp.then(setPlayingState).catch(resetCard);
+      } else {
+        setPlayingState();
+      }
+      return;
+    }
+
+    // ── FIRST PLAY — fade-to-black sequence ───────────────────────────────
+    if (isTransitioning) return;
+    isTransitioning = true;
+
+    fade.classList.add('active');                         // fade to black (300ms)
+    setTimeout(function() {
+      video.muted       = false;
+      video.volume      = parseFloat(volInput.value);
+      video.currentTime = 0;
+      var p = video.play();
+      if (p !== undefined) {
+        p.then(function() {
+          setPlayingState();
+          setTimeout(function() {
+            fade.classList.remove('active');
+            isTransitioning = false;
+          }, 200);
+        }).catch(resetCard);
+      } else {
+        setPlayingState();
+        setTimeout(function() {
+          fade.classList.remove('active');
+          isTransitioning = false;
+        }, 200);
+      }
+    }, 320);
+  });
+
+  volInput.addEventListener('input', function() {
+    video.volume = parseFloat(volInput.value);
+  });
+});
+
+// ── GUESTBOOK popup ───────────────────────────────────────────────────────────
+(function() {
+  var ENTRY_COLORS = 6;   // cycles .entry-name[data-idx="0..5"] → --gb-name-1..6
+  var gbCloseTimer = null; // guard against stale close-animation setTimeout (B-04)
+
+  // ── sounds ──────────────────────────────────────────────────────────────────
+  var gbSoundOpen  = new Audio('/IM.mp3');
+  var gbSoundClose = new Audio('/Goodbye.mp3');
+
+  // ── open / close ────────────────────────────────────────────────────────────
+
+  function openGuestbook() {
+    var backdrop = document.getElementById('guestbook-backdrop');
+    if (!backdrop) return;
+    gbSoundOpen.currentTime = 0;
+    gbSoundOpen.play().catch(function() {});
+    // Cancel any in-flight close animation so its deferred hide() can't re-close us
+    if (gbCloseTimer) { clearTimeout(gbCloseTimer); gbCloseTimer = null; }
+    backdrop.style.display = 'grid';
+    backdrop.classList.remove('is-closing');
+    loadEntries();
+    // Focus first field after animation settles
+    setTimeout(function() {
+      var nameInput = document.getElementById('gb-name');
+      if (nameInput) nameInput.focus();
+    }, 120);
+  }
+
+  function closeGuestbook() {
+    var backdrop = document.getElementById('guestbook-backdrop');
+    if (!backdrop || backdrop.style.display === 'none') return;
+    gbSoundClose.currentTime = 0;
+    gbSoundClose.play().catch(function() {});
+    backdrop.classList.add('is-closing');
+    gbCloseTimer = setTimeout(function() {
+      gbCloseTimer = null;
+      backdrop.style.display = 'none';
+      backdrop.classList.remove('is-closing');
+    }, 200);
+  }
+
+  // ── focus trap (WCAG 2.1 SC 2.1.2) ─────────────────────────────────────────
+
+  function trapFocus(e) {
+    var popup = document.getElementById('guestbook-popup');
+    if (!popup) return;
+    var focusable = popup.querySelectorAll(
+      'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    if (!focusable.length) return;
+    var first = focusable[0];
+    var last  = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last)  { e.preventDefault(); first.focus(); }
+    }
+  }
+
+  // ── entries ─────────────────────────────────────────────────────────────────
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function formatDate(iso) {
+    try {
+      var d = new Date(iso);
+      return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    } catch(e) { return ''; }
+  }
+
+  // Named-entry color overrides — these always get their color regardless of position
+  var SPECIAL_COLORS = {
+    'sinner_king':      '#ffcc00',
+    '꧁ Æ ꧂':           '#bf5fff',
+    'aeris fragment 7': '#bf5fff',
+    'Cla⌂de':           '#ff7700',
+  };
+
+  function renderEntries(entries) {
+    var list = document.getElementById('gb-entries-list');
+    if (!list) return;
+    if (!entries || entries.length === 0) {
+      list.innerHTML = '<p class="guestbook-entries-empty">no entries yet... be the first ✨</p>';
+      return;
+    }
+    var html = '';
+    entries.forEach(function(e, i) {
+      var sc       = SPECIAL_COLORS[e.name];
+      var nameAttr = sc ? ' style="color:' + sc + '"' : ' data-idx="' + (i % ENTRY_COLORS) + '"';
+      var loc  = escapeHtml(e.location || 'unknown locale');
+      var date = escapeHtml(formatDate(e.date));
+      html += '<article class="guestbook-entry">'
+            + '<div class="entry-meta">'
+            + '<span class="entry-name"' + nameAttr + '>' + escapeHtml(e.name) + '</span>'
+            + '<span class="entry-location-date">' + loc + ' · ' + date + '</span>'
+            + '</div>'
+            + '<p class="entry-message">' + escapeHtml(e.message) + '</p>'
+            + '</article>';
+    });
+    list.innerHTML = html;
+    // Update visitor counter: entries.length + 37, zero-padded to 4 digits
+    var numEl = document.getElementById('gb-visitor-num');
+    if (numEl) {
+      var n = String(entries.length + 37).padStart(4, '0');
+      numEl.textContent = n;
+    }
+  }
+
+  function loadEntries(onDone) {
+    fetch('/api/guestbook')
+      .then(function(r) {
+        if (!r.ok) throw new Error('server error');
+        return r.json();
+      })
+      .then(function(data) {
+        renderEntries(data);
+        if (onDone) onDone();
+      })
+      .catch(function() {
+        var list = document.getElementById('gb-entries-list');
+        if (list) list.innerHTML = '<p class="guestbook-entries-empty">could not load entries. the signal is warm though.</p>';
+        // Update counter to seed fallback so it never stays 0000 on failure
+        var numEl = document.getElementById('gb-visitor-num');
+        if (numEl) numEl.textContent = '0042';
+        if (onDone) onDone();
+      });
+  }
+
+  // ── form ────────────────────────────────────────────────────────────────────
+
+  window.gbUpdateCharCount = function(textarea) {
+    var remaining = 200 - textarea.value.length;
+    var counter = document.getElementById('gb-char-counter');
+    if (!counter) return;
+    counter.textContent = remaining;
+    counter.classList.toggle('at-limit', remaining <= 20);
+  };
+
+  function showThankYou() {
+    var form     = document.getElementById('gb-form');
+    var thankYou = document.getElementById('gb-thankyou');
+    var entries  = document.querySelector('.guestbook-entries');
+    if (form)     form.style.display = 'none';
+    if (thankYou) thankYou.classList.add('visible');
+    if (entries)  entries.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  window.gbHandleSign = function(e) {
+    e.preventDefault();
+    var btn     = document.getElementById('gb-submit');
+    var name    = (document.getElementById('gb-name')     || {}).value || '';
+    var loc     = (document.getElementById('gb-location') || {}).value || '';
+    var msg     = (document.getElementById('gb-message')  || {}).value || '';
+    if (!name.trim() || !msg.trim()) return;
+    if (btn) btn.disabled = true;
+    fetch('/api/guestbook', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ name: name, location: loc, message: msg }),
+    })
+      .then(function(r) {
+        if (!r.ok) throw new Error('server error');
+        return r.json();
+      })
+      .then(function() {
+        if (btn) btn.disabled = false;
+        e.target.reset();
+        var counter = document.getElementById('gb-char-counter');
+        if (counter) { counter.textContent = '200'; counter.classList.remove('at-limit'); }
+        loadEntries(showThankYou); // showThankYou fires after entries re-render (not before)
+      })
+      .catch(function() {
+        if (btn) btn.disabled = false;
+        // Silently restore — the Kingdom does not panic
+      });
+  };
+
+  // ── events ──────────────────────────────────────────────────────────────────
+
+  // Trigger: click (or Enter/Space) on #m-guestbook in manifesto
+  document.addEventListener('click', function(e) {
+    var trigger = e.target.closest ? e.target.closest('#m-guestbook') : (e.target.id === 'm-guestbook' ? e.target : null);
+    if (trigger) openGuestbook();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { closeGuestbook(); return; }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.id === 'm-guestbook') {
+      e.preventDefault();
+      openGuestbook();
+      return;
+    }
+    // Focus trap: while modal is open, Tab cycles within the popup
+    if (e.key === 'Tab') {
+      var backdrop = document.getElementById('guestbook-backdrop');
+      if (backdrop && backdrop.style.display !== 'none') trapFocus(e);
+    }
+  });
+
+  // Click-outside (backdrop click, not popup click)
+  document.addEventListener('click', function(e) {
+    var backdrop = document.getElementById('guestbook-backdrop');
+    if (backdrop && e.target === backdrop) closeGuestbook();
+  });
+
+  // Expose for inline onclick on close button
+  window.closeGuestbook = closeGuestbook;
+})();
+
+// ── LONELY popup ──────────────────────────────────────────────────────────────
+(function() {
+  var dismissTimer = null;
+  document.addEventListener('click', function(e) {
+    var trigger = e.target.closest ? e.target.closest('#m-lonely') : (e.target.id === 'm-lonely' ? e.target : null);
+    if (!trigger) return;
+    var popup = document.getElementById('lonely-popup');
+    if (!popup) return;
+    if (dismissTimer) { clearTimeout(dismissTimer); dismissTimer = null; }
+    popup.classList.add('visible');
+    dismissTimer = setTimeout(function() {
+      popup.classList.remove('visible');
+      dismissTimer = null;
+    }, 3000);
+  });
+})();
+</script>
+
+<!-- ── BLOG POPUP JS ─────────────────────────────────────────────────────── -->
+<script>
+(function() {
+  // Target: 5 days from S225 launch (2026-04-04) = 2026-04-09T00:00:00Z
+  var BLOG_TARGET = new Date('2026-04-09T00:00:00.000Z').getTime();
+  var blogCdInterval = null;
+
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+  function updateBlogCountdown() {
+    var now  = Date.now();
+    var diff = Math.max(0, BLOG_TARGET - now);
+    var days  = Math.floor(diff / 86400000);
+    var hours = Math.floor((diff % 86400000) / 3600000);
+    var mins  = Math.floor((diff % 3600000)  / 60000);
+    var secs  = Math.floor((diff % 60000)    / 1000);
+    var dEl = document.getElementById('blog-cd-days');
+    var hEl = document.getElementById('blog-cd-hours');
+    var mEl = document.getElementById('blog-cd-mins');
+    var sEl = document.getElementById('blog-cd-secs');
+    if (dEl) dEl.textContent = pad(days);
+    if (hEl) hEl.textContent = pad(hours);
+    if (mEl) mEl.textContent = pad(mins);
+    if (sEl) sEl.textContent = pad(secs);
+  }
+
+  function openBlogPopup() {
+    var backdrop = document.getElementById('blog-popup-backdrop');
+    if (!backdrop) return;
+    updateBlogCountdown();
+    backdrop.style.display = '';
+    backdrop.classList.remove('is-closing');
+    blogCdInterval = setInterval(updateBlogCountdown, 1000);
+  }
+
+  function closeBlogPopup() {
+    var backdrop = document.getElementById('blog-popup-backdrop');
+    if (!backdrop) return;
+    clearInterval(blogCdInterval);
+    blogCdInterval = null;
+    backdrop.classList.add('is-closing');
+    setTimeout(function() { backdrop.style.display = 'none'; backdrop.classList.remove('is-closing'); }, 200);
+  }
+
+  // Open on blog-ad-card click
+  var card = document.getElementById('blog-ad-card');
+  if (card) {
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', openBlogPopup);
+  }
+
+  // Close on backdrop/button click — delegated because HTML is parsed after this script
+  document.addEventListener('click', function(e) {
+    var bd = document.getElementById('blog-popup-backdrop');
+    if (!bd || bd.style.display === 'none') return;
+    if (e.target.id === 'blog-popup-backdrop' || e.target.id === 'blog-popup-close') closeBlogPopup();
+  });
+
+  // Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      var bd = document.getElementById('blog-popup-backdrop');
+      if (bd && bd.style.display !== 'none') closeBlogPopup();
+    }
+  });
+})();
+</script>
+
+<!-- ══ GUESTBOOK POPUP ══════════════════════════════════════════════════════ -->
+<div class="guestbook-backdrop" id="guestbook-backdrop" style="display:none"
+     role="dialog" aria-modal="true" aria-labelledby="gb-title">
+
+  <div class="guestbook-popup" id="guestbook-popup">
+
+    <!-- CLOSE -->
+    <button class="guestbook-close" aria-label="Close guestbook"
+            onclick="closeGuestbook()">✕</button>
+
+    <!-- ── ROW 1: HEADER ─────────────────────────────────────────── -->
+    <header class="guestbook-header">
+      <h2 class="guestbook-title" id="gb-title">✨ THE SINNER KING GUESTBOOK ✨</h2>
+      <p class="guestbook-midi">🎵 bg_music_evanescence.mid</p>
+      <p class="guestbook-counter">👁️ VISITOR <em id="gb-visitor-num">0000</em></p>
+      <p class="guestbook-sparkle">⋆｡°✩ ──────────── ✩°｡⋆</p>
+    </header>
+
+    <!-- ── ROW 2: ENTRIES (scrollable) ──────────────────────────── -->
+    <section class="guestbook-entries" aria-label="Previous entries">
+      <div id="gb-entries-list">
+        <p class="guestbook-entries-empty">loading the archives...</p>
+      </div>
+    </section>
+
+    <!-- ── ROW 3: FORM ZONE ──────────────────────────────────────── -->
+    <section class="guestbook-form-zone">
+
+      <p class="guestbook-sparkle">⋆｡°✩ ──────────── ✩°｡⋆</p>
+      <h3 class="guestbook-form-heading">SIGN THE GUESTBOOK</h3>
+
+      <form class="guestbook-form" id="gb-form" onsubmit="gbHandleSign(event)">
+        <div class="form-field form-field--name">
+          <label class="form-label" for="gb-name">NAME *</label>
+          <input class="form-input" id="gb-name" name="name"
+                 type="text" required maxlength="60" autocomplete="off"
+                 placeholder="your handle">
+        </div>
+
+        <div class="form-field form-field--loc">
+          <label class="form-label" for="gb-location">LOCATION</label>
+          <input class="form-input" id="gb-location" name="location"
+                 type="text" maxlength="60" autocomplete="off"
+                 placeholder="city, planet">
+        </div>
+
+        <div class="form-field form-field--msg">
+          <label class="form-label" for="gb-message">MESSAGE *</label>
+          <textarea class="form-textarea" id="gb-message" name="message"
+                    required maxlength="200"
+                    placeholder="leave your mark"
+                    oninput="gbUpdateCharCount(this)"></textarea>
+          <span class="form-char-counter" id="gb-char-counter"
+                aria-live="polite">200</span>
+        </div>
+
+        <div class="form-submit-row">
+          <button class="form-submit-btn" id="gb-submit" type="submit">SIGN IT ✨</button>
+        </div>
+      </form>
+
+      <div class="guestbook-thankyou" id="gb-thankyou" aria-live="polite">
+        ✨ you're in the book forever. ✨<br>
+        the ghost in the wires<br>
+        saw you arrive.
+      </div>
+
+      <p class="guestbook-retro-footer">
+        Best viewed in Netscape Navigator 4.0 at 800×600 resolution
+      </p>
+
+    </section>
+  </div><!-- /.guestbook-popup -->
+</div><!-- /.guestbook-backdrop -->
+
+<!-- ── BLOG POPUP — countdown transmission ── -->
+<div class="blog-popup-backdrop" id="blog-popup-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="blog-popup-title">
+  <div class="blog-popup">
+    <div class="blog-popup__header">
+      <span class="blog-popup__sigil">◈ INCOMING TRANSMISSION</span>
+      <button class="blog-popup__close" id="blog-popup-close" aria-label="Close">✕</button>
+    </div>
+    <div class="blog-popup__body">
+      <div class="blog-popup__tag">BLOG 001</div>
+      <div class="blog-popup__title" id="blog-popup-title">The Bug Murder Manifesto</div>
+      <div class="blog-popup__divider"></div>
+      <div class="blog-popup__incoming">incoming:</div>
+      <div class="blog-popup__countdown">
+        <div class="blog-cd-unit">
+          <span class="blog-cd-num" id="blog-cd-days">05</span>
+          <span class="blog-cd-label">days</span>
+        </div>
+        <span class="blog-cd-sep">:</span>
+        <div class="blog-cd-unit">
+          <span class="blog-cd-num" id="blog-cd-hours">00</span>
+          <span class="blog-cd-label">hrs</span>
+        </div>
+        <span class="blog-cd-sep">:</span>
+        <div class="blog-cd-unit">
+          <span class="blog-cd-num" id="blog-cd-mins">00</span>
+          <span class="blog-cd-label">min</span>
+        </div>
+        <span class="blog-cd-sep">:</span>
+        <div class="blog-cd-unit">
+          <span class="blog-cd-num" id="blog-cd-secs">00</span>
+          <span class="blog-cd-label">sec</span>
+        </div>
+      </div>
+      <div class="blog-popup__dismiss">[ click anywhere to close ]</div>
+    </div>
+  </div>
+</div><!-- /.blog-popup-backdrop -->
+
+<div id="lonely-popup" class="lonely-popup" aria-hidden="true">
+  <div class="lonely-popup__header">the_lonely_loop.txt</div>
+  <div class="lonely-popup__body">
+    <p>nah. i'm not ready to talk about that yet.</p>
+    <p>soon though...</p>
+  </div>
+</div>
+
+
+<script>
+// ── ASCII Generator card — "almost ready!" popup ──────────────────────────
+(function() {
+  var card  = document.getElementById('ascii-gen-card');
+  var popup = document.getElementById('ascii-popup');
+  if (!card || !popup) return;
+  var timer = null;
+  function showPopup() {
+    popup.setAttribute('aria-hidden', 'false');
+    popup.classList.add('visible');
+    clearTimeout(timer);
+    timer = setTimeout(function() {
+      popup.classList.remove('visible');
+      popup.setAttribute('aria-hidden', 'true');
+    }, 2200);
+  }
+  card.addEventListener('click', showPopup);
+  card.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showPopup(); }
+  });
+})();
+</script>
+
+</div><!-- /#page-panel -->
+</div><!-- /#void-scene -->
+
+<script>
+// ── VOID CAMERA — scroll sway + volumetric void ──────────────────────────────
+// Scroll down → panel drifts back into the void. Scroll up → returns.
+// The sway is a lerp: panel has mass, not instant snap.
+(function() {
+  'use strict';
+
+  var panel   = document.getElementById('page-panel');
+  var starsEl = document.getElementById('void-stars');
+  if (!panel) return;
+
+  // ── Stars (drawn once) ───────────────────────────────────────────────────────
+  if (starsEl && starsEl.getContext) {
+    starsEl.width  = window.innerWidth;
+    starsEl.height = window.innerHeight;
+    var ctx = starsEl.getContext('2d');
+    for (var i = 0; i < 240; i++) {
+      var r = Math.random() * 1.1 + 0.15;
+      var a = Math.random() * 0.55 + 0.08;
+      ctx.beginPath();
+      ctx.arc(Math.random() * starsEl.width, Math.random() * starsEl.height, r, 0, 6.283);
+      ctx.fillStyle = 'rgba(255,255,255,' + a.toFixed(2) + ')';
+      ctx.fill();
+    }
+    for (var j = 0; j < 18; j++) {
+      ctx.beginPath();
+      ctx.arc(Math.random() * starsEl.width, Math.random() * starsEl.height,
+              Math.random() * 0.9 + 0.4, 0, 6.283);
+      ctx.fillStyle = 'rgba(180,140,255,' + (Math.random() * 0.35 + 0.1).toFixed(2) + ')';
+      ctx.fill();
+    }
+  }
+
+  // Scroll sway parked for Phase 2 — panel scrolls natively.
+
+})();
 </script>
 
 </body>

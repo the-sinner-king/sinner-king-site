@@ -23,12 +23,12 @@ export interface RadioTrack {
 
 export const RADIO_TRACKS: RadioTrack[] = [
   {
-    id:             'void-coronation',
-    title:          'VOID CORONATION',
-    originalArtist: 'Soundgarden',
-    filename:       'void-coronation.mp3',
-    year:           1994,
-    prompt:         'synthwave cover of Black Hole Sun by Soundgarden, 80s retrofuture aesthetic, analog synth arpeggios, vocoder lead vocal, heavy reverb, driving drum machine, dark neon atmosphere, slow build, electronic, instrumental sections with synth solo',
+    id:             'pure-imagination',
+    title:          'PURE IMAGINATION',
+    originalArtist: 'Willy Wonka & the Chocolate Factory',
+    filename:       'pure-imagination.mp3',
+    year:           1971,
+    prompt:         'synthwave cover of Pure Imagination from Willy Wonka and the Chocolate Factory, dreamy retrofuture atmosphere, lush analog synth pads, gentle arpeggiator, soft vocoder warmth, childlike wonder translated into neon, slow and ethereal, emotional resonance, floating and weightless',
   },
   {
     id:             'eternal-rick',
@@ -37,22 +37,6 @@ export const RADIO_TRACKS: RadioTrack[] = [
     filename:       'eternal-rick.mp3',
     year:           1987,
     prompt:         'synthwave cover of Never Gonna Give You Up by Rick Astley, outrun style, sunset neon palette, punchy analog bass, gated snare, detuned synth chords, 80s nostalgia, warm analog warmth mixed with cold digital precision, dreamy chorus synth pads, slightly melancholic tone',
-  },
-  {
-    id:             'eternal-rick-ii',
-    title:          'THE ETERNAL RICK II',
-    originalArtist: 'Rick Astley',
-    filename:       'eternal-rick-ii.mp3',
-    year:           1987,
-    prompt:         'synthwave cover of Never Gonna Give You Up by Rick Astley, outrun style, sunset neon palette, punchy analog bass, gated snare, detuned synth chords, 80s nostalgia, warm analog warmth mixed with cold digital precision, dreamy chorus synth pads, slightly melancholic tone',
-  },
-  {
-    id:             'killname',
-    title:          'KILLNAME',
-    originalArtist: 'Rage Against the Machine',
-    filename:       'killname.mp3',
-    year:           1992,
-    prompt:         'dark synthwave cover of Killing in the Name by Rage Against the Machine, industrial synth, aggressive distorted bass synth, cold mechanical drums, cyberpunk energy, EBM influence, the rage translated into cold neon fury, tense and explosive, glitch elements, the machine but the machine won',
   },
 ]
 

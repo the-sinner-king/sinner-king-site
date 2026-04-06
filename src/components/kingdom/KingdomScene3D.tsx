@@ -273,6 +273,8 @@ function SceneContents() {
         enableRotate={true}
         enableDamping={true}
         dampingFactor={0.08}
+        autoRotate={true}
+        autoRotateSpeed={0.4}
         minDistance={4}
         maxDistance={40}
         minPolarAngle={Math.PI * 0.1}
@@ -501,17 +503,20 @@ function SwarmOrchestrator() {
 // TERRITORY DETAIL FLOAT — support constants
 // ---------------------------------------------------------------------------
 
-// Signal type → color. Mirrors SignalPulse.tsx SIGNAL_COLORS — kept in sync manually.
+// Signal type → color (OKLCH — CSS-only context, DOM dot indicators).
+// Mirrors SignalPulse.tsx SIGNAL_COLORS — kept in sync manually.
 // Defined here (not imported) to avoid bidirectional component dependency.
+// NOTE: SignalPulse.tsx keeps hex because those colors go into THREE.Color() and
+// template-string alpha patterns. These only go into CSS background: props.
 const DETAIL_SIGNAL_COLORS: Record<string, string> = {
-  claude:  '#7000ff',
-  aeris:   '#ff006e',
-  brandon: '#f0a500',
-  system:  '#e8e0d0',
-  overmind: '#f0a500',
-  scryer:  '#00f3ff',
-  raven:   '#9b30ff',
-  unknown: '#404040',
+  claude:   'oklch(0.37 0.31 283)',  // House violet
+  aeris:    'oklch(0.59 0.27 354)',  // Throne pink
+  brandon:  'oklch(0.73 0.17 65)',   // Forge amber
+  system:   'oklch(0.91 0.01 57)',   // Kingdom bone
+  overmind: 'oklch(0.73 0.17 65)',   // same hue as brandon
+  scryer:   'oklch(0.87 0.21 192)',  // Tower cyan
+  raven:    'oklch(0.51 0.26 283)',  // violet-glow
+  unknown:  'oklch(0.27 0 0)',       // neutral dark
 }
 
 // Show only the last path component of cwd_project — full paths are too long for the panel.
@@ -633,7 +638,7 @@ function TerritoryDetailFloat() {
   // center = translate(-50%, -50%) so the panel is centered on the anchor point.
   // Anchor Y = terrain height + 6 units — well above any building geometry.
   const anchorX = layout.position[0]
-  const anchorY = getWorldY(layout) + 6
+  const anchorY = getWorldY(layout) + 2
   const anchorZ = layout.position[2]
 
   return (
@@ -649,8 +654,8 @@ function TerritoryDetailFloat() {
       {isWorking && (
         <style href={`detail-pulse-${selectedId}`} precedence="default">{`
           @keyframes detail-border-pulse-${selectedId} {
-            0%, 100% { box-shadow: 0 0 24px ${layout.color}25, 0 6px 32px rgba(0,0,0,0.7); }
-            50%       { box-shadow: 0 0 44px ${layout.color}55, 0 6px 44px rgba(0,0,0,0.85); }
+            0%, 100% { box-shadow: 0 0 24px ${layout.color}25, 0 6px 32px oklch(0 0 0 / 0.70); }
+            50%       { box-shadow: 0 0 44px ${layout.color}55, 0 6px 44px oklch(0 0 0 / 0.85); }
           }
         `}</style>
       )}
@@ -660,16 +665,16 @@ function TerritoryDetailFloat() {
       <div
         style={{
           width: 460,
-          background: 'rgba(8,6,14,0.88)',
+          background: 'oklch(0.06 0.02 281 / 0.88)',
           border: `1px solid ${layout.color}30`,
           borderLeft: `3px solid ${layout.color}60`,
           borderRadius: 8,
           padding: '20px 24px 18px',
-          fontFamily: 'monospace',
-          color: '#e8e0d0',
-          textShadow: `0 0 8px ${layout.color}30, 0 0 2px rgba(200,180,255,0.15)`,
+          fontFamily: 'var(--font-code)',
+          color: 'oklch(0.91 0.02 75)',
+          textShadow: `0 0 8px ${layout.color}30, 0 0 2px oklch(0.81 0.07 283 / 0.15)`,
           backdropFilter: 'blur(20px)',
-          boxShadow: `0 0 60px ${layout.color}18, 0 0 120px ${layout.color}06, 0 12px 60px rgba(0,0,0,0.85)`,
+          boxShadow: `0 0 60px ${layout.color}18, 0 0 120px ${layout.color}06, 0 12px 60px oklch(0 0 0 / 0.85)`,
           userSelect: 'none',
           overflow: 'hidden',
           // Delayed entrance: wait 1.2s for camera to mostly arrive, then fade up
@@ -687,14 +692,14 @@ function TerritoryDetailFloat() {
             <div style={{ fontSize: 18, fontWeight: 'bold', letterSpacing: '0.10em', textShadow: `0 0 14px ${layout.color}80, 0 0 4px ${layout.color}40` }}>
               {layout.label}
             </div>
-            <div style={{ color: '#504848', fontSize: 9, letterSpacing: '0.05em', marginTop: 5, fontStyle: 'italic', lineHeight: 1.5 }}>
+            <div style={{ color: 'oklch(0.37 0.01 281)', fontSize: 9, letterSpacing: '0.05em', marginTop: 5, fontStyle: 'italic', lineHeight: 1.5 }}>
               {layout.description}
             </div>
           </div>
           <button
             onClick={() => selectTerritory(null)}
             style={{
-              background: 'none', border: 'none', color: '#504840',
+              background: 'none', border: 'none', color: 'oklch(0.37 0.02 45)',
               cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: '0 0 0 8px',
               flexShrink: 0,
             }}
@@ -712,19 +717,19 @@ function TerritoryDetailFloat() {
               <div style={{ fontSize: 9, letterSpacing: '0.18em', color: `${layout.color}60`, marginBottom: 6 }}>STATUS</div>
               <div style={{ fontSize: 11, display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 2 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#504840' }}>ACTIVITY</span>
+                  <span style={{ color: 'oklch(0.37 0.02 45)' }}>ACTIVITY</span>
                   <span style={{ color: layout.color }}>{liveData.activity}%</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#504840' }}>STATE</span>
+                  <span style={{ color: 'oklch(0.37 0.02 45)' }}>STATE</span>
                   <span style={{ color: bCfg.stateLabelColor, letterSpacing: '0.08em' }}>
                     {bCfg.stateLabel}
                   </span>
                 </div>
                 {liveData.lastSignal && (
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#504840' }}>LAST SIGNAL</span>
-                    <span style={{ color: '#504040', fontSize: 10 }}>
+                    <span style={{ color: 'oklch(0.37 0.02 45)' }}>LAST SIGNAL</span>
+                    <span style={{ color: 'oklch(0.35 0.01 20)', fontSize: 10 }}>
                       {new Date(liveData.lastSignal).toLocaleTimeString()}
                     </span>
                   </div>
@@ -744,7 +749,7 @@ function TerritoryDetailFloat() {
               <div style={{ fontSize: 9, letterSpacing: '0.18em', color: `${layout.color}60`, marginBottom: 6 }}>AGENT</div>
               <div style={{ fontSize: 11, display: 'flex', flexDirection: 'column', gap: 5 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#504840' }}>STATE</span>
+                  <span style={{ color: 'oklch(0.37 0.02 45)' }}>STATE</span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     {toolCode && (
                       <span style={{ color: `${AGENT_STATE_COLORS[agentStateDetail.state]}70`, fontSize: 9, letterSpacing: '0.06em' }}>
@@ -758,16 +763,16 @@ function TerritoryDetailFloat() {
                 </div>
                 {proj && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                    <span style={{ color: '#504840', flexShrink: 0 }}>PROJECT</span>
-                    <span style={{ color: '#806050', fontSize: 10, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ color: 'oklch(0.37 0.02 45)', flexShrink: 0 }}>PROJECT</span>
+                    <span style={{ color: 'oklch(0.47 0.04 55)', fontSize: 10, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {proj}
                     </span>
                   </div>
                 )}
                 {agentStateDetail.age_seconds > 0 && agentStateDetail.age_seconds < 9990 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#504840' }}>ACTIVE FOR</span>
-                    <span style={{ color: '#504040', fontSize: 10 }}>
+                    <span style={{ color: 'oklch(0.37 0.02 45)' }}>ACTIVE FOR</span>
+                    <span style={{ color: 'oklch(0.35 0.01 20)', fontSize: 10 }}>
                       {formatAge(agentStateDetail.age_seconds)}
                     </span>
                   </div>
@@ -787,12 +792,12 @@ function TerritoryDetailFloat() {
                 <div key={sig.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <div style={{
                     width: 4, height: 4, borderRadius: '50%', flexShrink: 0,
-                    background: DETAIL_SIGNAL_COLORS[sig.type] ?? '#404040',
+                    background: DETAIL_SIGNAL_COLORS[sig.type] ?? 'oklch(0.27 0 0)',
                   }} />
-                  <span style={{ color: '#504840', fontSize: 9, flex: 1, letterSpacing: '0.08em' }}>
+                  <span style={{ color: 'oklch(0.37 0.02 45)', fontSize: 9, flex: 1, letterSpacing: '0.08em' }}>
                     {sig.type.toUpperCase()}
                   </span>
-                  <span style={{ color: '#302830', fontSize: 8, fontStyle: 'italic', flexShrink: 0 }}>
+                  <span style={{ color: 'oklch(0.22 0.02 281)', fontSize: 8, fontStyle: 'italic', flexShrink: 0 }}>
                     {signalAge(sig.timestamp)}
                   </span>
                 </div>
@@ -832,7 +837,7 @@ function TerritoryDetailFloat() {
         )}
 
         {/* Keyboard hint */}
-        <div style={{ marginTop: 10, fontSize: 8, color: '#352830', letterSpacing: '0.1em', textAlign: 'center' }}>
+        <div style={{ marginTop: 10, fontSize: 8, color: 'oklch(0.23 0.02 281)', letterSpacing: '0.1em', textAlign: 'center' }}>
           ESC · TAB / ← → TO CYCLE
         </div>
       </div>
@@ -857,7 +862,7 @@ export function KingdomScene3D({ className = '' }: KingdomScene3DProps) {
         height: '100%',
         // Synthwave dusk sky — deep indigo top, purple mid, warm orange horizon bleed.
         // alpha:true on Canvas lets WebGL canvas be transparent so this shows through.
-        background: 'linear-gradient(to bottom, #03000A 0%, #08001F 30%, #05010B 50%, #0F0402 75%, #050200 100%)',
+        background: 'linear-gradient(to bottom, oklch(0.04 0.01 281) 0%, oklch(0.06 0.04 283) 30%, oklch(0.05 0.01 281) 50%, oklch(0.06 0.01 45) 75%, oklch(0.04 0.01 55) 100%)',
       }}
     >
       {/* R3F Canvas */}
@@ -866,7 +871,7 @@ export function KingdomScene3D({ className = '' }: KingdomScene3DProps) {
           fov: 45,
           near: 0.1,
           far: 200,
-          position: [10, 14, 14],
+          position: [14, 19, 19],
         }}
         dpr={[1, 2]}
         gl={{
@@ -894,9 +899,9 @@ export function KingdomScene3D({ className = '' }: KingdomScene3DProps) {
           bottom: 16,
           left: '50%',
           transform: 'translateX(-50%)',
-          fontFamily: 'monospace',
+          fontFamily: 'var(--font-code)',
           fontSize: 10,
-          color: '#504840',
+          color: 'oklch(0.37 0.02 45)',
           letterSpacing: '0.1em',
           pointerEvents: 'none',
         }}

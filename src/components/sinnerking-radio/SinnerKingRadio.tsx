@@ -88,10 +88,18 @@ const FONT_SIZE = 8
 
 /**
  * Amplitude overdrive multiplier for the visualizer's gradient calculation.
- * Without it, moderate signals (avg=128) only reach '=' even at peak — visually weak.
- * ×2.5 ensures mid-amplitude signals display near-full bars at their apex.
+ * Without it, moderate signals only reach '=' even at peak — visually weak.
+ * ×4.0 ensures mid-amplitude signals display near-full bars at their apex.
  */
-const VISUALIZER_OVERDRIVE = 2.5
+const VISUALIZER_OVERDRIVE = 4.0
+
+/**
+ * Bar height sensitivity multiplier. Compensates for the audio.volume reduction
+ * (volume=0.05 starves the AnalyserNode — avg amplitude is ~5% of full scale).
+ * ×20 ensures the bars fill meaningfully at low playback volume and react
+ * visibly to musical dynamics (quiet passages vs loud transients).
+ */
+const VISUALIZER_SENSITIVITY = 20
 
 /**
  * Web Audio FFT size. Must be a power of 2.
@@ -102,10 +110,10 @@ const FFT_SIZE = 256
 
 /**
  * AnalyserNode smoothing — controls how quickly amplitude values decay between frames.
- * 0.82: industry-standard "feels responsive but not jittery" value for music visualizers.
+ * 0.72: responsive enough to track musical transients without flickering.
  * Lower → reactive but flickery. Higher → smooth smear, transients invisible.
  */
-const ANALYSER_SMOOTHING = 0.82
+const ANALYSER_SMOOTHING = 0.72
 
 /**
  * How long the "COPIED" state persists on the Copy Prompt button (ms).
@@ -118,12 +126,12 @@ const COPY_FEEDBACK_DURATION_MS = 1500
  * Each color represents a Kingdom domain.
  */
 const TERRITORY_COLORS = [
-  '#7000ff',  // claude_house — purple
-  '#f0a500',  // the_forge   — amber
-  '#ff006e',  // the_throne  — pink
-  '#9b30ff',  // the_tower   — violet
-  '#00f3ff',  // the_scryer  — cyan
-  '#e8e0d0',  // core_lore   — off-white
+  'oklch(0.37 0.31 283)',  // claude_house — H=283 violet
+  'oklch(0.75 0.20 65)',   // the_forge   — H=65 amber
+  'oklch(0.59 0.25 345)',  // the_throne  — H=345 pink
+  'oklch(0.47 0.27 283)',  // the_tower   — H=283 mid-violet
+  'oklch(0.87 0.21 192)',  // the_scryer  — H=192 cyan
+  'oklch(0.91 0.02 75)',   // core_lore   — bone
 ] as const
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -220,14 +228,14 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
         sum += data[col * binsPerCol + b]
       }
       const avg     = sum / binsPerCol
-      const barRows = Math.floor((avg / 255) * rowCount)
+      const barRows = Math.min(rowCount, Math.floor((avg / 255) * rowCount * VISUALIZER_SENSITIVITY))
 
       const color = TERRITORY_COLORS[col % TERRITORY_COLORS.length]
       ctx.fillStyle   = color
       // shadowColor/shadowBlur: each column's glow bleeds outward around its characters.
       // Reset to 0 after the loop — otherwise clearRect on the next frame inherits the glow.
       ctx.shadowColor = color
-      ctx.shadowBlur  = 7
+      ctx.shadowBlur  = 12
 
       // Draw bottom-up (rowCount-1 is the bottom row, 0 is the top).
       // The gradient: the topmost filled row (bar apex) gets the highest amplitude char.
@@ -402,13 +410,35 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
       }
     }
 
+    // Fade-in helper: ramps audio.volume from 0 → 0.05 over 30s using rAF.
+    const fadeIn = (): void => {
+      const audio    = audioRef.current
+      if (!audio) return
+      audio.volume   = 0
+      const TARGET   = 0.05
+      const DURATION = 30000
+      const start    = performance.now()
+      const ramp = (): void => {
+        const audio = audioRef.current
+        if (!audio) return
+        const t = Math.min((performance.now() - start) / DURATION, 1)
+        audio.volume = t * TARGET
+        if (t < 1) requestAnimationFrame(ramp)
+      }
+      requestAnimationFrame(ramp)
+    }
+
+    // Start at 0 volume before play() — prevents a single loud frame on autoplay.
+    if (audioRef.current) audioRef.current.volume = 0
+
     play()
-      .then(() => { hasAutoplayed.current = true })
+      .then(() => { hasAutoplayed.current = true; fadeIn() })
       .catch(() => {
         // Browser blocked immediate autoplay — arm on first user gesture.
         // Three event types cover the full gesture surface (touch, keyboard, scroll).
         gestureHandler = (): void => {
-          void play().then(() => { hasAutoplayed.current = true })
+          if (audioRef.current) audioRef.current.volume = 0
+          void play().then(() => { hasAutoplayed.current = true; fadeIn() })
           cleanup()
         }
         document.addEventListener('pointerdown', gestureHandler, { once: true })
@@ -466,8 +496,8 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
         }
         .skr-btn {
           background:     transparent;
-          border:         1px solid rgba(112,0,255,0.35);
-          color:          rgba(112,0,255,0.8);
+          border:         1px solid oklch(0.37 0.31 283 / 0.35);
+          color:          oklch(0.37 0.31 283 / 0.80);
           font-family:    monospace;
           font-size:      10px;
           letter-spacing: 0.12em;
@@ -476,23 +506,23 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
           transition:     border-color 0.15s, color 0.15s, box-shadow 0.15s;
         }
         .skr-btn:hover {
-          border-color: rgba(112,0,255,0.9);
-          color:        #7000ff;
-          box-shadow:   0 0 6px rgba(112,0,255,0.4);
+          border-color: oklch(0.37 0.31 283 / 0.90);
+          color:        oklch(0.37 0.31 283);
+          box-shadow:   0 0 6px oklch(0.37 0.31 283 / 0.40);
         }
         .skr-btn-action {
-          border-color: rgba(0,211,255,0.4);
-          color:        rgba(0,211,255,0.8);
+          border-color: oklch(0.82 0.13 198 / 0.40);
+          color:        oklch(0.82 0.13 198 / 0.80);
         }
         .skr-btn-action:hover {
-          border-color: rgba(0,211,255,0.9);
-          color:        #00d3ff;
-          box-shadow:   0 0 6px rgba(0,211,255,0.4);
+          border-color: oklch(0.82 0.13 198 / 0.90);
+          color:        oklch(0.82 0.13 198);
+          box-shadow:   0 0 6px oklch(0.82 0.13 198 / 0.40);
         }
         .skr-btn-copied {
-          border-color: rgba(0,243,255,0.9) !important;
-          color:        #00f3ff !important;
-          box-shadow:   0 0 10px rgba(0,243,255,0.6) !important;
+          border-color: oklch(0.87 0.21 192 / 0.90) !important;
+          color:        oklch(0.87 0.21 192) !important;
+          box-shadow:   0 0 10px oklch(0.87 0.21 192 / 0.60) !important;
         }
       `}</style>
 
@@ -513,7 +543,7 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
         display:       'flex',
         flexDirection: 'column',
         gap:           0,
-        fontFamily:    'monospace',
+        fontFamily:    'var(--font-code)',
         width:         CANVAS_W + 2,  // +2 for left + right border
         animation:     'skr-in 0.5s ease-out',
       }}>
@@ -532,7 +562,7 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
           <div style={{
             position:      'absolute',
             inset:         0,
-            background:    'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.08) 4px)',
+            background:    'repeating-linear-gradient(0deg, transparent, transparent 3px, oklch(0 0 0 / 0.08) 4px)',
             pointerEvents: 'none',
             zIndex:        1,
           }} />
@@ -551,7 +581,7 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
               color:         'oklch(0.560 0.250 281)',
               fontSize:      9,
               letterSpacing: '0.22em',
-              fontFamily:    '"JetBrains Mono", monospace',
+              fontFamily:    'var(--font-code)',
               textShadow:    '0 0 8px oklch(0.560 0.250 281 / 0.60)',
             }}>
               SINNER_KING.RADIO
@@ -565,7 +595,7 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
           {/* Track info */}
           <div style={{ position: 'relative', zIndex: 2, marginBottom: 8 }}>
             <div style={{
-              color:         '#e8e0d0',
+              color:         'oklch(0.91 0.02 75)',
               fontSize:      12,
               letterSpacing: '0.1em',
               textTransform: 'uppercase',
@@ -577,7 +607,7 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
               {currentTrack.title}
             </div>
             <div style={{
-              color:         'rgba(112,0,255,0.55)',
+              color:         'oklch(0.37 0.31 283 / 0.55)',
               fontSize:      9,
               letterSpacing: '0.14em',
             }}>
@@ -595,8 +625,8 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
                 display:        'block',
                 width:          '100%',
                 height:         CANVAS_H,
-                background:     'rgba(0,0,0,0.3)',
-                border:         '1px solid rgba(112,0,255,0.12)',
+                background:     'oklch(0 0 0 / 0.30)',
+                border:         '1px solid oklch(0.37 0.31 283 / 0.12)',
                 imageRendering: 'pixelated',
               }}
             />
@@ -608,7 +638,7 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
                 display:        'flex',
                 alignItems:     'center',
                 justifyContent: 'center',
-                color:          'rgba(112,0,255,0.25)',
+                color:          'oklch(0.37 0.31 283 / 0.25)',
                 fontSize:       9,
                 letterSpacing:  '0.2em',
                 pointerEvents:  'none',
@@ -622,7 +652,7 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
           <div style={{ position: 'relative', zIndex: 2, marginBottom: 10 }}>
             <div style={{
               height:       2,
-              background:   'rgba(255,255,255,0.06)',
+              background:   'oklch(1 0 0 / 0.06)',
               borderRadius: 1,
               overflow:     'hidden',
             }}>
@@ -638,7 +668,7 @@ export function SinnerKingRadio({ initialTrackId, autoPlay = false }: SinnerKing
               display:        'flex',
               justifyContent: 'space-between',
               marginTop:      3,
-              color:          'rgba(112,0,255,0.35)',
+              color:          'oklch(0.37 0.31 283 / 0.35)',
               fontSize:       8,
               letterSpacing:  '0.08em',
             }}>
@@ -742,7 +772,7 @@ function TrackList({ tracks, currentId, onSelect }: TrackListProps): React.React
               width:        '100%',
               background:   active ? 'oklch(0.640 0.300 350 / 0.08)' : 'transparent',
               border:       'none',
-              borderBottom: '1px solid rgba(112,0,255,0.07)',
+              borderBottom: '1px solid oklch(0.37 0.31 283 / 0.07)',
               padding:      '5px 10px',
               cursor:       'pointer',
               textAlign:    'left',
@@ -751,7 +781,7 @@ function TrackList({ tracks, currentId, onSelect }: TrackListProps): React.React
           >
             {/* Track number or ▶ if active */}
             <span style={{
-              color:         active ? '#7000ff' : 'rgba(112,0,255,0.3)',
+              color:         active ? 'oklch(0.37 0.31 283)' : 'oklch(0.37 0.31 283 / 0.30)',
               fontSize:      8,
               minWidth:      14,
               letterSpacing: '0.06em',
@@ -759,7 +789,7 @@ function TrackList({ tracks, currentId, onSelect }: TrackListProps): React.React
               {active ? '▶' : `${String(i + 1).padStart(2, '0')}`}
             </span>
             <span style={{
-              color:         active ? '#e8e0d0' : 'rgba(200,190,210,0.45)',
+              color:         active ? 'oklch(0.91 0.02 75)' : 'oklch(0.82 0.02 300 / 0.45)',
               fontSize:      10,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
@@ -772,7 +802,7 @@ function TrackList({ tracks, currentId, onSelect }: TrackListProps): React.React
             </span>
             {/* Abbreviated original artist (first word only) */}
             <span style={{
-              color:         'rgba(112,0,255,0.25)',
+              color:         'oklch(0.37 0.31 283 / 0.25)',
               fontSize:      8,
               letterSpacing: '0.06em',
               flexShrink:    0,
