@@ -10,7 +10,7 @@
  * No auth — obscure URL only. Internal tool.
  */
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useReducer, useRef, useState } from 'react'
 import PartySocket from 'partysocket'
 
 const PARTYKIT_HOST = process.env.NEXT_PUBLIC_PARTYKIT_HOST || '127.0.0.1:1999'
@@ -139,13 +139,13 @@ function VisitorsPanel() {
   return (
     <div style={{
       background:  'var(--void-mid, #12121a)',
-      border:      '1px solid rgba(0,243,255,0.2)',
+      border:      '1px solid oklch(0.87 0.21 192 / 0.20)',
       padding:     20,
       flex:        1,
       minWidth:    280,
     }}>
       <PanelLabel>
-        <Dot color={connected ? 'var(--cyan, #00f3ff)' : '#504840'} />
+        <Dot color={connected ? 'var(--cyan, #00f3ff)' : 'oklch(0.37 0.02 45)'} />
         Live Visitors
       </PanelLabel>
 
@@ -184,7 +184,7 @@ function VisitorsPanel() {
                 color:         'var(--bone-dim, #a09888)',
                 paddingBottom: 4,
                 marginBottom:  4,
-                borderBottom:  '1px solid rgba(255,255,255,0.04)',
+                borderBottom:  '1px solid oklch(1 0 0 / 0.04)',
               }}>
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
                   {page}
@@ -198,7 +198,7 @@ function VisitorsPanel() {
       {/* Visitor list */}
       {visitors.length > 0 && (
         <div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#504840', letterSpacing: '0.1em', marginBottom: 8 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'oklch(0.37 0.02 45)', letterSpacing: '0.1em', marginBottom: 8 }}>
             ACTIVE
           </div>
           {visitors.map(v => (
@@ -215,15 +215,15 @@ function VisitorsPanel() {
               <span style={{ color: 'var(--bone, #e8e0d0)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {v.city !== 'Unknown' ? v.city : v.country}
               </span>
-              <span style={{ color: '#504840', fontSize: 10 }}>{v.page}</span>
-              <span style={{ color: '#504840', fontSize: 9, whiteSpace: 'nowrap' }}>{timeAgo(v.since)}</span>
+              <span style={{ color: 'oklch(0.37 0.02 45)', fontSize: 10 }}>{v.page}</span>
+              <span style={{ color: 'oklch(0.37 0.02 45)', fontSize: 9, whiteSpace: 'nowrap' }}>{timeAgo(v.since)}</span>
             </div>
           ))}
         </div>
       )}
 
       {visitors.length === 0 && (
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#504840' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'oklch(0.37 0.02 45)' }}>
           — no visitors —
         </div>
       )}
@@ -233,7 +233,7 @@ function VisitorsPanel() {
         marginTop:  20,
         fontFamily: 'var(--font-mono, monospace)',
         fontSize:   9,
-        color:      connected ? 'rgba(0,243,255,0.4)' : '#504840',
+        color:      connected ? 'oklch(0.87 0.21 192 / 0.40)' : 'oklch(0.37 0.02 45)',
         letterSpacing: '0.1em',
       }}>
         {connected ? '◉ LIVE' : '○ CONNECTING...'}
@@ -277,7 +277,7 @@ function KingdomStatePanel() {
   return (
     <div style={{
       background: 'var(--void-mid, #12121a)',
-      border:     '1px solid rgba(112,0,255,0.25)',
+      border:     '1px solid oklch(0.37 0.31 283 / 0.25)',
       padding:    20,
       flex:       1,
       minWidth:   240,
@@ -291,7 +291,7 @@ function KingdomStatePanel() {
         <>
           {/* Mood */}
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#504840', letterSpacing: '0.1em', marginBottom: 6 }}>MOOD</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'oklch(0.37 0.02 45)', letterSpacing: '0.1em', marginBottom: 6 }}>MOOD</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: moodColor, boxShadow: `0 0 6px ${moodColor}` }} />
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--bone)' }}>
@@ -304,7 +304,7 @@ function KingdomStatePanel() {
               </div>
             )}
             {typeof mood?.texture === 'string' && mood.texture && (
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#504840', marginTop: 2 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'oklch(0.37 0.02 45)', marginTop: 2 }}>
                 {mood.texture}
               </div>
             )}
@@ -313,7 +313,7 @@ function KingdomStatePanel() {
           {/* Health */}
           {live?.health && (
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#504840', letterSpacing: '0.1em', marginBottom: 4 }}>HEALTH</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'oklch(0.37 0.02 45)', letterSpacing: '0.1em', marginBottom: 4 }}>HEALTH</div>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--bone-dim)' }}>{live.health as string}</div>
             </div>
           )}
@@ -321,7 +321,7 @@ function KingdomStatePanel() {
           {/* Activity */}
           {live?.current_activity && (
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#504840', letterSpacing: '0.1em', marginBottom: 4 }}>ACTIVITY</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'oklch(0.37 0.02 45)', letterSpacing: '0.1em', marginBottom: 4 }}>ACTIVITY</div>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--amber)', lineHeight: 1.4 }}>
                 {live.current_activity as string}
               </div>
@@ -331,17 +331,17 @@ function KingdomStatePanel() {
           {/* Agents */}
           {Object.keys(agents).length > 0 && (
             <div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#504840', letterSpacing: '0.1em', marginBottom: 6 }}>AGENTS</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'oklch(0.37 0.02 45)', letterSpacing: '0.1em', marginBottom: 6 }}>AGENTS</div>
               {Object.entries(agents).slice(0, 6).map(([name, agent]) => {
                 const a = agent as Record<string, unknown>
                 const online = a.status === 'online' || a.status === 'active'
                 return (
                   <div key={name} style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--bone-dim)', marginBottom: 4 }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Dot color={online ? 'var(--cyan)' : '#504840'} />
+                      <Dot color={online ? 'var(--cyan)' : 'oklch(0.37 0.02 45)'} />
                       {name}
                     </span>
-                    <span style={{ color: '#504840' }}>{a.status as string}</span>
+                    <span style={{ color: 'oklch(0.37 0.02 45)' }}>{a.status as string}</span>
                   </div>
                 )
               })}
@@ -349,13 +349,13 @@ function KingdomStatePanel() {
           )}
 
           {age != null && (
-            <div style={{ marginTop: 16, fontFamily: 'var(--font-mono)', fontSize: 9, color: '#504840' }}>
+            <div style={{ marginTop: 16, fontFamily: 'var(--font-mono)', fontSize: 9, color: 'oklch(0.37 0.02 45)' }}>
               snapshot {Math.round(age / 1000)}s old
             </div>
           )}
         </>
       ) : (
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#504840' }}>loading...</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'oklch(0.37 0.02 45)' }}>loading...</div>
       )}
     </div>
   )
@@ -390,7 +390,7 @@ function ContentPanel() {
   return (
     <div style={{
       background: 'var(--void-mid, #12121a)',
-      border:     '1px solid rgba(240,165,0,0.2)',
+      border:     '1px solid oklch(0.75 0.20 65 / 0.20)',
       padding:    20,
       flex:       1,
       minWidth:   260,
@@ -405,11 +405,11 @@ function ContentPanel() {
         {[
           { label: 'LIVE',   count: published.length, color: 'var(--cyan)' },
           { label: 'QUEUED', count: queued.length,    color: 'var(--amber)' },
-          { label: 'DRAFT',  count: drafts.length,    color: '#504840' },
+          { label: 'DRAFT',  count: drafts.length,    color: 'oklch(0.37 0.02 45)' },
         ].map(({ label, count, color }) => (
           <div key={label}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 700, color, lineHeight: 1 }}>{count}</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#504840', letterSpacing: '0.1em' }}>{label}</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'oklch(0.37 0.02 45)', letterSpacing: '0.1em' }}>{label}</div>
           </div>
         ))}
       </div>
@@ -417,7 +417,7 @@ function ContentPanel() {
       {/* Queued posts */}
       {queued.length > 0 && (
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#504840', letterSpacing: '0.1em', marginBottom: 8 }}>QUEUED</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'oklch(0.37 0.02 45)', letterSpacing: '0.1em', marginBottom: 8 }}>QUEUED</div>
           {queued.map(p => (
             <div key={p.id} style={{
               borderLeft:    '2px solid var(--amber)',
@@ -425,7 +425,7 @@ function ContentPanel() {
               marginBottom:  10,
             }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--bone)' }}>{p.title}</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#504840', marginTop: 2 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'oklch(0.37 0.02 45)', marginTop: 2 }}>
                 {p.source === 'autoblog' ? '⟐ autoblog' : '✎ manual'}
                 {p.publishAt && ` · ${new Date(p.publishAt).toLocaleDateString()}`}
               </div>
@@ -437,7 +437,7 @@ function ContentPanel() {
       {/* Recent published */}
       {published.length > 0 && (
         <div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#504840', letterSpacing: '0.1em', marginBottom: 8 }}>RECENT</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'oklch(0.37 0.02 45)', letterSpacing: '0.1em', marginBottom: 8 }}>RECENT</div>
           {published.slice(0, 5).map(p => (
             <div key={p.id} style={{
               fontFamily:    'var(--font-mono)',
@@ -449,7 +449,7 @@ function ContentPanel() {
               alignItems:    'center',
             }}>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{p.title}</span>
-              <span style={{ color: '#504840', fontSize: 9, marginLeft: 8, whiteSpace: 'nowrap' }}>
+              <span style={{ color: 'oklch(0.37 0.02 45)', fontSize: 9, marginLeft: 8, whiteSpace: 'nowrap' }}>
                 {p.source === 'autoblog' ? '⟐' : '✎'}
               </span>
             </div>
@@ -458,7 +458,7 @@ function ContentPanel() {
       )}
 
       {loaded && posts.length === 0 && (
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#504840' }}>— no posts yet —</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'oklch(0.37 0.02 45)' }}>— no posts yet —</div>
       )}
     </div>
   )
@@ -469,14 +469,12 @@ function ContentPanel() {
 // ---------------------------------------------------------------------------
 
 export function AdminClient() {
-  const [now, setNow] = useState(Date.now())
-
-  // Tick for relative times
+  // Tick for relative times — fires every 10s so child timeAgo() calls stay fresh.
+  const [, tickTimeRefresh] = useReducer((n: number) => n + 1, 0)
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 10_000)
+    const id = setInterval(tickTimeRefresh, 10_000)
     return () => clearInterval(id)
   }, [])
-  void now // keeps re-render cycle running for timeAgo
 
   return (
     <main style={{
@@ -488,13 +486,13 @@ export function AdminClient() {
     }}>
       {/* Header */}
       <div style={{ marginBottom: 32 }}>
-        <div style={{ fontSize: 10, letterSpacing: '0.2em', color: '#504840', marginBottom: 6 }}>
+        <div style={{ fontSize: 10, letterSpacing: '0.2em', color: 'oklch(0.37 0.02 45)', marginBottom: 6 }}>
           ⛬ SINNER KINGDOM
         </div>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--bone)', margin: 0, letterSpacing: '0.05em' }}>
           KINGDOM COMMAND
         </h1>
-        <div style={{ fontSize: 10, color: '#504840', marginTop: 4, letterSpacing: '0.1em' }}>
+        <div style={{ fontSize: 10, color: 'oklch(0.37 0.02 45)', marginTop: 4, letterSpacing: '0.1em' }}>
           {new Date().toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).toUpperCase()}
         </div>
       </div>
@@ -515,9 +513,9 @@ export function AdminClient() {
       <div style={{
         marginTop:     40,
         paddingTop:    20,
-        borderTop:     '1px solid rgba(255,255,255,0.04)',
+        borderTop:     '1px solid oklch(1 0 0 / 0.04)',
         fontSize:      9,
-        color:         '#504840',
+        color:         'oklch(0.37 0.02 45)',
         letterSpacing: '0.1em',
       }}>
         ⛬⚚⛬ INTERNAL · THE SINNER KINGDOM · THE LAW STANDS

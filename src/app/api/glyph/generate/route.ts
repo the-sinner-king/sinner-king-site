@@ -14,6 +14,43 @@
 
 import { GoogleGenAI } from '@google/genai'
 import { NextRequest, NextResponse } from 'next/server'
+import { getClientIP } from '@/lib/request-utils'
+
+// =============================================================================
+// RATE LIMITING
+// In-process per-IP rate limit. Resets on cold start — good enough for a demo.
+// 20 requests per hour per IP prevents runaway Gemini cost from a single visitor.
+// Periodic sweep (every 200 requests) keeps the Map from growing unbounded under
+// sustained unique-IP traffic.
+// =============================================================================
+
+const _glyphRateMap = new Map<string, { count: number; resetAt: number }>()
+const GLYPH_LIMIT      = 20
+const GLYPH_WINDOW_MS  = 60 * 60 * 1000  // 1 hour
+let   _glyphReqCount   = 0
+const GLYPH_SWEEP_AT   = 200
+
+function _glyphCheckRate(ip: string): boolean {
+  const now = Date.now()
+
+  _glyphReqCount++
+  if (_glyphReqCount % GLYPH_SWEEP_AT === 0) {
+    for (const [key, entry] of _glyphRateMap) {
+      if (now > entry.resetAt) _glyphRateMap.delete(key)
+    }
+  }
+
+  const entry = _glyphRateMap.get(ip)
+  if (!entry || now > entry.resetAt) {
+    _glyphRateMap.set(ip, { count: 1, resetAt: now + GLYPH_WINDOW_MS })
+    return true
+  }
+  if (entry.count >= GLYPH_LIMIT) return false
+  entry.count++
+  return true
+}
+
+export const dynamic = 'force-dynamic'
 
 // =============================================================================
 // MODEL
@@ -370,6 +407,15 @@ interface GenerateRequest {
 // =============================================================================
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  // --- Rate limit check ---
+  const ip = getClientIP(request)
+  if (!_glyphCheckRate(ip)) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded. Come back in an hour.' },
+      { status: 429, headers: { 'Retry-After': '3600' } }
+    )
+  }
+
   // --- API key guard ---
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {

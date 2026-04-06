@@ -33,7 +33,7 @@
  *   setInterval for age refresh (cleared on unmount).
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useReducer, useState } from 'react'
 import { logSubscribe, getLogHistory } from '@/lib/logbus'
 import type { LogEntry, LogEntryType } from '@/lib/logbus'
 
@@ -53,15 +53,28 @@ const AGE_REFRESH_INTERVAL_MS = 30_000
  * constantly as keepalives and would drown out meaningful signal if bright.
  */
 const TYPE_COLOR: Record<LogEntryType, string> = {
-  agent:  '#a833ff',  // purple   — agent state change
-  signal: '#00d4ff',  // cyan     — signal pulse event
-  swarm:  '#00f3ff',  // bright cyan — drone swarm deployed/dissolved
-  sync:   '#3a3438',  // near-invisible — heartbeat noise
-  voice:  '#ff3d7f',  // pink     — map voice AI observation
-  ops:    '#f0a500',  // amber    — operator presence
-  access: '#7000ff',  // purple   — territory navigation
-  alive:  '#2a2228',  // nearly invisible — keepalive
-  system: '#504840',  // muted    — general system event
+  agent:  'oklch(0.49 0.28 281)',   // purple   — agent state change
+  signal: 'oklch(0.80 0.14 200)',   // cyan     — signal pulse event
+  swarm:  'oklch(0.87 0.21 192)',   // bright cyan — drone swarm (TOWER sovereign H=192)
+  sync:   'oklch(0.23 0.01 345)',   // near-invisible — heartbeat noise
+  voice:  'oklch(0.60 0.22 350)',   // pink     — map voice AI observation
+  ops:    'oklch(0.75 0.20 65)',    // amber    — operator presence (FORGE sovereign H=65)
+  access: 'oklch(0.37 0.31 283)',   // purple   — territory navigation (HOUSE H=283)
+  alive:  'oklch(0.14 0.01 320)',   // nearly invisible — keepalive
+  system: 'oklch(0.37 0.02 45)',    // muted    — general system event
+}
+
+/** Type dot glow at 40% alpha — matches former ${color}66 hex-alpha pattern. */
+const TYPE_GLOW: Record<LogEntryType, string> = {
+  agent:  'oklch(0.49 0.28 281 / 0.40)',
+  signal: 'oklch(0.80 0.14 200 / 0.40)',
+  swarm:  'oklch(0.87 0.21 192 / 0.40)',
+  sync:   'oklch(0.23 0.01 345 / 0.40)',
+  voice:  'oklch(0.60 0.22 350 / 0.40)',
+  ops:    'oklch(0.75 0.20 65 / 0.40)',
+  access: 'oklch(0.37 0.31 283 / 0.40)',
+  alive:  'oklch(0.14 0.01 320 / 0.40)',
+  system: 'oklch(0.37 0.02 45 / 0.40)',
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -95,6 +108,7 @@ interface LogRowProps {
 function LogRow({ entry, index }: LogRowProps): React.ReactElement {
   const isAlive = entry.type === 'alive'
   const color   = TYPE_COLOR[entry.type]
+  const glow    = TYPE_GLOW[entry.type]
 
   // 'alive' entries use a fixed low opacity rather than the gradient — they
   // represent keepalive noise that should barely register visually.
@@ -122,7 +136,7 @@ function LogRow({ entry, index }: LogRowProps): React.ReactElement {
         borderRadius: '50%',
         flexShrink:   0,
         background:   color,
-        boxShadow:    isAlive ? 'none' : `0 0 4px ${color}66`,
+        boxShadow:    isAlive ? 'none' : `0 0 4px ${glow}`,
         marginTop:    1,
       }} />
 
@@ -131,7 +145,7 @@ function LogRow({ entry, index }: LogRowProps): React.ReactElement {
         color,
         fontSize:      9,
         letterSpacing: '0.1em',
-        fontFamily:    '"JetBrains Mono", "Courier New", monospace',
+        fontFamily:    'var(--font-code)',
         flex:          1,
         overflow:      'hidden',
         textOverflow:  'ellipsis',
@@ -142,10 +156,10 @@ function LogRow({ entry, index }: LogRowProps): React.ReactElement {
 
       {/* Age — recalculated whenever the parent's ageKey increments */}
       <span style={{
-        color:         '#2e2830',
+        color:         'oklch(0.21 0.02 281)',
         fontSize:      8,
         letterSpacing: '0.08em',
-        fontFamily:    'monospace',
+        fontFamily:    'var(--font-code)',
         flexShrink:    0,
         fontStyle:     'italic',
       }}>
@@ -164,12 +178,10 @@ export function SystemLog(): React.ReactElement {
     [...getLogHistory()].reverse().slice(0, MAX_ENTRIES)
   )
 
-  // ageKey exists solely as a re-render trigger for the "X ago" timestamp strings.
-  // When it increments every 30s, this component re-renders, causing every LogRow
-  // to re-call timeAgo(entry.timestamp) and display a fresh relative time.
-  // React bails out on unchanged DOM nodes, so the real re-render cost is minimal.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [ageKey, setAgeKey] = useState(0)
+  // triggerAgeRefresh fires every 30s so LogRow instances re-call timeAgo() and
+  // display fresh relative timestamps. useReducer avoids a named-but-unused state
+  // variable — the dispatch function IS the side effect; the value is irrelevant.
+  const [, triggerAgeRefresh] = useReducer((n: number) => n + 1, 0)
 
   // Subscribe to the logbus — prepend new entries, trim to ring buffer size.
   useEffect(() => {
@@ -179,9 +191,9 @@ export function SystemLog(): React.ReactElement {
     return unsub
   }, [])
 
-  // Age-refresh timer — increments ageKey every 30s to force timeAgo recalculation.
+  // Age-refresh timer — fires every 30s to force timeAgo recalculation.
   useEffect(() => {
-    const id = setInterval(() => setAgeKey((k) => k + 1), AGE_REFRESH_INTERVAL_MS)
+    const id = setInterval(triggerAgeRefresh, AGE_REFRESH_INTERVAL_MS)
     return () => clearInterval(id)
   }, [])
 
@@ -211,11 +223,11 @@ export function SystemLog(): React.ReactElement {
         <div style={{
           fontSize:      7,
           letterSpacing: '0.25em',
-          color:         '#2a2228',
-          fontFamily:    'monospace',
+          color:         'oklch(0.19 0.02 281)',
+          fontFamily:    'var(--font-code)',
           marginBottom:  4,
           paddingBottom: 4,
-          borderBottom:  '1px solid #1e1c1f',
+          borderBottom:  '1px solid oklch(0.15 0.01 281)',
         }}>
           SYS LOG ·· KINGDOM
         </div>
