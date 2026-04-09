@@ -338,7 +338,7 @@ const NavMonitor = forwardRef<
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           justifyContent: 'center', gap: '5px', padding: '10px 14px',
-          backgroundImage: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.13) 0px, rgba(0,0,0,0.13) 1px, transparent 1px, transparent 2px)',
+          backgroundImage: 'repeating-linear-gradient(0deg, oklch(0 0 0 / 0.13) 0px, oklch(0 0 0 / 0.13) 1px, transparent 1px, transparent 2px)',
           userSelect: 'none',
         }}>
           <div style={{
@@ -577,7 +577,7 @@ function GhostText() {
           color: AMBER, fontFamily: '"IBM Plex Mono", "Courier New", monospace',
           fontSize: '20px', fontWeight: 700, letterSpacing: '0.35em',
           textShadow: `0 0 12px ${AMBER}, 0 0 30px ${AMBER}, 0 0 60px ${AMBER}`,
-          backgroundImage: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.1) 0px, rgba(0,0,0,0.1) 1px, transparent 1px, transparent 2px)',
+          backgroundImage: 'repeating-linear-gradient(0deg, oklch(0 0 0 / 0.10) 0px, oklch(0 0 0 / 0.10) 1px, transparent 1px, transparent 2px)',
           whiteSpace: 'nowrap',
         }}>
           {displayed}

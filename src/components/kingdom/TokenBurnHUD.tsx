@@ -64,12 +64,21 @@ function getZone(n: number): 'QUIET' | 'ACTIVE' | 'HIGH' | 'SURGE' {
   return 'SURGE'
 }
 
-/** Zone → indicator color. Escalates from near-invisible to alarm pink. */
+/** Zone → indicator color. Escalates from near-invisible to alarm pink.
+ *  CHROMA_BLEED sovereign hues — ACTIVE=house-purple, HIGH=amber, SURGE=pink. */
 const ZONE_COLOR: Record<ReturnType<typeof getZone>, string> = {
-  QUIET:  '#2a2a3a',
-  ACTIVE: '#7000ff',
-  HIGH:   '#f0a500',
-  SURGE:  '#ff3d7f',
+  QUIET:  'oklch(0.18 0.04 281)',
+  ACTIVE: 'oklch(0.37 0.31 283)',
+  HIGH:   'oklch(0.73 0.17 65)',
+  SURGE:  'oklch(0.63 0.25 355)',
+}
+
+/** Zone → badge border color at ~27% alpha (OKLCH /alpha — not hex-append). */
+const ZONE_BORDER: Record<ReturnType<typeof getZone>, string> = {
+  QUIET:  'oklch(0.18 0.04 281 / 0.27)',
+  ACTIVE: 'oklch(0.37 0.31 283 / 0.27)',
+  HIGH:   'oklch(0.73 0.17 65 / 0.27)',
+  SURGE:  'oklch(0.63 0.25 355 / 0.27)',
 }
 
 // ─── RATE FORMATTER ───────────────────────────────────────────────────────────
@@ -111,8 +120,9 @@ export function TokenBurnHUD(): React.ReactElement {
   const rawRate = tokenPulse?.rate_per_sec ?? 0
   const rate = Number.isFinite(rawRate) && rawRate >= 0 ? rawRate : 0
 
-  const zone      = getZone(rate)
-  const zoneColor = ZONE_COLOR[zone]
+  const zone        = getZone(rate)
+  const zoneColor   = ZONE_COLOR[zone]
+  const zoneBorder  = ZONE_BORDER[zone]
 
   // Scale each sample proportionally to the window's max value.
   // Math.max(...history, 1) prevents division-by-zero when all samples are 0.
@@ -133,17 +143,17 @@ export function TokenBurnHUD(): React.ReactElement {
         zIndex:        20,
         pointerEvents: 'none',
         userSelect:    'none',
-        fontFamily:    '"JetBrains Mono", "Courier New", monospace',
+        fontFamily:    'var(--font-code)',
       }}
     >
       {/* Section header — matches SystemLog visual language */}
       <div style={{
         fontSize:      7,
         letterSpacing: '0.25em',
-        color:         '#2a2228',
+        color:         'oklch(0.19 0.02 281)',
         marginBottom:  4,
         paddingBottom: 4,
-        borderBottom:  '1px solid #1e1c1f',
+        borderBottom:  '1px solid oklch(0.15 0.01 281)',
       }}>
         TOKEN BURN ·· LIVE
       </div>
@@ -163,7 +173,7 @@ export function TokenBurnHUD(): React.ReactElement {
           letterSpacing: '0.18em',
           color:         zoneColor,
           opacity:       0.75,
-          border:        `1px solid ${zoneColor}44`,
+          border:        `1px solid ${zoneBorder}`,
           padding:       '1px 4px',
           borderRadius:  2,
         }}>
@@ -175,7 +185,7 @@ export function TokenBurnHUD(): React.ReactElement {
       {sparkline.trim().length > 0 && (
         <div style={{
           fontSize:      11,
-          color:         '#504850',
+          color:         'oklch(0.37 0.02 281)',
           marginTop:     3,
           letterSpacing: '0.05em',
           lineHeight:    1,
@@ -188,7 +198,7 @@ export function TokenBurnHUD(): React.ReactElement {
       {tokenPulse?.broadcast_label && (
         <div style={{
           fontSize:      7,
-          color:         '#302830',
+          color:         'oklch(0.22 0.02 281)',
           marginTop:     3,
           letterSpacing: '0.1em',
         }}>

@@ -71,9 +71,9 @@ class CanvasErrorBoundary extends Component<{ children: ReactNode }, ErrorBounda
       return (
         <div style={{
           position: 'fixed', inset: 0,
-          background: '#030303', display: 'flex',
+          background: 'oklch(0.06 0 0)', display: 'flex',
           alignItems: 'center', justifyContent: 'center',
-          fontFamily: 'monospace', color: '#00f3ff',
+          fontFamily: 'monospace', color: 'oklch(0.87 0.21 192)',
           flexDirection: 'column', gap: '12px',
         }}>
           <div style={{ fontSize: '11px', letterSpacing: '0.4em', opacity: 0.9 }}>
@@ -138,8 +138,8 @@ function DispatchTicker() {
   return (
     <div id="dispatch-ticker" style={{
       position: 'absolute', bottom: 0, left: 0, right: 0,
-      padding: '8px 20px', background: 'rgba(3, 3, 3, 0.88)',
-      borderTop: '1px solid rgba(255, 204, 0, 0.12)',
+      padding: '8px 20px', background: 'oklch(0.04 0 0 / 0.88)',
+      borderTop: '1px solid oklch(0.84 0.27 85 / 0.12)',
       display: 'flex', alignItems: 'center', gap: '14px', zIndex: 20,
     }}>
       <span style={{ color: AMBER, fontFamily: 'monospace', fontSize: '9px', letterSpacing: '0.35em', opacity: 0.45, flexShrink: 0 }}>
@@ -200,8 +200,8 @@ function RadioMiniPlayer() {
     <div style={{
       position: 'absolute', top: 18, right: 18, zIndex: 20,
       display: 'flex', alignItems: 'center', gap: '10px',
-      background: 'rgba(3, 3, 3, 0.85)',
-      border: `1px solid rgba(255, 204, 0, ${playing ? '0.35' : '0.12'})`,
+      background: 'oklch(0.04 0 0 / 0.85)',
+      border: `1px solid oklch(0.84 0.27 85 / ${playing ? '0.35' : '0.12'})`,
       padding: '7px 14px 7px 10px', fontFamily: 'monospace', transition: 'border-color 0.3s',
     }}>
       <button
@@ -315,7 +315,7 @@ export function HomepageLanding() {
       <div style={{
         position: 'fixed', inset: 0, background: VOID,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: 'rgba(0, 243, 255, 0.4)', fontFamily: 'monospace',
+        color: 'oklch(0.87 0.21 192 / 0.40)', fontFamily: 'monospace',
         fontSize: '11px', letterSpacing: '0.3em',
       }}>
         INITIALIZING SIGNAL...
@@ -419,7 +419,7 @@ export function HomepageLanding() {
               onClick={addLight}
               style={{
                 display: 'block', width: '100%',
-                background: 'rgba(3,3,3,0.9)', border: `1px solid ${CYAN}44`,
+                background: 'oklch(0.04 0 0 / 0.90)', border: `1px solid ${CYAN}44`,
                 color: CYAN, fontFamily: 'monospace', fontSize: '10px',
                 letterSpacing: '0.2em', padding: '8px 12px', cursor: 'pointer',
                 textAlign: 'left',
@@ -438,7 +438,7 @@ export function HomepageLanding() {
           position: 'absolute', top: '50%', left: '50%',
           transform: 'translate(-50%, -50%)',
           color: CYAN, fontFamily: 'monospace', fontSize: '14px',
-          letterSpacing: '0.3em', background: 'rgba(3,3,3,0.92)',
+          letterSpacing: '0.3em', background: 'oklch(0.04 0 0 / 0.92)',
           border: `1px solid ${CYAN}66`, padding: '14px 28px',
           zIndex: 50, opacity: 0, transition: 'opacity 0.3s ease',
           pointerEvents: 'none',
@@ -452,7 +452,7 @@ export function HomepageLanding() {
         <pre ref={camHudRef} style={{
           position: 'absolute', bottom: 48, left: 16, zIndex: 30,
           color: CYAN, fontFamily: 'monospace', fontSize: '11px',
-          lineHeight: 1.6, background: 'rgba(3, 3, 3, 0.88)',
+          lineHeight: 1.6, background: 'oklch(0.04 0 0 / 0.88)',
           border: `1px solid ${CYAN}33`, padding: '8px 12px',
           userSelect: 'all', pointerEvents: 'none', whiteSpace: 'pre',
         }}>
@@ -470,7 +470,7 @@ export function HomepageLanding() {
           <div style={{
             color: CYAN, fontFamily: 'monospace',
             fontSize: '10px', letterSpacing: '0.3em',
-            background: 'rgba(3, 3, 3, 0.88)',
+            background: 'oklch(0.04 0 0 / 0.88)',
             border: `1px solid ${CYAN}66`, padding: '6px 12px',
           }}>
             ◉ STAGE DIRECTOR — ` to exit · click to select · drag to move · WASD+arrows=fly
@@ -478,7 +478,7 @@ export function HomepageLanding() {
           <button
             onClick={() => resetCameraRef.current?.()}
             style={{
-              background: 'rgba(3, 3, 3, 0.88)', border: `1px solid ${CYAN}66`,
+              background: 'oklch(0.04 0 0 / 0.88)', border: `1px solid ${CYAN}66`,
               color: CYAN, fontFamily: 'monospace', fontSize: '10px',
               letterSpacing: '0.2em', padding: '6px 12px', cursor: 'pointer',
               flexShrink: 0,
@@ -505,7 +505,7 @@ export function HomepageLanding() {
           flexDirection: 'column',
           alignItems: 'center',
           padding: '18px 16px 22px',
-          background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)',
+          background: 'linear-gradient(to top, oklch(0 0 0 / 0.92) 0%, oklch(0 0 0 / 0.40) 60%, transparent 100%)',
           pointerEvents: 'none',
           userSelect: 'none',
         }}>
@@ -514,7 +514,7 @@ export function HomepageLanding() {
             fontSize: '9px',
             letterSpacing: '0.4em',
             textTransform: 'uppercase',
-            color: 'rgba(112, 0, 255, 0.5)',
+            color: 'oklch(0.37 0.31 283 / 0.50)',
             marginBottom: '6px',
           }}>
             sinner-king.com
@@ -524,7 +524,7 @@ export function HomepageLanding() {
             fontSize: '11px',
             letterSpacing: '0.3em',
             textTransform: 'uppercase',
-            color: 'rgba(224, 221, 240, 0.15)',
+            color: 'oklch(0.90 0.02 290 / 0.15)',
           }}>
             something is coming
           </div>

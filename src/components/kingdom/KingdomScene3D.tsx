@@ -89,8 +89,10 @@ function ConnectionBeam({ fromId, toId }: ConnectionBeamProps) {
       depthWrite: false,
     })
     return { lineObj: new THREE.Line(geometry, mat), material: mat }
-    // `from`/`to`/`from.color` come from TERRITORY_MAP — module-level const, never mutated.
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    // `from` and `to` are entries from TERRITORY_MAP (module-level const, never mutated).
+    // For a given mounted instance, fromId and toId are fixed (enforced by the key prop on
+    // the call site), so these deps are stable references — geometry is created exactly once.
+  }, [from, to])
 
   useEffect(() => {
     return () => {
@@ -336,6 +338,21 @@ function CoreLoreCascade() {
   )
   const lastSpawn = useRef(0)
 
+  // Geometry shared across all rings (same shape for all) — created once, never recreated.
+  const geo = useMemo(() => new THREE.TorusGeometry(1, CORE_RING_TUBE, 3, CORE_RING_SEGS), [])
+  // Per-ring materials — each ring has its own opacity track, cannot share a single instance.
+  const mats = useMemo(() =>
+    Array.from({ length: CORE_WAVE_POOL }, () => new THREE.MeshStandardMaterial({
+      color:            CORE_LAYOUT.color,
+      emissive:         CORE_LAYOUT.color,
+      emissiveIntensity: 2.2,
+      transparent:      true,
+      opacity:          0,
+      depthWrite:       false,
+    })),
+  [])
+  useEffect(() => () => { geo.dispose(); mats.forEach((m) => m.dispose()) }, [geo, mats])
+
   useFrame(({ clock }) => {
     const now     = clock.elapsedTime
     const waves   = pool.current
@@ -392,11 +409,8 @@ function CoreLoreCascade() {
 
       // Flat ring on XZ plane — scale X and Z, keep Y=1 (geometry is in XY plane, rotated)
       mesh.scale.set(radius, radius, 1)
-      // Type guard: material is always MeshStandardMaterial here (set in JSX), but
-      // guard against null/wrong-type during unmount races.
-      if (mesh.material instanceof THREE.MeshStandardMaterial) {
-        mesh.material.opacity = opacity
-      }
+      // Direct material write — mats[i] is always MeshStandardMaterial (useMemo above)
+      mats[i].opacity = opacity
     }
   })
 
@@ -408,17 +422,9 @@ function CoreLoreCascade() {
           ref={(el) => { meshRefs.current[i] = el }}
           rotation={[Math.PI / 2, 0, 0]}
           scale={[0, 0, 0]}
-        >
-          <torusGeometry args={[1, CORE_RING_TUBE, 3, CORE_RING_SEGS]} />
-          <meshStandardMaterial
-            color={CORE_LAYOUT.color}
-            emissive={CORE_LAYOUT.color}
-            emissiveIntensity={2.2}
-            transparent
-            opacity={0}
-            depthWrite={false}
-          />
-        </mesh>
+          geometry={geo}
+          material={mats[i]}
+        />
       ))}
     </group>
   )

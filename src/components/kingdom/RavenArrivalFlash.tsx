@@ -50,6 +50,20 @@ const QUEUE_FLUSH_INTERVAL_MS = 100
 /** How often expired flash entries are pruned from state. */
 const PRUNE_INTERVAL_MS = 200
 
+// ─── COLORS ──────────────────────────────────────────────────────────────────
+
+/** Flash text color — muted violet, legible against dark background. */
+const FLASH_TEXT  = 'oklch(0.71 0.13 293)'
+
+/** Flash glow color for text-shadow — brighter violet. */
+const FLASH_GLOW  = 'oklch(0.52 0.32 295)'
+
+/** Flash border — violet at low alpha. */
+const FLASH_BORDER = 'oklch(0.52 0.32 295 / 0.31)'
+
+/** Flash background gradient — violet → cyan translucent wash. */
+const FLASH_BG = 'linear-gradient(90deg, oklch(0.52 0.32 295 / 0.13), oklch(0.87 0.21 192 / 0.13))'
+
 /**
  * Total flash lifetime in milliseconds.
  * Matches the CSS animation duration so DOM removal coincides with fade completion.
@@ -162,11 +176,11 @@ export function RavenArrivalFlash(): React.ReactElement | null {
           <div
             key={flash.id}
             style={{
-              fontFamily:    'monospace',
+              fontFamily:    'var(--font-code)',
               fontSize:      11,
               letterSpacing: '0.15em',
-              background:    'linear-gradient(90deg, rgba(155,48,255,0.13), rgba(0,243,255,0.13))',
-              border:        '1px solid #9b30ff50',
+              background:    FLASH_BG,
+              border:        `1px solid ${FLASH_BORDER}`,
               borderRadius:  3,
               padding:       '3px 10px',
               /*
@@ -175,8 +189,8 @@ export function RavenArrivalFlash(): React.ReactElement | null {
                * this keyframe independently of the JS event loop — always smooth.
                */
               animation:     `raven-flash-fade ${FLASH_DURATION_MS}ms ease-out forwards`,
-              color:         '#cc88ff',
-              textShadow:    '0 0 8px #9b30ff',
+              color:         FLASH_TEXT,
+              textShadow:    `0 0 8px ${FLASH_GLOW}`,
               whiteSpace:    'nowrap',
             }}
           >

@@ -50,6 +50,16 @@ export interface DroneSwarm {
   expiresAt: number  // startedAt + 30000 (60000 for orbit swarms)
 }
 
+// Valid signal types — single source of truth for runtime coercion.
+// Unknown strings from the feed fall through to 'unknown' rather than crashing
+// Three.js color setters or material lookups that key on this value.
+const _VALID_SIGNAL_TYPES = new Set([
+  'claude', 'aeris', 'brandon', 'system', 'overmind', 'scryer', 'raven', 'unknown',
+])
+function _coerceSignalType(raw: string): SignalEvent['type'] {
+  return _VALID_SIGNAL_TYPES.has(raw) ? raw as SignalEvent['type'] : 'unknown'
+}
+
 // --- Store ---
 
 // Debug overrides — client-side only, never touch SCRYER
@@ -195,7 +205,9 @@ export const useKingdomStore = create<KingdomStore>((set, get) => ({
       if (!currentIds.has(signal.id)) {
         newEvents.push({
           id: signal.id,
-          type: signal.type as 'claude' | 'aeris' | 'brandon' | 'system' | 'overmind' | 'scryer' | 'raven' | 'unknown',
+          // Runtime coercion — rejects unknown strings from malformed feeds rather
+          // than casting blindly and crashing Three.js color/material lookups downstream
+          type: _coerceSignalType(signal.type),
           territory: signal.territory,
           timestamp: signal.timestamp,
           expiresAt: Date.now() + SIGNAL_TTL_MS,  // TTL at receive time — not creation time
@@ -369,8 +381,24 @@ export function usePartyKitSync(fallbackInterval = 30_000) {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data as string) as Record<string, unknown>
-        if (data.state) hydrateRef.current(data.state as KingdomState)
-        if (data.stream) hydrateSignalsRef.current(data.stream as Parameters<typeof hydrateSignals>[0])
+        // Structural guards — verify minimum required shape before hydrating.
+        // Avoids downstream crashes when kingdom-live-push.sh sends a malformed payload.
+        if (
+          data.state &&
+          typeof data.state === 'object' &&
+          data.state !== null &&
+          Array.isArray((data.state as Record<string, unknown>).territories)
+        ) {
+          hydrateRef.current(data.state as KingdomState)
+        }
+        if (
+          data.stream &&
+          typeof data.stream === 'object' &&
+          data.stream !== null &&
+          Array.isArray((data.stream as Record<string, unknown>).signals)
+        ) {
+          hydrateSignalsRef.current(data.stream as Parameters<typeof hydrateSignals>[0])
+        }
         applyActiveEvents(data)
         // liveData is embedded by kingdom-live-push.sh — hydrate agent states + mood in real-time.
         // Without this, agent states only update every 15s via the REST poll fallback.

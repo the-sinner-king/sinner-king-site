@@ -27,6 +27,107 @@ import { readFile, writeFile, rename, mkdir } from 'fs/promises'
 import { createHash } from 'crypto'
 import path from 'path'
 
+// ─── SUPABASE PERSISTENCE ─────────────────────────────────────────────────────
+//
+// On Vercel, the filesystem is read-only — writeLedger() silently no-ops, breaking
+// the one-question-per-IP mechanic entirely. When SUPABASE_URL + SUPABASE_ANON_KEY
+// are set, this module uses Supabase as the ledger store instead of the JSON file.
+//
+// Run once in Supabase SQL editor to create the table:
+//
+//   CREATE TABLE throne_ledger (
+//     hash            TEXT    PRIMARY KEY,
+//     timestamp       BIGINT  NOT NULL,
+//     question_length INTEGER NOT NULL
+//   );
+//   ALTER TABLE throne_ledger ENABLE ROW LEVEL SECURITY;
+//   -- Hashes are SHA-256(salt+ip) — useless without the server-side salt.
+//   -- Public read is safe; public insert is required for the API route.
+//   CREATE POLICY "public_read"   ON throne_ledger FOR SELECT USING (true);
+//   CREATE POLICY "public_insert" ON throne_ledger FOR INSERT WITH CHECK (true);
+//
+// ─────────────────────────────────────────────────────────────────────────────
+
+const _SB_URL = process.env.SUPABASE_URL
+const _SB_KEY = process.env.SUPABASE_ANON_KEY
+
+function _sbConfigured(): boolean {
+  return Boolean(_SB_URL && _SB_KEY)
+}
+
+function _sbHeaders(): Record<string, string> {
+  return {
+    apikey:         _SB_KEY!,
+    Authorization:  `Bearer ${_SB_KEY!}`,
+    'Content-Type': 'application/json',
+  }
+}
+
+async function _sbHasEntry(hash: string): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `${_SB_URL}/rest/v1/throne_ledger?hash=eq.${encodeURIComponent(hash)}&select=hash`,
+      { headers: _sbHeaders(), cache: 'no-store' }
+    )
+    if (!res.ok) return false
+    const rows = await res.json() as unknown[]
+    return rows.length > 0
+  } catch {
+    return false
+  }
+}
+
+async function _sbGetEntry(hash: string): Promise<ThroneEntry | null> {
+  try {
+    const res = await fetch(
+      `${_SB_URL}/rest/v1/throne_ledger?hash=eq.${encodeURIComponent(hash)}`,
+      { headers: _sbHeaders(), cache: 'no-store' }
+    )
+    if (!res.ok) return null
+    const rows = await res.json() as Array<{ hash: string; timestamp: number; question_length: number }>
+    if (!rows.length) return null
+    return { hash: rows[0].hash, timestamp: rows[0].timestamp, questionLength: rows[0].question_length }
+  } catch {
+    return null
+  }
+}
+
+async function _sbInsertEntry(entry: ThroneEntry): Promise<void> {
+  const res = await fetch(
+    `${_SB_URL}/rest/v1/throne_ledger`,
+    {
+      method:  'POST',
+      headers: { ..._sbHeaders(), Prefer: 'return=minimal' },
+      body:    JSON.stringify({
+        hash:            entry.hash,
+        timestamp:       entry.timestamp,
+        question_length: entry.questionLength,
+      }),
+    }
+  )
+  if (!res.ok) throw new Error(`Supabase throne_ledger insert failed: ${res.status}`)
+}
+
+async function _sbGetStats(): Promise<{ total: number; today: number; totalLength: number }> {
+  try {
+    const res = await fetch(
+      `${_SB_URL}/rest/v1/throne_ledger?select=timestamp,question_length`,
+      { headers: _sbHeaders(), cache: 'no-store' }
+    )
+    if (!res.ok) return { total: 0, today: 0, totalLength: 0 }
+    const rows = await res.json() as Array<{ timestamp: number; question_length: number }>
+    const now   = Date.now()
+    const dayMs = 24 * 60 * 60 * 1000
+    return {
+      total:       rows.length,
+      today:       rows.filter((r) => now - r.timestamp < dayMs).length,
+      totalLength: rows.reduce((sum, r) => sum + r.question_length, 0),
+    }
+  } catch {
+    return { total: 0, today: 0, totalLength: 0 }
+  }
+}
+
 // --- Types ---
 
 export interface ThroneEntry {
@@ -118,9 +219,12 @@ async function writeLedger(ledger: ThroneLedger): Promise<void> {
  */
 export async function hasThroneAccess(ip: string): Promise<boolean> {
   if (!isBanEnabled()) return true
-
-  const ledger = await readLedger()
   const hash = hashIP(ip)
+  // Use Supabase when configured — persists across Vercel cold starts.
+  // File ledger is Vercel-incompatible (read-only FS) so the mechanic only
+  // works correctly when Supabase is wired.
+  if (_sbConfigured()) return !(await _sbHasEntry(hash))
+  const ledger = await readLedger()
   return !ledger.entries.some((e) => e.hash === hash)
 }
 
@@ -129,8 +233,9 @@ export async function hasThroneAccess(ip: string): Promise<boolean> {
  * Returns null if the IP has never visited.
  */
 export async function getThroneEntry(ip: string): Promise<ThroneEntry | null> {
-  const ledger = await readLedger()
   const hash = hashIP(ip)
+  if (_sbConfigured()) return _sbGetEntry(hash)
+  const ledger = await readLedger()
   return ledger.entries.find((e) => e.hash === hash) ?? null
 }
 
@@ -140,19 +245,20 @@ export async function getThroneEntry(ip: string): Promise<ThroneEntry | null> {
  */
 export async function recordThroneQuestion(ip: string, question: string): Promise<void> {
   if (!isBanEnabled()) return
-
-  const ledger = await readLedger()
   const hash = hashIP(ip)
 
+  if (_sbConfigured()) {
+    // Idempotent — Supabase will reject on PK conflict; _sbInsertEntry throws on failure.
+    const already = await _sbHasEntry(hash)
+    if (already) return
+    await _sbInsertEntry({ hash, timestamp: Date.now(), questionLength: question.length })
+    return
+  }
+
+  const ledger = await readLedger()
   // Idempotent — don't double-record
   if (ledger.entries.some((e) => e.hash === hash)) return
-
-  ledger.entries.push({
-    hash,
-    timestamp: Date.now(),
-    questionLength: question.length,
-  })
-
+  ledger.entries.push({ hash, timestamp: Date.now(), questionLength: question.length })
   await writeLedger(ledger)
 }
 
@@ -165,19 +271,27 @@ export async function getThroneStats(): Promise<{
   questionsToday: number
   averageQuestionLength: number
 }> {
-  const ledger = await readLedger()
-  const now = Date.now()
-  const dayMs = 24 * 60 * 60 * 1000
+  if (_sbConfigured()) {
+    const { total, today, totalLength } = await _sbGetStats()
+    return {
+      totalQuestions:        total,
+      questionsToday:        today,
+      averageQuestionLength: total > 0 ? Math.round(totalLength / total) : 0,
+    }
+  }
 
-  const today = ledger.entries.filter((e) => now - e.timestamp < dayMs)
+  const ledger = await readLedger()
+  const now    = Date.now()
+  const dayMs  = 24 * 60 * 60 * 1000
+  const today  = ledger.entries.filter((e) => now - e.timestamp < dayMs)
   const avgLength =
     ledger.entries.length > 0
       ? ledger.entries.reduce((sum, e) => sum + e.questionLength, 0) / ledger.entries.length
       : 0
 
   return {
-    totalQuestions: ledger.entries.length,
-    questionsToday: today.length,
+    totalQuestions:        ledger.entries.length,
+    questionsToday:        today.length,
     averageQuestionLength: Math.round(avgLength),
   }
 }

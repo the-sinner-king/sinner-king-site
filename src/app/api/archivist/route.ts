@@ -100,20 +100,29 @@ function checkIPLimit(ip: string): boolean {
  * Extract client IP from request headers.
  *
  * NOTE: This is a local implementation (not using shared request-utils.ts) because
- * the Archivist treats 'unknown' as a valid rate-limit key rather than falling back
- * to a local-dev address. All unknown-IP requests share one bucket — conservative
- * but correct for a wiki bot. The shared getClientIP() returns '127.0.0.1' for dev,
- * which would give local testers an artificially clean rate-limit slot.
+ * the Archivist treats 'unknown' as the dev/unidentified fallback rather than
+ * '127.0.0.1'. Local testers share one rate-limit bucket instead of getting clean
+ * per-IP slots, which is the intentional conservative choice for a public wiki bot.
+ *
+ * On Vercel / trusted-proxy environments, x-forwarded-for first entry is trusted
+ * (same as the shared utility). In dev, x-real-ip then 'unknown' fallback.
  */
 function getClientIP(request: NextRequest): string {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-    request.headers.get('x-real-ip') ??
-    // 'unknown' — all requests that can't be identified share one rate-limit bucket.
-    // This is intentionally conservative: unknown-origin traffic is treated as a
-    // single IP rather than getting an unlimited pass.
-    'unknown'
-  )
+  const isVercel = !!process.env.VERCEL
+  const isTrustedProxy = !!process.env.TRUSTED_PROXY
+
+  if (isVercel || isTrustedProxy) {
+    // Trusted proxy — Vercel/nginx sets XFF and clients cannot spoof the first entry
+    const xff = request.headers.get('x-forwarded-for')
+    if (xff) return xff.split(',')[0].trim()
+  }
+
+  // Untrusted environment — x-real-ip is harder to spoof than x-forwarded-for
+  const xri = request.headers.get('x-real-ip')
+  if (xri) return xri.trim()
+
+  // 'unknown' — all unidentifiable requests share one rate-limit bucket (intentional)
+  return 'unknown'
 }
 
 // ─── WIKI CONTEXT CACHE ────────────────────────────────────────────────────────
@@ -217,12 +226,18 @@ RULES:
 const conversations = new Map<string, Array<{ role: string; content: string }>>()
 
 /**
- * Returns the session ID from the X-Archivist-Session header.
- * If absent (first request), generates a new UUID. The client must echo this back
- * in subsequent requests — it is returned in every response as `sessionId`.
+ * Returns the session ID from the X-Archivist-Session header, but ONLY if that
+ * token belongs to an active server-side conversation. If absent or unrecognized,
+ * generates a new UUID — this prevents session hijacking by guessing or constructing
+ * UUIDs that happen to belong to another visitor's ongoing session.
+ *
+ * The client must echo the returned sessionId in subsequent requests.
  */
 function getSessionId(request: NextRequest): string {
-  return request.headers.get('x-archivist-session') ?? crypto.randomUUID()
+  const token = request.headers.get('x-archivist-session')
+  // Only honor a token we issued — unknown tokens start a fresh session
+  if (token && conversations.has(token)) return token
+  return crypto.randomUUID()
 }
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────

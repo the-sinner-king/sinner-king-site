@@ -2488,6 +2488,72 @@ html { scrollbar-width: thin; scrollbar-color: var(--primary-ghost) var(--bg); }
   }
 }
 
+/* ── MOBILE — 768px and below ─────────────────────────────────────
+   This block MUST come after the 1100px block above. At ≤768px
+   both fire, and the later rule wins — correctly overriding the
+   250px 1fr grid with a true single column.
+
+   Root cause of the mobile disaster: at 375px the 1100px rule gives
+   the manifesto only 375-250=125px. Fixing that is the whole job.
+   ─────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* ── PAGE PANEL — tighter top padding, more room for content ── */
+  #page-panel {
+    padding: 24px 16px 40px;
+  }
+
+  /* ── MANIFESTO GRID — 3-col / 2-col → single column ──
+     Overrides both the base 3-col and the 1100px 2-col (250px 1fr).
+     On a 375px phone the agent sidebar alone was 250px leaving the
+     manifesto with only 125px — unusable. Single column fixes it. */
+  .manifesto-wrap {
+    grid-template-columns: 1fr;
+    max-width: 100%;
+    margin-top: 28px;
+  }
+
+  /* ── MANIFESTO TEXT — override the S219 grid-column:2 lock ──
+     That law is desktop-only. On mobile with a 1-col grid,
+     grid-column:2 pushes the text into a ghost second column. */
+  .manifesto {
+    grid-column: 1;
+    font-size: clamp(13px, 3.8vw, 18px);
+    max-width: 100%;
+  }
+
+  /* ── LEFT AGENT SIDEBAR — hidden on mobile ──
+     Takes 250px a phone can't spare. The same agent data lives
+     in the KINGDOM.LIVE HUD panels further down the page. */
+  .hud-inline-col {
+    display: none;
+  }
+
+  /* ── CTA GIF — cap width to phone screen ── */
+  .cta-gif-wrap {
+    width: min(300px, 88vw);
+  }
+
+  /* ── CTA LABEL — 1.1vw = 4px on a phone; enforce a real floor ── */
+  .cta-label {
+    font-size: clamp(11px, 3vw, 13px);
+  }
+
+  /* ── POSTER COLUMN — hide the media card stack on phones ──
+     Video + lab card + blog ad + origin card = too much for 375px.
+     The essential content (manifesto + CTA + HUD panels) is enough.
+     Desktop/tablet (>768px) still gets the full right column. */
+  .poster-col {
+    display: none;
+  }
+
+  /* ── GUESTBOOK POPUP — 580px hardcoded width overflows any phone ── */
+  .lonely-popup {
+    width: min(92vw, 340px);
+  }
+
+}
+
 /* ── DEFERRED ENTRANCES — S226 timer sequence ─────────────────
    5s AGENTS → 8s poster → 10s video → 12s blog-ad → 14s ASCII
    → 15s CTA/page-reveal → 16s bottom panels + clock

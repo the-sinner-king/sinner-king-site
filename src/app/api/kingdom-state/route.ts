@@ -22,24 +22,31 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getKingdomPayload, getKingdomState, getSignalStream, getActiveEvents } from '@/lib/kingdom-state'
+import { getKingdomPayload, getKingdomState, getSignalStream, getActiveEvents, getTokenPulse } from '@/lib/kingdom-state'
 import { getClientIP } from '@/lib/request-utils'
 
-// FLAG #10 fix: basic in-process rate limiting — 60 requests/minute per IP.
-// B3 fix: periodic sweep prevents unbounded Map growth under sustained unique-IP traffic.
-// NOTE: resets on Vercel cold start — replace with Upstash Redis for persistent limits.
+// In-process rate limiting — 60 requests/minute per IP.
+// ⚠ KNOWN LIMITATION: resets on Vercel cold start and is per-instance (not global).
+// On Vercel, multiple concurrent instances each have their own counters — a
+// coordinated burst across instances bypasses this limit. For a public read
+// endpoint serving Kingdom state data this is acceptable; it is not an auth
+// or write endpoint. True distributed rate limiting requires Upstash Redis
+// (TODO: wire UPSTASH_REDIS_REST_URL + @upstash/ratelimit when infra is ready).
 const _ksRateMap = new Map<string, { count: number; resetAt: number }>()
 const KS_LIMIT = 60
 const KS_WINDOW_MS = 60_000
-let _ksRequestCount = 0
-const KS_SWEEP_INTERVAL = 500  // sweep expired entries every 500 requests
+// Time-based sweep — runs every 5 minutes regardless of traffic volume.
+// The previous request-count based sweep (every 500 reqs) took 8+ hours on
+// low-traffic instances, allowing unbounded Map growth during extended low-traffic periods.
+let _ksLastSweep = 0
+const KS_SWEEP_INTERVAL_MS = 5 * 60 * 1000
 
 function _ksCheckRate(ip: string): boolean {
   const now = Date.now()
 
-  // B3 fix: periodic sweep — delete entries whose window has expired
-  _ksRequestCount++
-  if (_ksRequestCount % KS_SWEEP_INTERVAL === 0) {
+  // Time-based sweep — keeps Map bounded even on low-traffic instances
+  if (now - _ksLastSweep > KS_SWEEP_INTERVAL_MS) {
+    _ksLastSweep = now
     for (const [key, entry] of _ksRateMap) {
       if (now > entry.resetAt) _ksRateMap.delete(key)
     }
@@ -87,6 +94,15 @@ export async function GET(request: NextRequest) {
       const events = await getActiveEvents()
       scryerStatus = 'healthy'
       data = events
+    } else if (type === 'token-pulse') {
+      // Returns the raw sentinel sub-object (RawTokenPulse) from kingdom_state.json.
+      // Dedicated type because: (1) avoids type-narrowing loss through KingdomState.token_pulse,
+      // (2) skips the full getKingdomPayload() pipeline (Claude activity, overmind heartbeat,
+      // multi-file reads) for a consumer that only needs the sentinel data.
+      // See getTokenPulse() in kingdom-state.ts for the full architectural rationale.
+      const pulse = await getTokenPulse()
+      scryerStatus = pulse ? 'healthy' : 'offline'
+      data = pulse
     } else {
       const payload = await getKingdomPayload()
       scryerStatus = payload.state ? 'healthy' : 'offline'

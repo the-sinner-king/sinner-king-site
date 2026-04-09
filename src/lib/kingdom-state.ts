@@ -93,6 +93,23 @@ export interface TokenPulse {
   broadcast_label: string
 }
 
+/**
+ * RawTokenPulse — actual schema written by token-pulse.sh to kingdom_state.json.
+ * Distinct from KingdomState (SCRYER schema). This file is written by the sentinel,
+ * not the SCRYER watcher, so isValidKingdomState() fails on it (wrong field names + types).
+ */
+export interface RawTokenPulse {
+  snapshot_at: string
+  lifetime_tokens: number
+  lifetime_cost_usd: number
+  today_tokens: number
+  today_cost_usd: number
+  rate_per_sec: number
+  broadcast_label: string
+  broadcast_cost: string
+  territories: Record<string, { today_tok: number; week_tok: number }>
+}
+
 export interface SignalStream {
   lastUpdated: number
   version: string
@@ -455,6 +472,49 @@ export async function getActiveEvents(): Promise<ActiveEvents> {
 }
 
 /**
+ * Returns raw token pulse data from the nested token_pulse block in kingdom_state.json.
+ *
+ * WHY THIS EXISTS — schema mismatch between two writers of the same file:
+ *   - The SCRYER watcher writes the top-level state (lastUpdated: number, territories: array).
+ *   - token-pulse.sh merges a separate token_pulse sub-object into that same file.
+ *     Its sub-object uses a different schema: snapshot_at (string), lifetime_tokens (number),
+ *     rate_per_sec (number), broadcast_label/cost (strings), territories (object keyed by name).
+ *
+ * WHY NOT USE getKingdomState() + state.token_pulse:
+ *   The existing KingdomState.token_pulse type (TokenPulse) only exposes 4 fields
+ *   (rate_per_sec, today_tokens, today_cost_usd, broadcast_label). The TOKEN_BURN UI
+ *   also needs broadcast_cost, lifetime_tokens, and territories-as-object — all present
+ *   in the sentinel data but not surfaced through the KingdomState type. Rather than
+ *   widen KingdomState (which would affect all consumers), a dedicated endpoint returns
+ *   the full RawTokenPulse directly, with no type narrowing loss.
+ *
+ * WHY A DEDICATED ?type=token-pulse API TYPE:
+ *   The TOKEN_BURN panel polls on its own 30s cycle. Routing through ?type=state
+ *   pulls the full KingdomState + getKingdomPayload() pipeline (Claude activity injection,
+ *   overmind heartbeat synthesis, multi-file reads) for a consumer that only needs the
+ *   sentinel sub-object. The dedicated type is cheaper, simpler, and unambiguous.
+ */
+export async function getTokenPulse(): Promise<RawTokenPulse | null> {
+  const cacheKey = 'token-pulse'
+  const cached = getCached<RawTokenPulse>(cacheKey)
+  if (cached) return cached
+
+  try {
+    const filePath = getKingdomStatePath()
+    const raw = await readFile(filePath, 'utf-8')
+    const parsed = JSON.parse(raw) as Record<string, unknown>
+    // Extract the nested token_pulse block merged in by token-pulse.sh
+    const pulse = parsed.token_pulse as Record<string, unknown> | undefined
+    if (!pulse || typeof pulse.broadcast_label !== 'string' || !pulse.territories) return null
+    const result = pulse as unknown as RawTokenPulse
+    setCached(cacheKey, result)
+    return result
+  } catch {
+    return null
+  }
+}
+
+/**
  * Returns a combined Kingdom data payload.
  * Convenience wrapper for API routes.
  *
@@ -470,8 +530,13 @@ export async function getKingdomPayload() {
   ])
 
   // Override claude_house territory with real-time hook data.
-  // IMPORTANT: never mutate the cached state object — build a new one.
-  let patchedState = state
+  // IMPORTANT: never mutate the cached state object — always start with a shallow
+  // copy so the raw cache reference is never returned to callers who might mutate it.
+  // The territories spread creates a new array (individual objects are still shared,
+  // but no code mutates territory properties downstream of this function).
+  let patchedState: KingdomState | null = state
+    ? { ...state, territories: [...state.territories] }
+    : null
   if (state && claudeActivity) {
     const override = CLAUDE_STATUS_MAP[claudeActivity.status]
     if (override) {

@@ -102,7 +102,7 @@ export const BUILDING_STATE_CONFIG: Record<BuildingState, BuildingStateConfig> =
     breatheFreq:        0,
     lightIntensityMul:  0.02,
     stateLabel:         'OFFLINE',
-    stateLabelColor:    '#201810',
+    stateLabelColor:    'oklch(0.12 0.015 55)',
   },
   stable: {
     // Visible resting glow — territory is present and alive at rest.
@@ -113,7 +113,7 @@ export const BUILDING_STATE_CONFIG: Record<BuildingState, BuildingStateConfig> =
     breatheFreq:        0.6,
     lightIntensityMul:  0.50,
     stateLabel:         'STABLE',
-    stateLabelColor:    '#706050',
+    stateLabelColor:    'oklch(0.44 0.025 55)',
   },
   working: {
     // 2.8 rad/s ≈ 0.45 Hz (~2.2s cycle) — tuned by eye. Painfully obvious working state.
@@ -124,7 +124,7 @@ export const BUILDING_STATE_CONFIG: Record<BuildingState, BuildingStateConfig> =
     breatheFreq:        2.8,
     lightIntensityMul:  2.0,
     stateLabel:         'WORKING',
-    stateLabelColor:    '#00f3ff',
+    stateLabelColor:    'oklch(0.87 0.21 192)',
   },
 }
 
@@ -412,9 +412,9 @@ export function TerritoryNode({ territory }: TerritoryNodeProps) {
     // FIX (S167 audit): previously wrote to style on every frame regardless of state change.
     if (labelRef.current) {
       const labelColor = buildingState === 'offline'
-        ? '#2a1830'
+        ? 'oklch(0.15 0.035 301)'
         : buildingState === 'stable'
-        ? '#8a7090'
+        ? 'oklch(0.53 0.04 301)'
         : territory.color
       const nextColor  = isSelected ? territory.color : labelColor
       const nextBorder = isSelected
@@ -431,8 +431,11 @@ export function TerritoryNode({ territory }: TerritoryNodeProps) {
     }
   })
 
-  // Shape geometry — switch on territory.id
-  const shapeGeometry = (() => {
+  // Shape geometry — switch on territory.id.
+  // useMemo: all deps (territory.id, params, material, meshRef, handleClick) are stable
+  // for the lifetime of this component instance, so this runs exactly once on mount.
+  // This prevents R3F from re-diffing the geometry children on every TerritoryNode re-render.
+  const shapeGeometry = useMemo(() => {
     switch (territory.id) {
       case 'the_forge':
         // Two close blocks side by side — Aeris (left) + Claude (right)
@@ -492,7 +495,7 @@ export function TerritoryNode({ territory }: TerritoryNodeProps) {
         )
       }
     }
-  })()
+  }, [territory.id, params, material, meshRef, handleClick])
 
   return (
     // Outer group: XZ position only (no Y — prevents double-count when floatGroup animates Y)
@@ -553,21 +556,21 @@ export function TerritoryNode({ territory }: TerritoryNodeProps) {
           <div
             ref={labelRef}
             style={{
-              fontFamily: "'VT323', 'Courier New', monospace",
+              fontFamily: 'var(--font-terminal)',
               fontSize: '11px',
               letterSpacing: '0.18em',
-              color: '#6a5a70',
-              background: 'rgba(13,2,33,0.75)',
+              color: 'oklch(0.42 0.04 301)',
+              background: 'oklch(0.07 0.05 285 / 0.75)',
               padding: '2px 6px',
               borderRadius: '2px',
               whiteSpace: 'nowrap',
-              border: '1px solid rgba(100,60,180,0.15)',
+              border: '1px solid oklch(0.37 0.16 281 / 0.15)',
               display: 'flex',
               alignItems: 'center',
               gap: 5,
               position: 'relative',
               // Subtle CRT scan-line through the label text
-              backgroundImage: 'linear-gradient(rgba(13,2,33,0.75) 49%, rgba(0,212,255,0.06) 50%, rgba(13,2,33,0.75) 51%)',
+              backgroundImage: 'linear-gradient(oklch(0.07 0.05 285 / 0.75) 49%, oklch(0.82 0.12 196 / 0.06) 50%, oklch(0.07 0.05 285 / 0.75) 51%)',
             }}
           >
             {/* State dot — offline=hollow ring, online=solid small, active=larger with glow+pulse */}
@@ -599,7 +602,7 @@ export function TerritoryNode({ territory }: TerritoryNodeProps) {
             {/* Active state text — JetBrains Mono, full opacity, glow treatment */}
             {agentStateForBadge && agentStateForBadge !== 'offline' && agentStateForBadge !== 'online' && (
               <span style={{
-                fontFamily:   "'JetBrains Mono', 'Courier New', monospace",
+                fontFamily:   'var(--font-code)',
                 fontSize:     '7px',
                 color:        AGENT_STATE_COLORS[agentStateForBadge],
                 opacity:      1.0,

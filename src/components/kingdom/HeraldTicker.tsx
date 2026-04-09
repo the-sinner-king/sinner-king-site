@@ -60,10 +60,10 @@ const SPACER_PADDING_LEFT_PX = 40
 // ─── COLORS ──────────────────────────────────────────────────────────────────
 
 /** Ticker text color — intentionally muted, this is ambient not foreground. */
-const TICKER_COLOR = '#504840'
+const TICKER_COLOR = 'oklch(0.37 0.02 281)'
 
 /** "GOLDFISH" prefix label color — dimmer than ticker text. */
-const LABEL_COLOR  = '#3a3438'
+const LABEL_COLOR  = 'oklch(0.25 0.02 281)'
 
 // ─── COMPONENT ───────────────────────────────────────────────────────────────
 
@@ -107,8 +107,8 @@ export function HeraldTicker(): React.ReactElement | null {
         overflow:      'hidden',
         display:       'flex',
         alignItems:    'center',
-        background:    'linear-gradient(180deg, transparent 0%, rgba(10,10,15,0.72) 100%)',
-        borderTop:     '1px solid rgba(255,255,255,0.03)',
+        background:    'linear-gradient(180deg, transparent 0%, oklch(0.06 0.02 281 / 0.72) 100%)',
+        borderTop:     '1px solid oklch(1 0 0 / 0.03)',
         pointerEvents: 'none',
         animation:     'ticker-fade-in 1s ease-out',
         // Stale: dim but keep visible — last known herald text beats a blank ticker.
@@ -125,7 +125,7 @@ export function HeraldTicker(): React.ReactElement | null {
           fontSize:      8,
           letterSpacing: '0.18em',
           whiteSpace:    'nowrap',
-          borderRight:   '1px solid rgba(255,255,255,0.04)',
+          borderRight:   '1px solid oklch(1 0 0 / 0.04)',
           marginRight:   14,
         }}>
           GOLDFISH

@@ -101,7 +101,7 @@ export function GlitchText({
   as: Tag = 'span',
   'aria-label': ariaLabel,
   color,
-  glitchColor = '#00f3ff',
+  glitchColor = 'oklch(0.87 0.21 192)',
 }: GlitchTextProps) {
   const [isGlitching, setIsGlitching] = useState(false)
   const [displayText, setDisplayText] = useState(text)
@@ -209,7 +209,7 @@ export function GlitchText({
   if (isGlitching && glitchColor && intensity !== 'low') {
     style.textShadow = `
       -2px 0 ${glitchColor},
-      2px 2px rgba(112, 0, 255, 0.4),
+      2px 2px oklch(0.37 0.31 283 / 0.40),
       0 0 8px ${glitchColor}
     `
   }

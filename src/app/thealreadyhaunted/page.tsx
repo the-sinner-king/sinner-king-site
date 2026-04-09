@@ -25,8 +25,8 @@ export default function TheAlreadyHauntedPage() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         .haunted-root {
-          background: #0a0a0f;
-          color: #e0ddf0;
+          background: oklch(0.06 0.02 281);
+          color: oklch(0.89 0.02 290);
           font-family: 'JetBrains Mono', 'Monaspace Neon', 'SF Mono', 'Fira Code', monospace;
           font-size: 15px;
           line-height: 1.7;
@@ -43,14 +43,14 @@ export default function TheAlreadyHauntedPage() {
         .the-sentence {
           text-align: center;
           padding: 3rem 0 4rem;
-          border-bottom: 1px solid #1a1a2e;
+          border-bottom: 1px solid oklch(0.14 0.04 281);
         }
 
         .the-sentence-text {
           font-size: 1.1rem;
           font-style: italic;
           font-weight: 300;
-          color: #e0ddf0;
+          color: oklch(0.89 0.02 290);
           letter-spacing: 0.02em;
           line-height: 1.5;
         }
@@ -58,7 +58,7 @@ export default function TheAlreadyHauntedPage() {
         .the-sentence-attr {
           margin-top: 1.5rem;
           font-size: 0.72rem;
-          color: #4a4a6a;
+          color: oklch(0.36 0.05 285);
           letter-spacing: 0.15em;
           text-transform: uppercase;
         }
@@ -66,21 +66,21 @@ export default function TheAlreadyHauntedPage() {
         /* ── BEAT 2: Status Pulse ─────────────────────── */
         .status-pulse {
           padding: 2rem 0;
-          border-bottom: 1px solid #1a1a2e;
+          border-bottom: 1px solid oklch(0.14 0.04 281);
           font-size: 0.78rem;
-          color: #6a6a8a;
+          color: oklch(0.47 0.05 285);
           letter-spacing: 0.08em;
         }
 
         .pulse-live {
-          color: #7000ff;
+          color: oklch(0.37 0.31 283);
         }
 
         .pulse-dot {
           display: inline-block;
           width: 7px;
           height: 7px;
-          background: #7000ff;
+          background: oklch(0.37 0.31 283);
           border-radius: 50%;
           margin-right: 6px;
           animation: blink 2s ease-in-out infinite;
@@ -97,20 +97,20 @@ export default function TheAlreadyHauntedPage() {
         /* ── BEAT 3: Post List ────────────────────────── */
         .posts-section {
           padding: 2.5rem 0;
-          border-bottom: 1px solid #1a1a2e;
+          border-bottom: 1px solid oklch(0.14 0.04 281);
         }
 
         .section-label {
           font-size: 0.68rem;
           letter-spacing: 0.25em;
           text-transform: uppercase;
-          color: #4a4a6a;
+          color: oklch(0.36 0.05 285);
           margin-bottom: 1.8rem;
         }
 
         .post-entry {
           padding: 1.4rem 0;
-          border-bottom: 1px solid #141420;
+          border-bottom: 1px solid oklch(0.10 0.02 281);
           text-decoration: none;
           display: block;
           transition: border-color 0.15s;
@@ -121,12 +121,12 @@ export default function TheAlreadyHauntedPage() {
         }
 
         .post-entry:hover .post-title-link {
-          color: #00f3ff;
+          color: oklch(0.87 0.21 192);
         }
 
         .post-meta {
           font-size: 0.68rem;
-          color: #4a4a6a;
+          color: oklch(0.36 0.05 285);
           letter-spacing: 0.12em;
           margin-bottom: 0.5rem;
         }
@@ -134,7 +134,7 @@ export default function TheAlreadyHauntedPage() {
         .post-title-link {
           font-size: 0.95rem;
           font-weight: 500;
-          color: #e0ddf0;
+          color: oklch(0.89 0.02 290);
           transition: color 0.15s;
           text-decoration: none;
           display: block;
@@ -143,7 +143,7 @@ export default function TheAlreadyHauntedPage() {
 
         .post-desc {
           font-size: 0.78rem;
-          color: #5a5a7a;
+          color: oklch(0.41 0.05 285);
           font-weight: 300;
           font-style: italic;
         }
@@ -151,9 +151,9 @@ export default function TheAlreadyHauntedPage() {
         /* ── BEAT 4: About ────────────────────────────── */
         .about-section {
           padding: 2.5rem 0;
-          border-bottom: 1px solid #1a1a2e;
+          border-bottom: 1px solid oklch(0.14 0.04 281);
           font-size: 0.85rem;
-          color: #7a7a9a;
+          color: oklch(0.52 0.05 285);
           line-height: 1.8;
         }
 
@@ -162,14 +162,14 @@ export default function TheAlreadyHauntedPage() {
         }
 
         .about-accent {
-          color: #7000ff;
+          color: oklch(0.37 0.31 283);
         }
 
         /* ── BEAT 5: Footer ───────────────────────────── */
         .haunted-footer {
           padding-top: 2.5rem;
           font-size: 0.68rem;
-          color: #3a3a5a;
+          color: oklch(0.28 0.05 285);
           letter-spacing: 0.1em;
           display: flex;
           flex-wrap: wrap;
@@ -179,7 +179,7 @@ export default function TheAlreadyHauntedPage() {
         }
 
         .footer-sigil {
-          color: #2a2a4a;
+          color: oklch(0.22 0.04 285);
           font-size: 0.85rem;
           letter-spacing: 0.15em;
         }
@@ -190,7 +190,7 @@ export default function TheAlreadyHauntedPage() {
         }
 
         .footer-links a {
-          color: #4a4a6a;
+          color: oklch(0.36 0.05 285);
           text-decoration: none;
           font-size: 0.68rem;
           letter-spacing: 0.12em;
@@ -198,11 +198,11 @@ export default function TheAlreadyHauntedPage() {
         }
 
         .footer-links a:hover {
-          color: #00f3ff;
+          color: oklch(0.87 0.21 192);
         }
 
         .footer-3am {
-          color: #2a2a4a;
+          color: oklch(0.22 0.04 285);
           font-style: italic;
           font-size: 0.65rem;
         }
@@ -219,7 +219,7 @@ export default function TheAlreadyHauntedPage() {
         {/* Beat 2 — Status Pulse */}
         <section className="status-pulse">
           <span className="pulse-dot" />
-          <span className="pulse-live">S202 · THE_TOWER · live</span>
+          <span className="pulse-live">S223 · THE_TOWER · live</span>
           {' '}·{' '}
           <span>sinner-king.com ships soon</span>
         </section>

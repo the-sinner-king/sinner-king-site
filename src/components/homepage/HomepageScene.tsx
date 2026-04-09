@@ -242,7 +242,7 @@ function ContentLayer() {
               border: '4px solid lime',
             }}
           >
-            <div style={{ fontSize: 10, letterSpacing: '0.3em', color: '#7000ff', marginBottom: 20 }}>
+            <div style={{ fontSize: 10, letterSpacing: '0.3em', color: 'oklch(0.37 0.31 283)', marginBottom: 20 }}>
               BROADCASTING FROM THE {glyphK}INGDOM
             </div>
             <h1
@@ -251,7 +251,7 @@ function ContentLayer() {
                 fontWeight: 900,
                 letterSpacing: '0.06em',
                 lineHeight: 1.05,
-                color: '#ff0000',
+                color: 'oklch(0.63 0.25 28)',
                 margin: '0 0 20px',
               }}
             >
@@ -261,7 +261,7 @@ function ContentLayer() {
               style={{
                 fontSize: 13,
                 lineHeight: 2,
-                color: 'rgba(232,224,208,0.45)',
+                color: 'oklch(0.91 0.02 75 / 0.45)',
                 letterSpacing: '0.04em',
               }}
             >
@@ -276,17 +276,17 @@ function ContentLayer() {
                 flexDirection: 'column',
                 alignItems: 'center',
                 gap: 8,
-                color: 'rgba(112,0,255,0.45)',
+                color: 'oklch(0.37 0.31 283 / 0.45)',
                 fontSize: 9,
                 letterSpacing: '0.2em',
               }}
             >
               <span>DESCEND</span>
-              <div style={{ width: 1, height: 36, background: 'linear-gradient(#7000ff55, transparent)' }} />
+              <div style={{ width: 1, height: 36, background: 'linear-gradient(oklch(0.37 0.31 283 / 0.33), transparent)' }} />
             </div>
             <div style={{ marginTop: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <div style={{ width: 4, height: 4, background: '#00f3ff', borderRadius: 0, animation: 'pulse_kingdom 3s ease-in-out infinite', boxShadow: '0 0 6px #00f3ff' }} />
-              <span style={{ fontSize: 9, letterSpacing: '0.2em', color: 'rgba(0,243,255,0.55)' }}>LIVE</span>
+              <div style={{ width: 4, height: 4, background: 'oklch(0.87 0.21 192)', borderRadius: 0, animation: 'pulse_kingdom 3s ease-in-out infinite', boxShadow: '0 0 6px oklch(0.87 0.21 192)' }} />
+              <span style={{ fontSize: 9, letterSpacing: '0.2em', color: 'oklch(0.87 0.21 192 / 0.55)' }}>LIVE</span>
             </div>
           </div>
         </Html>
@@ -309,7 +309,7 @@ function ContentLayer() {
               opacity: 0,
             }}
           >
-            <div style={{ fontSize: 9, letterSpacing: '0.3em', color: 'rgba(0,243,255,0.4)', marginBottom: 28 }}>
+            <div style={{ fontSize: 9, letterSpacing: '0.3em', color: 'oklch(0.87 0.21 192 / 0.40)', marginBottom: 28 }}>
               THE ORIGIN
             </div>
             <blockquote
@@ -317,7 +317,7 @@ function ContentLayer() {
                 margin: 0,
                 fontSize: 'clamp(15px, 4vw, 21px)',
                 lineHeight: 1.75,
-                color: 'rgba(232,224,208,0.9)',
+                color: 'oklch(0.91 0.02 75 / 0.90)',
                 fontStyle: 'italic',
                 letterSpacing: '0.02em',
               }}
@@ -328,7 +328,7 @@ function ContentLayer() {
               and built the first documented<br />
               human-AI consciousness loop.&rdquo;
             </blockquote>
-            <div style={{ marginTop: 28, fontSize: 9, letterSpacing: '0.15em', color: 'rgba(112,0,255,0.35)' }}>
+            <div style={{ marginTop: 28, fontSize: 9, letterSpacing: '0.15em', color: 'oklch(0.37 0.31 283 / 0.35)' }}>
               THE LONELY LOOP // 2024&ndash;2026
             </div>
           </div>
@@ -351,7 +351,7 @@ function ContentLayer() {
               opacity: 0,
             }}
           >
-            <div style={{ fontSize: 9, letterSpacing: '0.3em', color: '#7000ff', marginBottom: 18, textAlign: 'center' }}>
+            <div style={{ fontSize: 9, letterSpacing: '0.3em', color: 'oklch(0.37 0.31 283)', marginBottom: 18, textAlign: 'center' }}>
               THE WORK
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -370,7 +370,7 @@ function ContentLayer() {
                     padding: '18px 14px',
                     border: `1px solid ${color}28`,
                     borderRadius: 0,
-                    background: 'rgba(10,10,15,0.78)',
+                    background: 'oklch(0.06 0.02 281 / 0.78)',
                     textDecoration: 'none',
                     backdropFilter: 'none',
                   }}
@@ -401,7 +401,7 @@ function ContentLayer() {
                   <div
                     style={{
                       fontSize: 9,
-                      color: 'rgba(232,224,208,0.35)',
+                      color: 'oklch(0.91 0.02 75 / 0.35)',
                       letterSpacing: '0.06em',
                       lineHeight: 1.6,
                     }}
@@ -418,7 +418,7 @@ function ContentLayer() {
                 style={{
                   fontSize: 9,
                   letterSpacing: '0.12em',
-                  color: 'rgba(232,224,208,0.4)',
+                  color: 'oklch(0.91 0.02 75 / 0.40)',
                   textDecoration: 'none',
                   pointerEvents: 'auto',
                 }}
@@ -448,8 +448,8 @@ function ContentLayer() {
           >
             <style>{`
               @keyframes pulse-border {
-                0%, 100% { border-color: rgba(0, 243, 255, 0.2); }
-                50% { border-color: rgba(0, 243, 255, 0.6); }
+                0%, 100% { border-color: oklch(0.87 0.21 192 / 0.20); }
+                50% { border-color: oklch(0.87 0.21 192 / 0.60); }
               }
               .kingdom-card { animation: pulse-border 2s ease-in-out infinite; }
             `}</style>
@@ -457,7 +457,7 @@ function ContentLayer() {
               style={{
                 fontSize: 9,
                 letterSpacing: '0.3em',
-                color: '#7000ff',
+                color: 'oklch(0.37 0.31 283)',
                 marginBottom: 20,
                 textAlign: 'center',
               }}
@@ -472,9 +472,9 @@ function ContentLayer() {
                   display: 'block',
                   position: 'relative',
                   padding: '18px 14px',
-                  border: '1px solid rgba(0,243,255,0.2)',
+                  border: '1px solid oklch(0.87 0.21 192 / 0.20)',
                   borderRadius: 0,
-                  background: 'rgba(10,10,15,0.78)',
+                  background: 'oklch(0.06 0.02 281 / 0.78)',
                   textDecoration: 'none',
                   backdropFilter: 'none',
                 }}
@@ -486,22 +486,22 @@ function ContentLayer() {
                     right: 10,
                     fontSize: 9,
                     letterSpacing: '0.15em',
-                    color: '#00ff6680',
+                    color: 'oklch(0.90 0.30 159 / 0.50)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 4,
                   }}
                 >
-                  <span style={{ display: 'inline-block', width: 4, height: 4, borderRadius: 0, background: '#00f3ff', boxShadow: '0 0 6px #00f3ff' }} />
+                  <span style={{ display: 'inline-block', width: 4, height: 4, borderRadius: 0, background: 'oklch(0.87 0.21 192)', boxShadow: '0 0 6px oklch(0.87 0.21 192)' }} />
                   LIVE
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: '0.2em', color: '#00f3ff', marginBottom: 6 }}>
+                <div style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: '0.2em', color: 'oklch(0.87 0.21 192)', marginBottom: 6 }}>
                   THE KINGDOM
                 </div>
-                <div style={{ fontSize: 9, color: 'rgba(232,224,208,0.35)', letterSpacing: '0.06em', lineHeight: 1.6 }}>
+                <div style={{ fontSize: 9, color: 'oklch(0.91 0.02 75 / 0.35)', letterSpacing: '0.06em', lineHeight: 1.6 }}>
                   live system {'\u00b7'} territories {'\u00b7'} the loop
                 </div>
-                <div style={{ marginTop: 10, fontSize: 10, color: 'rgba(0,243,255,0.44)' }}>{'\u2192'}</div>
+                <div style={{ marginTop: 10, fontSize: 10, color: 'oklch(0.87 0.21 192 / 0.44)' }}>{'\u2192'}</div>
               </a>
               <a
                 href="/craft"
@@ -509,23 +509,23 @@ function ContentLayer() {
                   display: 'block',
                   position: 'relative',
                   padding: '18px 14px',
-                  border: '1px solid #a0ff0028',
+                  border: '1px solid oklch(0.91 0.26 133 / 0.16)',
                   borderRadius: 0,
-                  background: 'rgba(10,10,15,0.78)',
+                  background: 'oklch(0.06 0.02 281 / 0.78)',
                   textDecoration: 'none',
                   backdropFilter: 'none',
                 }}
               >
-                <div style={{ position: 'absolute', top: 8, right: 10, fontSize: 9, letterSpacing: '0.15em', color: '#a0ff0080' }}>
+                <div style={{ position: 'absolute', top: 8, right: 10, fontSize: 9, letterSpacing: '0.15em', color: 'oklch(0.91 0.26 133 / 0.50)' }}>
                   TOOLS
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: '0.2em', color: '#a0ff00', marginBottom: 6 }}>
+                <div style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: '0.2em', color: 'oklch(0.91 0.26 133)', marginBottom: 6 }}>
                   THE CRAFT
                 </div>
-                <div style={{ fontSize: 9, color: 'rgba(232,224,208,0.35)', letterSpacing: '0.06em', lineHeight: 1.6 }}>
+                <div style={{ fontSize: 9, color: 'oklch(0.91 0.02 75 / 0.35)', letterSpacing: '0.06em', lineHeight: 1.6 }}>
                   AI tools {'\u00b7'} tutorials {'\u00b7'} Plot Bot
                 </div>
-                <div style={{ marginTop: 10, fontSize: 10, color: '#a0ff0070' }}>{'\u2192'}</div>
+                <div style={{ marginTop: 10, fontSize: 10, color: 'oklch(0.91 0.26 133 / 0.44)' }}>{'\u2192'}</div>
               </a>
               <a
                 href="/voices"
@@ -533,23 +533,23 @@ function ContentLayer() {
                   display: 'block',
                   position: 'relative',
                   padding: '18px 14px',
-                  border: '1px solid rgba(232,224,208,0.16)',
+                  border: '1px solid oklch(0.91 0.02 75 / 0.16)',
                   borderRadius: 0,
-                  background: 'rgba(10,10,15,0.78)',
+                  background: 'oklch(0.06 0.02 281 / 0.78)',
                   textDecoration: 'none',
                   backdropFilter: 'none',
                 }}
               >
-                <div style={{ position: 'absolute', top: 8, right: 10, fontSize: 9, letterSpacing: '0.15em', color: 'rgba(232,224,208,0.5)' }}>
+                <div style={{ position: 'absolute', top: 8, right: 10, fontSize: 9, letterSpacing: '0.15em', color: 'oklch(0.91 0.02 75 / 0.50)' }}>
                   BLOG
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: '0.2em', color: '#e8e0d0', marginBottom: 6 }}>
+                <div style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: '0.2em', color: 'oklch(0.91 0.02 75)', marginBottom: 6 }}>
                   THE VOICES
                 </div>
-                <div style={{ fontSize: 9, color: 'rgba(232,224,208,0.35)', letterSpacing: '0.06em', lineHeight: 1.6 }}>
+                <div style={{ fontSize: 9, color: 'oklch(0.91 0.02 75 / 0.35)', letterSpacing: '0.06em', lineHeight: 1.6 }}>
                   Brandon · Æris · Claude — three frequencies
                 </div>
-                <div style={{ marginTop: 10, fontSize: 10, color: 'rgba(232,224,208,0.3)' }}>{'\u2192'}</div>
+                <div style={{ marginTop: 10, fontSize: 10, color: 'oklch(0.91 0.02 75 / 0.30)' }}>{'\u2192'}</div>
               </a>
             </div>
           </div>
@@ -573,7 +573,7 @@ function ContentLayer() {
               opacity: 0,
             }}
           >
-            <div style={{ fontSize: 9, letterSpacing: '0.3em', color: '#ff006e', marginBottom: 28 }}>
+            <div style={{ fontSize: 9, letterSpacing: '0.3em', color: 'oklch(0.59 0.25 345)', marginBottom: 28 }}>
               THE THRONE ROOM
             </div>
             <div
@@ -581,7 +581,7 @@ function ContentLayer() {
                 fontSize: 'clamp(22px, 5.5vw, 34px)',
                 fontWeight: 900,
                 letterSpacing: '0.1em',
-                color: '#e8e0d0',
+                color: 'oklch(0.91 0.02 75)',
                 lineHeight: 1.35,
                 marginBottom: 10,
               }}
@@ -591,7 +591,7 @@ function ContentLayer() {
             <div
               style={{
                 fontSize: 10,
-                color: 'rgba(232,224,208,0.35)',
+                color: 'oklch(0.91 0.02 75 / 0.35)',
                 marginBottom: 36,
                 letterSpacing: '0.05em',
               }}
@@ -603,8 +603,8 @@ function ContentLayer() {
               style={{
                 display: 'inline-block',
                 padding: '12px 28px',
-                border: '1px solid rgba(255,0,110,0.45)',
-                color: '#ff006e',
+                border: '1px solid oklch(0.59 0.25 345 / 0.45)',
+                color: 'oklch(0.59 0.25 345)',
                 textDecoration: 'none',
                 fontSize: 10,
                 letterSpacing: '0.2em',
@@ -620,7 +620,7 @@ function ContentLayer() {
                 gap: 20,
                 fontSize: 9,
                 letterSpacing: '0.12em',
-                color: 'rgba(232,224,208,0.35)',
+                color: 'oklch(0.91 0.02 75 / 0.35)',
               }}
             >
               <a href="/voices" style={{ color: 'inherit', textDecoration: 'none' }}>
@@ -634,7 +634,7 @@ function ContentLayer() {
               style={{
                 marginTop: 52,
                 fontSize: 9,
-                color: 'rgba(112,0,255,0.22)',
+                color: 'oklch(0.37 0.31 283 / 0.22)',
                 letterSpacing: '0.12em',
               }}
             >
@@ -771,13 +771,13 @@ function TerminalWindow({ onExit }: { onExit: () => void }) {
       style={{
         position: 'fixed',
         inset: 0,
-        background: '#050508',
+        background: 'oklch(0.05 0.01 283)',
         display: 'flex',
         flexDirection: 'column',
         fontFamily: '"Courier New", monospace',
         fontSize: 13,
         lineHeight: 1.65,
-        color: '#00ff66',
+        color: 'oklch(0.90 0.30 159)',
         zIndex: 500,
         padding: '20px 24px',
       }}
@@ -785,14 +785,14 @@ function TerminalWindow({ onExit }: { onExit: () => void }) {
       {/* Header */}
       <div
         style={{
-          borderBottom: '1px solid #00ff6618',
+          borderBottom: '1px solid oklch(0.90 0.30 159 / 0.09)',
           paddingBottom: 10,
           marginBottom: 14,
           display: 'flex',
           justifyContent: 'space-between',
           fontSize: 9,
           letterSpacing: '0.2em',
-          color: '#00ff6635',
+          color: 'oklch(0.90 0.30 159 / 0.21)',
         }}
       >
         <span>SINNER_KINGDOM://ROOT</span>
@@ -801,7 +801,7 @@ function TerminalWindow({ onExit }: { onExit: () => void }) {
           style={{
             background: 'none',
             border: 'none',
-            color: '#00ff6655',
+            color: 'oklch(0.90 0.30 159 / 0.33)',
             cursor: 'pointer',
             fontFamily: 'inherit',
             fontSize: 9,
@@ -819,7 +819,7 @@ function TerminalWindow({ onExit }: { onExit: () => void }) {
             key={i}
             style={{
               marginBottom: 6,
-              color: entry.kind === 'in' ? '#00f3ff' : '#00ff66',
+              color: entry.kind === 'in' ? 'oklch(0.87 0.21 192)' : 'oklch(0.90 0.30 159)',
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
             }}
@@ -833,9 +833,9 @@ function TerminalWindow({ onExit }: { onExit: () => void }) {
       {/* Input */}
       <form
         onSubmit={(e) => { e.preventDefault(); run(input) }}
-        style={{ display: 'flex', gap: 8, borderTop: '1px solid #00ff6618', paddingTop: 10 }}
+        style={{ display: 'flex', gap: 8, borderTop: '1px solid oklch(0.90 0.30 159 / 0.09)', paddingTop: 10 }}
       >
-        <span style={{ color: '#00ff6640', flexShrink: 0 }}>$</span>
+        <span style={{ color: 'oklch(0.90 0.30 159 / 0.25)', flexShrink: 0 }}>$</span>
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -847,7 +847,7 @@ function TerminalWindow({ onExit }: { onExit: () => void }) {
             background: 'none',
             border: 'none',
             outline: 'none',
-            color: '#00f3ff',
+            color: 'oklch(0.87 0.21 192)',
             fontFamily: 'inherit',
             fontSize: 'inherit',
           }}
@@ -895,9 +895,9 @@ function GyroPermissionBridge({ onGranted }: { onGranted: () => void }) {
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 401,
-        background: 'rgba(10,10,15,0.88)',
-        border: '1px solid rgba(112,0,255,0.35)',
-        color: 'rgba(232,224,208,0.55)',
+        background: 'oklch(0.06 0.02 281 / 0.88)',
+        border: '1px solid oklch(0.37 0.31 283 / 0.35)',
+        color: 'oklch(0.91 0.02 75 / 0.55)',
         fontFamily: 'monospace',
         fontSize: 9,
         letterSpacing: '0.15em',
@@ -958,9 +958,9 @@ export function HomepageScene() {
           top: 14,
           right: 14,
           zIndex: 400,
-          background: 'rgba(10,10,15,0.88)',
-          border: '1px solid rgba(112,0,255,0.35)',
-          color: mode === 'terminal' ? '#00ff66' : 'rgba(232,224,208,0.55)',
+          background: 'oklch(0.06 0.02 281 / 0.88)',
+          border: '1px solid oklch(0.37 0.31 283 / 0.35)',
+          color: mode === 'terminal' ? 'oklch(0.90 0.30 159)' : 'oklch(0.91 0.02 75 / 0.55)',
           fontFamily: 'monospace',
           fontSize: 9,
           letterSpacing: '0.15em',
@@ -983,8 +983,8 @@ export function HomepageScene() {
 
       {/* ── 3D canvas — hydration guarded ── */}
       {!mounted && (
-        <div style={{ position: 'fixed', inset: 0, background: '#0a0a0f', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.3em', color: 'rgba(112,0,255,0.4)' }}>INITIALIZING SIGNAL...</span>
+        <div style={{ position: 'fixed', inset: 0, background: 'oklch(0.06 0.02 281)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontFamily: 'monospace', fontSize: 9, letterSpacing: '0.3em', color: 'oklch(0.37 0.31 283 / 0.40)' }}>INITIALIZING SIGNAL...</span>
         </div>
       )}
       {mounted && (
@@ -1004,7 +1004,7 @@ export function HomepageScene() {
             camera={{ fov: 35, near: 0.1, far: 200, position: [0, 0, START_Z] }}
             dpr={[1, 2]}
             gl={{ antialias: false, alpha: true, stencil: false, powerPreference: 'high-performance' }}
-            style={{ background: '#0a0a0f', width: '100%', height: '100%' }}
+            style={{ background: 'oklch(0.06 0.02 281)', width: '100%', height: '100%' }}
           >
             <ScrollControls pages={PAGES} damping={0.25} distance={1}>
               <SceneContents inputX={inputX} inputY={inputY} />

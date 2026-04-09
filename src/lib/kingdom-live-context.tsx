@@ -245,6 +245,19 @@ interface LifetimeApiResponse {
 const INTERVAL_MS = 15_000
 
 /**
+ * Whether the local Super API endpoints are available in this environment.
+ *
+ * Set NEXT_PUBLIC_SUPER_API_AVAILABLE=true in .env.local to enable the primary
+ * /api/local/* polling path. In production (Vercel), leave this unset or false —
+ * those endpoints only exist on Brandon's dev machine. Without this guard, every
+ * visitor triggers 4 failed 404 requests every 15 seconds before the PartyKit
+ * fallback engages.
+ *
+ * Default: false (safe for production)
+ */
+const SUPER_API_AVAILABLE = process.env.NEXT_PUBLIC_SUPER_API_AVAILABLE === 'true'
+
+/**
  * Age threshold beyond which live data is considered stale.
  * 45 s = 1.5× the 30-second `kingdom-live-push.sh` push interval.
  * This gives one full push cycle plus a 50% grace period before we
@@ -449,6 +462,25 @@ export function KingdomLiveProvider({ children }: { children: React.ReactNode })
       // prevents spurious fetches during SSR hydration edge cases.
       if (typeof document !== 'undefined' && document.hidden) return
 
+      // If the local Super API is not available (e.g. production on Vercel),
+      // skip straight to PartyKit. The /api/local/* endpoints only exist on
+      // Brandon's dev machine — polling them in production wastes 4 round-trips
+      // (all 404) every 15s per visitor before the fallback engages.
+      if (!SUPER_API_AVAILABLE) {
+        const fallbackOk = await tryPartyKitFallback()
+        if (!fallbackOk && !cancelled) {
+          const now = Date.now()
+          setCtx((p) => ({
+            ...p,
+            status: p.lastSuccessAt > 0
+              ? (now - p.lastSuccessAt > STALE_THRESHOLD_MS ? 'stale' : 'ok')
+              : 'error',
+            age_ms: p.lastSuccessAt > 0 ? now - p.lastSuccessAt : 0,
+          }))
+        }
+        return
+      }
+
       try {
         // Fire all four fetches in parallel. Promise.allSettled never rejects —
         // each result is either { status: 'fulfilled', value } or
@@ -598,7 +630,7 @@ export function StaleWrapper({
           position:      'absolute',
           top:           4,
           right:         4,
-          color:         '#ff006e',
+          color:         'oklch(0.59 0.25 345)',
           fontSize:      7,
           letterSpacing: '0.12em',
           pointerEvents: 'none',

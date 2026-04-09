@@ -33,19 +33,19 @@ const panelStyle: React.CSSProperties = {
   flexDirection: 'column',
   gap: 4,
   minWidth: 200,
-  fontFamily: 'monospace',
+  fontFamily: 'var(--font-code)',
   pointerEvents: 'none',
   animation: 'swarm-launcher-fade-in 0.3s ease-out',
 }
 
 const headerStyle: React.CSSProperties = {
   paddingBottom: 3,
-  borderBottom: '1px solid rgba(255,255,255,0.06)',
+  borderBottom: '1px solid oklch(1 0 0 / 0.06)',
   marginBottom: 2,
 }
 
 const headerLabelStyle: React.CSSProperties = {
-  color: '#504840',
+  color: 'oklch(0.37 0.02 281)',
   fontSize: 8,
   letterSpacing: '0.18em',
 }
@@ -147,7 +147,7 @@ export function SwarmLauncher() {
 
   return (
     <div style={panelStyle}>
-      <style>{`
+      <style href="swarm-launcher-anim" precedence="default">{`
         @keyframes swarm-launcher-fade-in {
           from { opacity: 0; transform: translateY(6px); }
           to   { opacity: 1; transform: translateY(0); }
@@ -166,8 +166,8 @@ export function SwarmLauncher() {
 
         const btnStyle: React.CSSProperties = {
           background:     isHovered
-            ? 'rgba(255,255,255,0.04)'
-            : 'rgba(10, 10, 15, 0.88)',
+            ? 'oklch(1 0 0 / 0.04)'
+            : 'oklch(0.06 0.02 281 / 0.88)',
           border:         `1px solid ${btn.color}33`,
           borderLeft:     `2px solid ${isHovered ? btn.color : btn.color + '88'}`,
           borderRadius:   2,

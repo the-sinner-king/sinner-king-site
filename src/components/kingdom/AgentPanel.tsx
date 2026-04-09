@@ -39,6 +39,8 @@ import {
   getAgent,
 } from '@/lib/kingdom-agents'
 import type { AgentState, AgentStatus } from '@/lib/kingdom-agents'
+import { useKingdomStore } from '@/lib/kingdom-store'
+import { useBrandonPresenceDetector } from '@/hooks/useBrandonPresenceDetector'
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
 
@@ -73,10 +75,10 @@ const TOOL_BADGE_FONT_SIZE = 6
 const HEADER_FONT_SIZE = 9
 
 /** Hot-pink used for agent name labels and tool badge borders throughout this panel. */
-const LABEL_COLOR = '#ff006e'
+const LABEL_COLOR = 'oklch(0.59 0.25 345)'
 
 /** Hot-pink at 40% alpha — the dimmed `.inst` suffix beside each agent name. */
-const INST_SUFFIX_COLOR = 'rgba(255, 0, 110, 0.40)'
+const INST_SUFFIX_COLOR = 'oklch(0.59 0.25 345 / 0.40)'
 
 /** Panel background: near-black with a violet tint matching the Kingdom palette. */
 const PANEL_BG = 'oklch(0.040 0.035 281)'
@@ -90,8 +92,23 @@ const PANEL_BORDER_LEFT = '2px solid oklch(0.495 0.310 281 / 0.50)'
 /** Outer glow on the panel card. Two layers: tight + diffuse. */
 const PANEL_BOX_SHADOW = '0 0 18px oklch(0.495 0.310 281 / 0.12), 0 0 40px oklch(0.495 0.310 281 / 0.05)'
 
-/** Cyan used for the header glyph and AGENTS.log title. */
-const HEADER_COLOR = '#00f3ff'
+/** Cyan used for the header glyph and AGENTS.log title — TOWER sovereign hue H=192. */
+const HEADER_COLOR = 'oklch(0.87 0.21 192)'
+
+/** Gold used for the KING (Brandon) row — matches agent--brandon on the landing page. */
+const KING_GOLD = 'oklch(0.76 0.14 75)'
+
+/** Dimmed gold for AFK state — same hue, lower lightness + alpha. */
+const KING_GOLD_DIM = 'oklch(0.50 0.08 75 / 0.55)'
+
+/**
+ * Dimmed-alpha variants for the status label text (the rightmost column).
+ * The AgentRow pattern uses `${color}cc` (hex alpha append) which is valid
+ * only for hex strings. KING_GOLD is oklch — hex alpha append makes invalid CSS.
+ * These constants carry the alpha channel properly via oklch /alpha syntax.
+ */
+const KING_GOLD_LABEL     = 'oklch(0.76 0.14 75 / 0.75)'
+const KING_GOLD_DIM_LABEL = 'oklch(0.45 0.06 75 / 0.45)'
 
 // ─── FACEPLATE GLOW MAP ───────────────────────────────────────────────────────
 
@@ -252,7 +269,7 @@ function AgentRow({ agent, entry }: AgentRowProps) {
         style={{
           color:         color,
           fontSize:      FACEPLATE_FONT_SIZE,
-          fontFamily:    '"JetBrains Mono", monospace',
+          fontFamily:    'var(--font-code)',
           letterSpacing: '0.02em',
           textShadow:    FACEPLATE_GLOW[state],
           minWidth:      FACEPLATE_MIN_WIDTH,
@@ -288,7 +305,7 @@ function AgentRow({ agent, entry }: AgentRowProps) {
         fontSize:      STATE_LABEL_FONT_SIZE,
         letterSpacing: STATE_KERNING[state],
         flex:          1,
-        fontFamily:    '"JetBrains Mono", monospace',
+        fontFamily:    'var(--font-code)',
         whiteSpace:    'nowrap',
         overflow:      'hidden',
       }}>
@@ -299,18 +316,104 @@ function AgentRow({ agent, entry }: AgentRowProps) {
       {showTool && (
         <span style={{
           color:         LABEL_COLOR,
-          border:        '1px solid rgba(255, 0, 110, 0.27)',
+          border:        '1px solid oklch(0.59 0.25 345 / 0.27)',
           borderRadius:  2,
           fontSize:      TOOL_BADGE_FONT_SIZE,
           letterSpacing: '0.08em',
           padding:       '0 3px',
-          fontFamily:    '"JetBrains Mono", monospace',
+          fontFamily:    'var(--font-code)',
           flexShrink:    0,
           whiteSpace:    'nowrap',
         }}>
           [{icon} {toolCode}]
         </span>
       )}
+    </div>
+  )
+}
+
+// ─── BRANDON ROW ─────────────────────────────────────────────────────────────
+
+/**
+ * Renders the KING row — Brandon's presence indicator below the Claude instances.
+ *
+ * Presence is OR'd from two sources:
+ *  - `store.brandonPresent` — injected by SCRYER (30s polling latency)
+ *  - `useBrandonPresenceDetector()` — immediate browser input detection (30min AWAY threshold)
+ *
+ * Faces:  👑[•̀ᴗ•́]  ← present   |   👑[ × _ × ]  ← AFK
+ * Color:  KING_GOLD (oklch H=75) — warm gold matching landing page agent--brandon palette.
+ */
+function BrandonRow() {
+  const storeBrandonPresent = useKingdomStore((s) => s.brandonPresent)
+  const localBrandonPresent = useBrandonPresenceDetector()
+  const present = storeBrandonPresent || localBrandonPresent
+
+  const face       = present ? '👑[•̀ᴗ•́]' : '👑[ × _ × ]'
+  const label      = present ? 'ONLINE.king' : 'AWAY.king'
+  const color      = present ? KING_GOLD : KING_GOLD_DIM
+  // Use named oklch/alpha constants — hex-alpha append (`${color}cc`) is only valid for hex
+  // strings (as used in AgentRow with STATE_COLORS). KING_GOLD is oklch; appending 'cc' to
+  // an oklch string produces invalid CSS that the browser silently discards.
+  const labelColor = present ? KING_GOLD_LABEL : KING_GOLD_DIM_LABEL
+  const glow       = present
+    ? `0 0 8px ${KING_GOLD}, 0 0 22px oklch(0.76 0.14 75 / 0.35), 0 0 44px oklch(0.76 0.14 75 / 0.12)`
+    : `0 0 2px oklch(0.40 0.06 75 / 0.25)`
+  const kerning    = present ? '0.10em' : '0.14em'
+
+  return (
+    <div style={{
+      display:     'flex',
+      alignItems:  'center',
+      gap:         7,
+      paddingLeft: 6,
+      borderLeft:  `${AGENT_ROW_BORDER_WIDTH}px solid ${present ? KING_GOLD : 'oklch(0.40 0.06 75 / 0.35)'}`,
+      opacity:     present ? 1 : 0.50,
+      transition:  'opacity 0.6s ease, border-color 0.6s ease',
+    }}>
+      {/* Crown faceplate — emoji + ASCII bracket face.
+          aria-hidden: the Unicode crown + combining diacritics are meaningless
+          to screen readers; BrandonRow is a visual panel only. */}
+      <span
+        aria-hidden="true"
+        style={{
+          color:         color,
+          fontSize:      10,
+          fontFamily:    'var(--font-code)',
+          letterSpacing: '0.02em',
+          textShadow:    glow,
+          flexShrink:    0,
+          transition:    'color 0.6s ease, text-shadow 0.6s ease',
+        }}
+      >
+        {face}
+      </span>
+
+      {/* KING label — no .inst suffix, Brandon is not a Claude instance */}
+      <span style={{
+        color:         color,
+        fontSize:      LABEL_FONT_SIZE,
+        letterSpacing: '0.14em',
+        minWidth:      LABEL_MIN_WIDTH,
+        flexShrink:    0,
+        transition:    'color 0.6s ease',
+      }}>
+        KING
+      </span>
+
+      {/* Presence status — process-list style */}
+      <span style={{
+        color:         labelColor,
+        fontSize:      STATE_LABEL_FONT_SIZE,
+        letterSpacing: kerning,
+        flex:          1,
+        fontFamily:    'var(--font-code)',
+        whiteSpace:    'nowrap',
+        overflow:      'hidden',
+        transition:    'color 0.6s ease, letter-spacing 0.3s ease',
+      }}>
+        {label}
+      </span>
     </div>
   )
 }
@@ -349,7 +452,7 @@ export function AgentPanel() {
 
       <StaleWrapper status={status}>
         <div style={{
-          fontFamily: '"JetBrains Mono", monospace',
+          fontFamily: 'var(--font-code)',
           animation:  'agent-panel-in 0.5s ease-out',
         }}>
           <div style={{
@@ -400,6 +503,17 @@ export function AgentPanel() {
                 agent={getAgent(agents, entry.key)}
               />
             ))}
+
+            {/* Separator: thin divider between Claude instances and the Sinner King */}
+            <div style={{
+              height:       1,
+              background:   'oklch(0.495 0.310 281 / 0.18)',
+              marginTop:    4,
+              marginBottom: 6,
+            }} />
+
+            {/* KING row — Brandon's presence, gold palette, crown faceplate */}
+            <BrandonRow />
           </div>
         </div>
       </StaleWrapper>

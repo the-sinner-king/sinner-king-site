@@ -15,7 +15,7 @@
  * The autoblog pushes via POST /api/admin/ingest (separate route, secret-gated).
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { readdir, readFile } from 'fs/promises'
 import path from 'path'
 
@@ -58,7 +58,17 @@ async function loadPosts(): Promise<ContentPost[]> {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // Auth gate — content queue includes unpublished drafts.
+  // Require the same INGEST_SECRET used by the write endpoint.
+  const secret = process.env.INGEST_SECRET
+  if (!secret) {
+    return NextResponse.json({ error: 'INGEST_SECRET not configured' }, { status: 500 })
+  }
+  if (req.headers.get('x-ingest-secret') !== secret) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const posts  = await loadPosts()
   const counts = {
     published: posts.filter(p => p.status === 'published').length,

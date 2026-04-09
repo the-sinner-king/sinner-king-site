@@ -96,7 +96,7 @@ export default function LabPage() {
         <div className="section-label mb-3">TERRITORY / LAB</div>
         <h1
           className="text-5xl font-bold text-kingdom-bone mb-4 tracking-tight"
-          style={{ fontFamily: "'VT323', 'Courier New', monospace", fontSize: '3.5rem', letterSpacing: '0.05em' }}
+          style={{ fontFamily: 'var(--font-terminal)', fontSize: '3.5rem', letterSpacing: '0.05em' }}
         >
           THE LAB
         </h1>
@@ -118,7 +118,7 @@ export default function LabPage() {
               {/* Glyph */}
               <div
                 className="shrink-0 w-8 text-center text-kingdom-violet/60 group-hover:text-kingdom-violet transition-colors duration-300 mt-0.5"
-                style={{ fontFamily: "'VT323', monospace", fontSize: '1.4rem', lineHeight: 1 }}
+                style={{ fontFamily: 'var(--font-terminal)', fontSize: '1.4rem', lineHeight: 1 }}
               >
                 {tool.glyph}
               </div>

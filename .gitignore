@@ -66,10 +66,9 @@ KINGDOM_MAP/DESIGN_PATCH_PLAN.md
 # Internal scripts (never ship)
 _merge_playground.py
 
-# Public directory — design references (never ship to prod)
+# Public directory — internal files
 public/sinner-king-home.html
-public/sinner-kingdom-playground.html
 public/*.backup*
 
-# Root-level playground files
-sinner-kingdom-playground.html
+# Root-level playground files (local dev copies, not the committed public/ versions)
+/sinner-kingdom-playground.html

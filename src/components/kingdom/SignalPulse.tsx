@@ -62,6 +62,28 @@ const SIGNAL_COLORS: Record<SignalType, string> = {
 }
 
 // ---------------------------------------------------------------------------
+// TERRITORY POSITION CACHE — module-level, allocated once at first access
+//
+// sourcePos/targetPos in PulseInstance are read-only during animation
+// (useFrame calls lerpVectors which reads them, never mutates). Territory
+// positions come from TERRITORY_MAP (module-level const, never mutated).
+// Pre-allocating once eliminates per-burst Vector3 allocations.
+// ---------------------------------------------------------------------------
+
+const _territoryPosCache = new Map<string, THREE.Vector3>()
+
+function _getTerritoryPos(id: string): THREE.Vector3 | undefined {
+  let cached = _territoryPosCache.get(id)
+  if (!cached) {
+    const t = TERRITORY_MAP[id]
+    if (!t) return undefined
+    cached = new THREE.Vector3(t.position[0], getWorldY(t), t.position[2])
+    _territoryPosCache.set(id, cached)
+  }
+  return cached
+}
+
+// ---------------------------------------------------------------------------
 // ACTIVE PULSE DATA
 // ---------------------------------------------------------------------------
 
@@ -176,15 +198,15 @@ export function SignalPulses() {
 
     // C1: Build new pulses with per-batch stagger offset (150ms each)
     newSignals.forEach((event, idx) => {
-      const sourceTerritory = event.territory ? TERRITORY_MAP[event.territory] : undefined
-      if (!sourceTerritory) return
+      // Use cached territory positions — positions are constants from TERRITORY_MAP;
+      // lerpVectors reads them without mutating, so sharing across pulses is safe.
+      const sourcePos = event.territory ? _getTerritoryPos(event.territory) : undefined
+      if (!sourcePos) return
 
       const ravenDestId = (event.type === 'raven' && event.territory) ? event.territory : 'the_scryer'
-      const targetTerritory = TERRITORY_MAP[ravenDestId] ?? TERRITORY_MAP['the_scryer']
-      if (!targetTerritory) return
+      const targetPos = _getTerritoryPos(ravenDestId) ?? _getTerritoryPos('the_scryer')
+      if (!targetPos) return
 
-      const sourcePos = new THREE.Vector3(sourceTerritory.position[0], getWorldY(sourceTerritory), sourceTerritory.position[2])
-      const targetPos = new THREE.Vector3(targetTerritory.position[0], getWorldY(targetTerritory), targetTerritory.position[2])
       const distance = sourcePos.distanceTo(targetPos)
       // Divisor 8 spans actual inter-territory distances (3–7 units) across 0.8–1.2s
       const duration = 0.8 + (distance / 8) * 0.4

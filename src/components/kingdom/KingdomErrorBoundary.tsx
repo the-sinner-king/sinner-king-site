@@ -44,24 +44,24 @@ export class KingdomErrorBoundary extends React.Component<Props, State> {
           style={{
             width: '100%',
             height: '100vh',
-            background: '#0a0a0f',
+            background: 'oklch(0.06 0.02 281)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            fontFamily: 'monospace',
+            fontFamily: 'var(--font-code)',
             gap: 12,
           }}
         >
-          <div style={{ color: '#7000ff', fontSize: 13, letterSpacing: '0.15em' }}>
+          <div style={{ color: 'oklch(0.37 0.31 283)', fontSize: 13, letterSpacing: '0.15em' }}>
             THE KINGDOM MAP
           </div>
-          <div style={{ color: '#ff006e', fontSize: 11, letterSpacing: '0.12em' }}>
+          <div style={{ color: 'oklch(0.59 0.25 345)', fontSize: 11, letterSpacing: '0.12em' }}>
             ⬡ scene error
           </div>
           <div
             style={{
-              color: '#504840',
+              color: 'oklch(0.37 0.02 281)',
               fontSize: 10,
               maxWidth: 360,
               textAlign: 'center',

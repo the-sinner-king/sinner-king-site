@@ -177,7 +177,7 @@ const INJECTED_CSS = `
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(transparent 49%, rgba(0,243,255,0.10) 50%, transparent 51%);
+  background: linear-gradient(transparent 49%, oklch(0.87 0.21 192 / 0.10) 50%, transparent 51%);
   pointer-events: none;
 }
 
@@ -189,7 +189,7 @@ const INJECTED_CSS = `
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(transparent 49%, rgba(0,243,255,0.08) 50%, transparent 51%);
+  background: linear-gradient(transparent 49%, oklch(0.87 0.21 192 / 0.08) 50%, transparent 51%);
   pointer-events: none;
 }
 
@@ -215,7 +215,7 @@ export default function KingdomLabPage() {
   return (
     <div style={{
       position: 'fixed', inset: 0,
-      background: '#08070f',
+      background: 'oklch(0.06 0.02 281)',
       overflow: 'hidden',
       fontFamily: "'Fira Code', 'JetBrains Mono', monospace",
     }}>
@@ -226,10 +226,10 @@ export default function KingdomLabPage() {
       <div aria-hidden style={{
         position: 'absolute', inset: 0, pointerEvents: 'none',
         background: `
-          repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px),
+          repeating-linear-gradient(0deg, transparent, transparent 2px, oklch(0 0 0 / 0.025) 2px, oklch(0 0 0 / 0.025) 4px),
           radial-gradient(ellipse 60% 50% at 30% 65%, oklch(0.085 0.025 279 / 0.40) 0%, transparent 100%),
           radial-gradient(ellipse 40% 40% at 75% 25%, oklch(0.052 0.018 278 / 0.60) 0%, transparent 100%),
-          #08070f
+          oklch(0.06 0.02 281)
         `,
       }} />
 
@@ -237,8 +237,8 @@ export default function KingdomLabPage() {
       <div aria-hidden style={{
         position: 'absolute', inset: 0, pointerEvents: 'none',
         backgroundImage: `
-          linear-gradient(rgba(119,0,255,0.035) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(119,0,255,0.035) 1px, transparent 1px)
+          linear-gradient(oklch(0.37 0.31 283 / 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, oklch(0.37 0.31 283 / 0.035) 1px, transparent 1px)
         `,
         backgroundSize: '60px 60px',
       }} />
@@ -250,7 +250,7 @@ export default function KingdomLabPage() {
         fontFamily: "'Fira Code', monospace",
         fontSize: 'clamp(7px, 0.58vw + 0.2rem, 9px)',
         letterSpacing: '0.22em',
-        color: 'rgba(119,0,255,0.22)',
+        color: 'oklch(0.37 0.31 283 / 0.22)',
         textTransform: 'uppercase',
         pointerEvents: 'none',
         zIndex: 30,
@@ -294,7 +294,7 @@ export default function KingdomLabPage() {
                     position: 'absolute', left: z.l,
                     fontFamily: "'Fira Code', monospace",
                     fontSize: z.sz,
-                    color: '#1c1030',
+                    color: 'oklch(0.10 0.06 283)',
                     filter: 'brightness(3)',
                     opacity: 0,
                     animation: `badge-zzz 2s cubic-bezier(0.87,0,0.13,1) ${z.delay} infinite`,
@@ -338,7 +338,7 @@ export default function KingdomLabPage() {
                 className="territory-name-scanline"
                 style={{
                   gridColumn: '3', gridRow: '1',
-                  fontFamily: "'VT323', 'Courier New', monospace",
+                  fontFamily: 'var(--font-terminal)',
                   fontSize: 'clamp(9px, 0.72vw + 0.25rem, 11px)',
                   letterSpacing: '0.20em',
                   textTransform: 'uppercase',
@@ -412,25 +412,25 @@ export default function KingdomLabPage() {
           gap: '3px',
           padding: '0 20px 0 12px',
           justifyContent: 'center',
-          borderTop: '1px solid rgba(119,0,255,0.10)',
-          borderLeft: '1px solid rgba(119,0,255,0.06)',
-          background: 'linear-gradient(270deg, rgba(8,7,15,0.65) 0%, transparent 100%)',
+          borderTop: '1px solid oklch(0.37 0.31 283 / 0.10)',
+          borderLeft: '1px solid oklch(0.37 0.31 283 / 0.06)',
+          background: 'linear-gradient(270deg, oklch(0.06 0.02 281 / 0.65) 0%, transparent 100%)',
         }}>
           <div style={{
             fontFamily: "'Fira Code', monospace",
             fontSize: 'clamp(9px, 0.72vw + 0.25rem, 11px)',
             letterSpacing: '0.12em',
-            color: '#e8e0d0',
+            color: 'oklch(0.89 0.015 76)',
             textTransform: 'uppercase',
           }}>
-            <span style={{ color: '#44ff00', marginRight: '6px' }}>●</span>
+            <span style={{ color: 'oklch(0.88 0.28 133)', marginRight: '6px' }}>●</span>
             KINGDOM LIVE
           </div>
           <div style={{
             fontFamily: "'Fira Code', monospace",
             fontSize: 'clamp(7px, 0.58vw + 0.2rem, 9px)',
             letterSpacing: '0.18em',
-            color: '#6a5a50',
+            color: 'oklch(0.38 0.02 55)',
             textTransform: 'uppercase',
           }}>
             3 ACTIVE · S196 · D50
@@ -496,9 +496,9 @@ export default function KingdomLabPage() {
               background: 'oklch(8.5% 0.025 279 / 0.94)',
               backdropFilter: 'blur(6px)',
               borderLeft: `3px solid ${selected.color}`,
-              borderRight: '1px solid rgba(100,60,180,0.22)',
-              borderTop: '1px solid rgba(100,60,180,0.22)',
-              borderBottom: '1px solid rgba(100,60,180,0.22)',
+              borderRight: '1px solid oklch(0.40 0.18 283 / 0.22)',
+              borderTop: '1px solid oklch(0.40 0.18 283 / 0.22)',
+              borderBottom: '1px solid oklch(0.40 0.18 283 / 0.22)',
               borderRadius: 0,
             }}>
               {/* Name — 40px row */}
@@ -509,7 +509,7 @@ export default function KingdomLabPage() {
                   display: 'flex',
                   alignItems: 'flex-end',
                   padding: '0 16px 8px',
-                  fontFamily: "'VT323', 'Courier New', monospace",
+                  fontFamily: 'var(--font-terminal)',
                   fontSize: 'clamp(17px, 1.41vw + 0.56rem, 22px)',
                   letterSpacing: '0.15em',
                   textTransform: 'uppercase',
@@ -536,7 +536,7 @@ export default function KingdomLabPage() {
                 fontSize: 'clamp(9px, 0.72vw + 0.25rem, 11px)',
                 lineHeight: 1.65,
                 letterSpacing: '0.02em',
-                color: '#a09888',
+                color: 'oklch(0.66 0.02 55)',
               }}>
                 {selected.description}
               </div>
@@ -577,7 +577,7 @@ export default function KingdomLabPage() {
                   fontSize: 'clamp(9px, 0.72vw + 0.25rem, 11px)',
                   letterSpacing: '0.06em',
                   fontVariantNumeric: 'tabular-nums',
-                  color: '#6a5a50',
+                  color: 'oklch(0.38 0.02 55)',
                   textAlign: 'right',
                 }}>
                   {selected.activity}
@@ -593,8 +593,8 @@ export default function KingdomLabPage() {
                   fontSize: 'clamp(7px, 0.58vw + 0.2rem, 9px)',
                   lineHeight: 1.6,
                   letterSpacing: '0.06em',
-                  color: '#504840',
-                  borderTop: '1px solid rgba(100,60,180,0.10)',
+                  color: 'oklch(0.32 0.02 45)',
+                  borderTop: '1px solid oklch(0.40 0.18 283 / 0.10)',
                 }}>
                   {selected.work}
                 </div>
@@ -610,18 +610,18 @@ export default function KingdomLabPage() {
           gridTemplateColumns: '220px 1fr',
           alignItems: 'center',
           overflow: 'hidden',
-          background: 'linear-gradient(180deg, transparent 0%, rgba(8,7,15,0.75) 100%)',
-          borderTop: '1px solid rgba(255,255,255,0.025)',
+          background: 'linear-gradient(180deg, transparent 0%, oklch(0.06 0.02 281 / 0.75) 100%)',
+          borderTop: '1px solid oklch(1 0 0 / 0.025)',
         }}>
           {/* GOLDFISH label */}
           <div style={{
             paddingLeft: '20px',
             paddingRight: '12px',
-            borderRight: '1px solid rgba(255,255,255,0.035)',
+            borderRight: '1px solid oklch(1 0 0 / 0.035)',
             fontFamily: "'Fira Code', monospace",
             fontSize: 'clamp(7px, 0.58vw + 0.2rem, 9px)',
             letterSpacing: '0.18em',
-            color: 'rgba(100,70,160,0.55)',
+            color: 'oklch(0.40 0.15 283 / 0.55)',
             textTransform: 'uppercase',
             whiteSpace: 'nowrap',
             height: '100%',
@@ -648,7 +648,7 @@ export default function KingdomLabPage() {
               fontFamily: "'Fira Code', monospace",
               fontSize: 'clamp(7px, 0.58vw + 0.2rem, 9px)',
               letterSpacing: '0.12em',
-              color: '#504840',
+              color: 'oklch(0.32 0.02 45)',
               textTransform: 'uppercase',
             }}>
               {[0, 1].map(i => (

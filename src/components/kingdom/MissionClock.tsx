@@ -85,25 +85,25 @@ const TIME_FONT_SIZE = 13
 const DAY_FONT_SIZE = 9
 
 /** Time color at rest — warm dim gray, recedes from the 3D scene. */
-const TIME_COLOR_IDLE  = '#605850'
+const TIME_COLOR_IDLE  = 'oklch(0.42 0.02 45)'
 
 /** Time color during flash — near-white, snaps attention to the minute change. */
-const TIME_COLOR_FLASH = '#e8e0d0'
+const TIME_COLOR_FLASH = 'oklch(0.91 0.02 75)'
 
 /** Text shadow while flashing — violet glow at 53% alpha. */
-const TEXT_SHADOW_FLASH = '0 0 8px #7000ff88'
+const TEXT_SHADOW_FLASH = '0 0 8px oklch(0.37 0.31 283 / 0.53)'
 
 /** Subtle ambient glow at rest — barely visible violet bleed. */
-const TEXT_SHADOW_IDLE  = '0 0 6px #7000ff22'
+const TEXT_SHADOW_IDLE  = '0 0 6px oklch(0.37 0.31 283 / 0.13)'
 
 /** Day counter color — darker than the time, furthest back in the visual hierarchy. */
-const DAY_COLOR = '#3a3030'
+const DAY_COLOR = 'oklch(0.25 0.01 20)'
 
 /** Day counter ambient glow — barely perceptible. */
-const DAY_TEXT_SHADOW = '0 0 4px #7000ff18'
+const DAY_TEXT_SHADOW = '0 0 4px oklch(0.37 0.31 283 / 0.09)'
 
 /** Scanline sweep gradient — very faint violet band suggesting CRT phosphor. */
-const SCANLINE_GRADIENT = 'linear-gradient(to bottom, transparent 40%, #7000ff08 50%, transparent 60%)'
+const SCANLINE_GRADIENT = 'linear-gradient(to bottom, transparent 40%, oklch(0.37 0.31 283 / 0.03) 50%, transparent 60%)'
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
@@ -220,7 +220,7 @@ export function MissionClock() {
         top:                16,
         right:              16,
         zIndex:             21,
-        fontFamily:         '"JetBrains Mono", "Courier New", monospace',
+        fontFamily:         'var(--font-code)',
         // tabular-nums: prevents digit columns from shifting width as seconds increment.
         fontVariantNumeric: 'tabular-nums',
         pointerEvents:      'none',

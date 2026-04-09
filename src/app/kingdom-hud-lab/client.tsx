@@ -79,6 +79,11 @@ const STATE_COLORS: Record<AgentState, string> = {
   swarming:  'oklch(0.930 0.140 194)',
 }
 
+/** Injects an alpha channel into an oklch(L C H) string → oklch(L C H / alpha). */
+function withAlpha(oklch: string, alpha: number): string {
+  return oklch.replace(')', ` / ${alpha})`)
+}
+
 // TYPE_WEAVER daemon-naming convention — every state is a running process
 const STATE_LABELS: Record<AgentState, string> = {
   offline:   '×_OFFLINE',
@@ -353,7 +358,7 @@ function StagingRadio({ initialTrackId, autoPlay = false }: StagingRadioProps) {
       {/* CRT scanlines */}
       <div style={{
         position:   'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
-        background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px)',
+        background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, oklch(0 0 0 / 0.08) 2px, oklch(0 0 0 / 0.08) 4px)',
       }} />
 
       <audio
@@ -548,14 +553,14 @@ function ToolTag({ tool }: { tool: string | null }) {
     <span style={{
       fontFamily:    '"JetBrains Mono", monospace',
       fontSize:       6,
-      color:          '#ff006e',
-      border:         '1px solid rgba(255,0,110,0.27)',
+      color:          'oklch(0.59 0.25 345)',
+      border:         '1px solid oklch(0.59 0.25 345 / 0.27)',
       borderRadius:   2,
       padding:        '1px 4px',
       letterSpacing:  '0.08em',
       lineHeight:     1,
       whiteSpace:     'nowrap',
-      textShadow:     '0 0 6px rgba(255,0,110,0.33)',
+      textShadow:     '0 0 6px oklch(0.59 0.25 345 / 0.33)',
       flexShrink:     0,
     }}>
       [{icon} {tool.toUpperCase()}]
@@ -569,7 +574,7 @@ function AgentLabel({ label, isOff }: { label: string; isOff: boolean }) {
     <span style={{ fontFamily: '"VT323", monospace', fontSize: 10, letterSpacing: '0.14em', minWidth: 52 }}>
       <span
         className={isOff ? '' : 'anim-name-shimmer'}
-        style={{ color: isOff ? 'oklch(0.300 0.028 281)' : '#ff006e' }}
+        style={{ color: isOff ? 'oklch(0.300 0.028 281)' : 'oklch(0.63 0.25 355)' }}
       >
         {label}
       </span>
@@ -601,7 +606,7 @@ function NewAgentRow({ state, label, activity, tool }: {
       borderLeft:     `2px solid ${isOff ? 'transparent' : color}`,
       marginBottom:   2,
       transition:     'border-color 0.4s ease',
-      boxShadow:      isOff ? 'none' : `inset 2px 0 8px ${color}22`,
+      boxShadow:      isOff ? 'none' : `inset 2px 0 8px ${withAlpha(color, 0.13)}`,
     }}>
       {/* Faceplate */}
       <Faceplate state={state} />
@@ -617,7 +622,7 @@ function NewAgentRow({ state, label, activity, tool }: {
         fontFamily:    '"JetBrains Mono", monospace',
         flex:          1,
         transition:    'letter-spacing 0.5s ease, color 0.3s ease',
-        borderBottom:  isOff || state === 'online' ? 'none' : `1px solid ${color}33`,
+        borderBottom:  isOff || state === 'online' ? 'none' : `1px solid ${withAlpha(color, 0.20)}`,
         paddingBottom: 1,
       }}>
         {STATE_LABELS[state]}
@@ -640,7 +645,7 @@ function NewAgentRow({ state, label, activity, tool }: {
           width:      `${activity}%`,
           background: isOff ? 'oklch(0.160 0.028 281 / 0.40)' : color,
           transition: 'width 0.6s ease, background 0.3s ease',
-          boxShadow:  isOff ? 'none' : `0 0 6px ${color}, 0 0 12px ${color}40`,
+          boxShadow:  isOff ? 'none' : `0 0 6px ${color}, 0 0 12px ${withAlpha(color, 0.25)}`,
         }} />
       </div>
     </div>
@@ -670,14 +675,14 @@ function NewAgentPanel({ agents }: { agents: typeof DEMO_AGENTS }) {
         gap:          6,
       }}>
         <span style={{ color: 'oklch(0.910 0.015 80)', fontFamily: '"VT323", monospace', fontSize: 11, letterSpacing: '0.30em' }}>
-          <span className="anim-glyph-breathe" style={{ color: '#00f3ff', textShadow: '0 0 12px #00f3ff, 0 0 24px rgba(0,243,255,0.40)' }}>
+          <span className="anim-glyph-breathe" style={{ color: 'oklch(0.87 0.21 192)', textShadow: '0 0 12px oklch(0.87 0.21 192), 0 0 24px oklch(0.87 0.21 192 / 0.40)' }}>
             {'« ◇ »'}
           </span>
           {' AGENTS.log'}
         </span>
         <div style={{
           width: 4, height: 4, borderRadius: '50%',
-          background: '#00f3ff', boxShadow: '0 0 6px #00f3ff, 0 0 14px rgba(0,243,255,0.40)',
+          background: 'oklch(0.87 0.21 192)', boxShadow: '0 0 6px oklch(0.87 0.21 192), 0 0 14px oklch(0.87 0.21 192 / 0.40)',
           marginLeft: 'auto',
         }} />
       </div>
@@ -725,7 +730,7 @@ function NewStatusBar() {
         <span
           className="signal-buzz"
           style={{
-            color:         '#00f3ff',
+            color:         'oklch(0.87 0.21 192)',
             fontFamily:    '"VT323", monospace',
             fontSize:      14,
             letterSpacing: '0.34em',
@@ -843,7 +848,7 @@ function NewTokenHUD() {
         borderBottom: '1px solid oklch(0.520 0.080 10 / 0.12)',
       }}>
         <span style={{ color: 'oklch(0.910 0.015 80)', fontFamily: '"VT323", monospace', fontSize: 11, letterSpacing: '0.30em' }}>
-          <span className="anim-glyph-breathe" style={{ color: '#00f3ff', textShadow: '0 0 12px #00f3ff, 0 0 24px rgba(0,243,255,0.40)' }}>{'« ▲ »'}</span>
+          <span className="anim-glyph-breathe" style={{ color: 'oklch(0.87 0.21 192)', textShadow: '0 0 12px oklch(0.87 0.21 192), 0 0 24px oklch(0.87 0.21 192 / 0.40)' }}>{'« ▲ »'}</span>
           {' TOKEN_BURN.dat'}
         </span>
       </div>
@@ -922,9 +927,9 @@ function FaceplateGallery() {
         borderBottom: '1px solid oklch(0.520 0.080 10 / 0.12)',
       }}>
         <span style={{ color: 'oklch(0.910 0.015 80)', fontFamily: '"VT323", monospace', fontSize: 11, letterSpacing: '0.30em' }}>
-          <span className="anim-glyph-breathe" style={{ color: '#00f3ff', textShadow: '0 0 12px #00f3ff, 0 0 24px rgba(0,243,255,0.40)' }}>{'« ◎ »'}</span>
+          <span className="anim-glyph-breathe" style={{ color: 'oklch(0.87 0.21 192)', textShadow: '0 0 12px oklch(0.87 0.21 192), 0 0 24px oklch(0.87 0.21 192 / 0.40)' }}>{'« ◎ »'}</span>
           {' FACEPLATE.exe '}
-          <span style={{ color: '#ff006e', textShadow: '0 0 8px rgba(255,0,110,0.40)' }}>×9</span>
+          <span style={{ color: 'oklch(0.59 0.25 345)', textShadow: '0 0 8px oklch(0.59 0.25 345 / 0.40)' }}>×9</span>
         </span>
       </div>
 
@@ -971,7 +976,7 @@ function NewMissionClock() {
         fontFamily:    '"VT323", monospace',
         fontSize:      22,
         letterSpacing: '0.20em',
-        textShadow:    '0 0 12px #00f3ff, 0 0 28px rgba(0,243,255,0.30), 0 0 48px oklch(0.495 0.310 281 / 0.12)',
+        textShadow:    '0 0 12px oklch(0.87 0.21 192), 0 0 28px oklch(0.87 0.21 192 / 0.30), 0 0 48px oklch(0.495 0.310 281 / 0.12)',
         lineHeight:    1,
       }}>
         {time}
@@ -1293,10 +1298,10 @@ export function KingdomHUDLab() {
         /* ── CHROMA_BLEED additions ── */
 
         @keyframes signal-buzz {
-          0%, 100% { text-shadow: 0 0 12px #00f3ff, 0 0 28px rgba(0,243,255,0.55), 0 0 48px rgba(0,243,255,0.20); }
-          25%      { text-shadow: 0 0 14px #00f3ff, 0 0 32px rgba(0,243,255,0.60), 0 0 52px rgba(0,243,255,0.25); }
-          50%      { text-shadow: 0 0 10px #00f3ff, 0 0 24px rgba(0,243,255,0.45), 0 0 44px rgba(0,243,255,0.15); }
-          75%      { text-shadow: 0 0 16px #00f3ff, 0 0 34px rgba(0,243,255,0.58), 0 0 56px rgba(0,243,255,0.22); }
+          0%, 100% { text-shadow: 0 0 12px oklch(0.87 0.21 192), 0 0 28px oklch(0.87 0.21 192 / 0.55), 0 0 48px oklch(0.87 0.21 192 / 0.20); }
+          25%      { text-shadow: 0 0 14px oklch(0.87 0.21 192), 0 0 32px oklch(0.87 0.21 192 / 0.60), 0 0 52px oklch(0.87 0.21 192 / 0.25); }
+          50%      { text-shadow: 0 0 10px oklch(0.87 0.21 192), 0 0 24px oklch(0.87 0.21 192 / 0.45), 0 0 44px oklch(0.87 0.21 192 / 0.15); }
+          75%      { text-shadow: 0 0 16px oklch(0.87 0.21 192), 0 0 34px oklch(0.87 0.21 192 / 0.58), 0 0 56px oklch(0.87 0.21 192 / 0.22); }
         }
         .signal-buzz { animation: signal-buzz 2.5s ease-in-out infinite; }
 
@@ -1314,10 +1319,10 @@ export function KingdomHUDLab() {
           height: 1px;
           border: none;
           margin: 0;
-          background: linear-gradient(90deg, oklch(0.495 0.310 281 / 0.00), #00f3ff99, #ff006e66, #00f3ff99, oklch(0.495 0.310 281 / 0.00));
+          background: linear-gradient(90deg, oklch(0.495 0.310 281 / 0.00), oklch(0.87 0.21 192 / 0.60), oklch(0.59 0.25 345 / 0.40), oklch(0.87 0.21 192 / 0.60), oklch(0.495 0.310 281 / 0.00));
           background-size: 200% 100%;
           animation: scanline-bleed 8s linear infinite;
-          box-shadow: 0 0 8px rgba(0,243,255,0.20), 0 0 16px rgba(255,0,110,0.08);
+          box-shadow: 0 0 8px oklch(0.87 0.21 192 / 0.20), 0 0 16px oklch(0.59 0.25 345 / 0.08);
         }
 
         /* Global scrollbar */
@@ -1467,7 +1472,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
       <div style={{
         fontFamily:    '"JetBrains Mono", monospace',
         fontSize:       7,
-        color:          'rgba(0,243,255,0.70)',
+        color:          'oklch(0.87 0.21 192 / 0.70)',
         letterSpacing:  '0.18em',
         paddingBottom:  6,
         marginBottom:   0,

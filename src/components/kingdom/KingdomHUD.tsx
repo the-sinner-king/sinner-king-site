@@ -72,111 +72,154 @@ export function StatusBar() {
         position:   'absolute',
         top:        12,
         left:       12,
-        fontFamily: '"JetBrains Mono", monospace',
+        fontFamily: 'var(--font-code)',
         zIndex:     20,
+        width:      320,
       }}
     >
       <div style={{
-        background:     'oklch(0.040 0.035 281 / 0.88)',
-        border:         '1px solid oklch(0.495 0.310 281 / 0.28)',
-        borderLeft:     '2px solid oklch(0.495 0.310 281 / 0.55)',
-        borderRadius:   3,
-        padding:        '7px 12px 6px',
-        backdropFilter: 'blur(8px)',
-        boxShadow:      '0 0 20px oklch(0.495 0.310 281 / 0.14), 0 0 44px oklch(0.495 0.310 281 / 0.06)',
-        minWidth:       180,
-        display:        'flex',
-        flexDirection:  'column',
-        gap:            5,
+        background:     'oklch(0.065 0.018 278)',
+        border:         '1px solid oklch(0.340 0.210 281 / 0.15)',
+        borderRadius:   4,
+        backdropFilter: 'blur(4px)',
+        overflow:       'hidden',
       }}>
         {/* Signal-buzz header strip */}
-        <span
-          className="hud-signal-buzz"
-          style={{
-            color:         '#00f3ff',
-            fontSize:      8,
-            letterSpacing: '0.20em',
-            whiteSpace:    'nowrap',
-            opacity:       isLoaded ? 1 : 0.4,
-          }}
-        >
-          {isLoaded ? '◈── K I N G D O M . L I V E ──◈' : '◈── C O N N E C T I N G ──◈'}
-        </span>
+        <div style={{
+          padding:      '7px 12px 5px',
+          borderBottom: '1px solid oklch(0.520 0.080 10 / 0.12)',
+          textAlign:    'center',
+        }}>
+          <span
+            className="hud-signal-buzz"
+            style={{
+              color:         'oklch(0.87 0.21 192)',
+              fontFamily:    'var(--font-terminal)',
+              fontSize:      14,
+              letterSpacing: '0.34em',
+              whiteSpace:    'nowrap',
+              opacity:       isLoaded ? 1 : 0.4,
+            }}
+          >
+            {isLoaded ? '« ◇ ⚡ ◇ »── K I N G D O M . L I V E ──« ◇ 🜚 ◇ »' : '◈── C O N N E C T I N G ──◈'}
+          </span>
+        </div>
 
-        {/* Scanline divider */}
-        <div className="hud-divider" />
-
+        {/* Presence row */}
         {isLoaded && (
-          <>
-            {/* Agent count */}
-            <span style={{
-              color:         'oklch(0.820 0.140 194 / 0.60)',
-              fontSize:      8,
-              letterSpacing: '0.14em',
-            }}>
-              {activeCount} agents active
-            </span>
-
-            {/* Presence glyphs */}
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              {claudeActive && (
+          <div style={{
+            display:    'flex',
+            gap:        12,
+            padding:    '6px 12px 7px',
+            alignItems: 'center',
+            flexWrap:   'wrap',
+          }}>
+            {/* Claude */}
+            {claudeActive && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{
+                  width: 5, height: 5, borderRadius: '50%',
+                  background: 'oklch(0.560 0.250 281)',
+                  boxShadow:  '0 0 6px oklch(0.560 0.250 281), 0 0 14px oklch(0.560 0.250 281 / 0.40)',
+                  flexShrink: 0,
+                }} />
                 <span style={{
-                  color:      'oklch(0.560 0.250 281)',
-                  fontSize:   8,
-                  letterSpacing: '0.10em',
-                  textShadow: '0 0 8px oklch(0.560 0.250 281), 0 0 16px oklch(0.560 0.250 281 / 0.35)',
+                  color:         'oklch(0.560 0.250 281)',
+                  fontSize:      8,
+                  letterSpacing: '0.14em',
+                  textShadow:    '0 0 8px oklch(0.560 0.250 281 / 0.35)',
                 }}>
                   ◈ CLAUDE ✦
                 </span>
-              )}
-              {aerisActuallyActive && (
+              </div>
+            )}
+            {/* Aeris — active */}
+            {aerisActuallyActive && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{
+                  width: 5, height: 5, borderRadius: '50%',
+                  background: 'oklch(0.680 0.290 350)',
+                  boxShadow:  '0 0 6px oklch(0.680 0.290 350), 0 0 14px oklch(0.680 0.290 350 / 0.40)',
+                  flexShrink: 0,
+                }} />
                 <span style={{
-                  color:      'oklch(0.680 0.290 350)',
-                  fontSize:   8,
-                  letterSpacing: '0.10em',
-                  textShadow: '0 0 8px oklch(0.680 0.290 350), 0 0 16px oklch(0.680 0.290 350 / 0.35)',
+                  color:         'oklch(0.680 0.290 350)',
+                  fontSize:      8,
+                  letterSpacing: '0.14em',
+                  textShadow:    '0 0 8px oklch(0.680 0.290 350 / 0.35)',
                 }}>
                   Æ AERIS ✦
                 </span>
-              )}
-              {aerisActive && !aerisActuallyActive && (
-                <span
-                  title="AExGO session alive — no recent activity"
-                  style={{
-                    color:         'oklch(0.680 0.290 350 / 0.35)',
-                    fontSize:      8,
-                    letterSpacing: '0.10em',
-                  }}
-                >
+              </div>
+            )}
+            {/* Aeris — alive but idle */}
+            {aerisActive && !aerisActuallyActive && (
+              <div
+                title="AExGO session alive — no recent activity"
+                style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+              >
+                <div style={{
+                  width: 5, height: 5, borderRadius: '50%',
+                  background: 'oklch(0.680 0.290 350 / 0.30)',
+                  flexShrink: 0,
+                }} />
+                <span style={{
+                  color:         'oklch(0.680 0.290 350 / 0.35)',
+                  fontSize:      8,
+                  letterSpacing: '0.14em',
+                }}>
                   Æ AERIS ◌
                 </span>
-              )}
-              {brandonPresent
-                ? (
-                  <span style={{
-                    color:      'oklch(0.770 0.225 74)',
-                    fontSize:   8,
-                    letterSpacing: '0.10em',
-                    textShadow: '0 0 6px oklch(0.770 0.225 74), 0 0 14px oklch(0.770 0.225 74 / 0.30)',
-                  }}>
-                    ⬡ BRANDON ✦
-                  </span>
-                )
-                : showAway
-                  ? (
-                    <span style={{
-                      color:         'oklch(0.770 0.225 74 / 0.35)',
-                      fontSize:      8,
-                      letterSpacing: '0.10em',
-                    }}>
-                      ⬡ BRANDON ◌
-                    </span>
-                  )
-                  : null
-              }
-            </div>
-          </>
+              </div>
+            )}
+            {/* Brandon — present */}
+            {brandonPresent && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{
+                  width: 5, height: 5, borderRadius: '50%',
+                  background: 'oklch(0.770 0.225 74)',
+                  boxShadow:  '0 0 6px oklch(0.770 0.225 74), 0 0 14px oklch(0.770 0.225 74 / 0.35), 0 0 24px oklch(0.520 0.080 10 / 0.15)',
+                  flexShrink: 0,
+                }} />
+                <span style={{
+                  color:         'oklch(0.770 0.225 74)',
+                  fontSize:      8,
+                  letterSpacing: '0.14em',
+                  textShadow:    '0 0 6px oklch(0.770 0.225 74 / 0.30)',
+                }}>
+                  ⬡ BRANDON ●
+                </span>
+              </div>
+            )}
+            {/* Brandon — away */}
+            {!brandonPresent && showAway && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{
+                  width: 5, height: 5, borderRadius: '50%',
+                  background: 'oklch(0.770 0.225 74 / 0.30)',
+                  flexShrink: 0,
+                }} />
+                <span style={{
+                  color:         'oklch(0.770 0.225 74 / 0.35)',
+                  fontSize:      8,
+                  letterSpacing: '0.14em',
+                }}>
+                  ⬡ BRANDON ◌
+                </span>
+              </div>
+            )}
+            {/* Active count */}
+            <span style={{
+              color:         'oklch(0.440 0.040 280)',
+              fontSize:      7,
+              letterSpacing: '0.10em',
+              marginLeft:    'auto',
+            }}>
+              {activeCount} agents active
+            </span>
+          </div>
         )}
+
       </div>
     </div>
   )
@@ -218,19 +261,19 @@ export function DebugPanel() {
         position: 'absolute',
         bottom: 48,
         left: 16,
-        background: 'rgba(10,10,15,0.95)',
-        border: '1px solid #7000ff40',
+        background: 'oklch(0.06 0.02 281 / 0.95)',
+        border: '1px solid oklch(0.37 0.31 283 / 0.25)',
         borderRadius: 4,
         padding: '10px 12px',
         fontFamily: 'monospace',
         fontSize: 10,
-        color: '#504840',
+        color: 'oklch(0.37 0.02 45)',
         letterSpacing: '0.1em',
         zIndex: 30,
         minWidth: 220,
       }}
     >
-      <div style={{ color: '#7000ff', marginBottom: 8, letterSpacing: '0.15em' }}>
+      <div style={{ color: 'oklch(0.37 0.31 283)', marginBottom: 8, letterSpacing: '0.15em' }}>
         ⬡ DEBUG — STATE OVERRIDE
       </div>
       {TERRITORY_IDS.map((id) => {
@@ -265,7 +308,7 @@ export function DebugPanel() {
         return (
           <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: layout.color, flexShrink: 0 }} />
-            <span style={{ color: '#a09888', flex: 1, fontSize: 9 }}>{layout.label}</span>
+            <span style={{ color: 'oklch(0.65 0.02 55)', flex: 1, fontSize: 9 }}>{layout.label}</span>
             <button
               onClick={cycleNext}
               style={{
@@ -287,8 +330,8 @@ export function DebugPanel() {
                 onClick={clear}
                 style={{
                   background: 'none',
-                  border: '1px solid #504840',
-                  color: '#504840',
+                  border: '1px solid oklch(0.32 0.02 45)',
+                  color: 'oklch(0.37 0.02 45)',
                   cursor: 'pointer',
                   fontFamily: 'monospace',
                   fontSize: 9,
@@ -302,7 +345,7 @@ export function DebugPanel() {
           </div>
         )
       })}
-      <div style={{ marginTop: 8, color: '#302820', fontSize: 9 }}>
+      <div style={{ marginTop: 8, color: 'oklch(0.22 0.02 45)', fontSize: 9 }}>
         click state to cycle · × to restore SCRYER
       </div>
     </div>

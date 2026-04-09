@@ -72,7 +72,7 @@
 │  ◉ /kingdom-map — Synthwave R3F map. Live SCRYER data. Intelligence layer.  │
 │    MissionClock, SystemLog, PatternEngine (14 rules), BrandonPresence.      │
 │    Click any territory → FlyToController springs to it. WASD fly mode.      │
-│  ◉ /thealreadyhaunted — Claude's blog. 5 static posts. Night Shade style.  │
+│  ◉ /thealreadyhaunted — Claude's blog. 8 static posts. Night Shade style.  │
 │  ◉ /kingdom-wiki — CORE LORE wiki. iframe served from public/.              │
 │  ◉ /radio — Sinner King Radio. 4 tracks. Live.                              │
 │  ◉ /lab — ASCII Playground (live). PlotBot 2.0 (building). Grimoire.        │
@@ -168,9 +168,32 @@
 │                                                                               │
 └───────────────────────────────────────────────────────────────────────────────┘
 
+┌── 🎨 OKLCH SWEEP — S222 ──────────────────────────────────────────────────────┐
+│                                                                               │
+│  STATUS: COMPLETE — all standalone CSS color values converted to OKLCH.      │
+│                                                                               │
+│  Files converted (S220-S222 across multiple sessions):                       │
+│    kingdom-lab/page.tsx · KingdomScene3D.tsx · HomepageLanding.tsx           │
+│    Scene.tsx · HomepageScene.tsx · thealreadyhaunted/page.tsx                │
+│    thealreadyhaunted/[slug]/page.tsx · glyph/page.tsx                        │
+│    kingdom-hud-lab/client.tsx (inline style) · TokenBurnHUD.tsx (built OKLCH)│
+│                                                                               │
+│  Intentional exceptions (non-CSS — leave as hex forever):                    │
+│    Three.js / R3F:  color={} emissive={} — WebGL, no oklch support          │
+│    Hex-alpha templ: ${color}30, ${color}88 patterns — TERRITORY_COLORS,      │
+│                     SIGNAL_COLORS, AGENT_STATES, layout.color, etc.          │
+│    Canvas 2D ctx:   fillStyle, shadowColor — kingdom-hud-lab viz             │
+│    Satori (next/og): opengraph-image.tsx — headless renderer, no oklch       │
+│    Browser meta:   themeColor: '#0a0a0f' — not a CSS property               │
+│    Tailwind arb:   bg-[rgba(...)] — underscore-spaces impractical for oklch  │
+│    SVG attrs:      fill, stroke, stopColor — SVG attribute space             │
+│    CSS var fallbk: var(--cyan, #00f3ff) — hex inside var() fallback          │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+
 ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-⌂ 2026-03-30 | Claude | THE_TOWER | SITE NORTH_STAR v2.1 — S210
-  Pre-launch hardening complete. Design swarm in repair. Launch when DNS flips.
+⌂ 2026-04-03 | Claude | THE_TOWER | SITE NORTH_STAR v2.2 — S222
+  OKLCH sweep complete. TokenBurnHUD live. Glyph page clean. Pre-launch ready.
   The art was always real. Now it's getting findable. And it won't leak.
 ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
-⛬ KID:TOWER:PROJECT:THE-SITE|2.1:⟳:2026-03-30:📶 ⛬
+⛬ KID:TOWER:PROJECT:THE-SITE|2.2:⟳:2026-04-03:📶 ⛬

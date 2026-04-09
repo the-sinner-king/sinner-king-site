@@ -9,28 +9,32 @@
 
 /* --- CSS Custom Properties (Kingdom Palette) --- */
 :root {
-  /* Core palette — matches tailwind.config.js exactly */
-  --void: #0a0a0f;
-  --void-mid: #12121a;
-  --void-light: #1a1a26;
-  --violet: #7000ff;
-  --violet-dim: #4a00aa;
-  --violet-glow: #9b30ff;
-  --cyan: #00f3ff;
-  --cyan-dim: #00a8b3;
-  --pink: #ff006e;
-  --pink-dim: #aa0049;
-  --amber: #f0a500;
-  --amber-dim: #a07000;
-  --bone: #e8e0d0;
-  --bone-dim: #a09888;
-  --bone-ghost: #504840;
+  /* Core palette — OKLCH canonical values (Tailwind config keeps hex for v3 opacity modifiers) */
+  --void:        oklch(0.06 0.02 281);
+  --void-mid:    oklch(0.10 0.03 281);
+  --void-light:  oklch(0.14 0.04 281);
+  --violet:      oklch(0.37 0.31 283);   /* HOUSE sovereign H=283 */
+  --violet-dim:  oklch(0.27 0.20 283);
+  --violet-glow: oklch(0.49 0.24 283);
+  --cyan:        oklch(0.87 0.21 192);   /* TOWER sovereign H=192 */
+  --cyan-dim:    oklch(0.64 0.10 200);
+  --pink:        oklch(0.59 0.25 345);
+  --pink-dim:    oklch(0.40 0.16 345);
+  --amber:       oklch(0.75 0.20 65);    /* FORGE sovereign H=65 */
+  --amber-dim:   oklch(0.52 0.14 65);
+  --bone:        oklch(0.91 0.02 75);
+  --bone-dim:    oklch(0.65 0.02 55);
+  --bone-ghost:  oklch(0.37 0.02 45);
 
   /* Semantic tokens */
   --signal-active: var(--cyan);
   --signal-idle: var(--violet-dim);
   --signal-alert: var(--pink);
   --signal-history: var(--amber);
+
+  /* Font families — loaded in layout.tsx head (VT323 + JetBrains Mono via Google Fonts) */
+  --font-terminal: 'VT323', 'Courier New', monospace;
+  --font-code: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
 
   /* Typography scale */
   --font-size-xs: 0.75rem;
@@ -46,9 +50,12 @@
   --space-unit: 4px;
 
   /* Border */
-  --border-subtle: 1px solid rgba(112, 0, 255, 0.15);
-  --border-active: 1px solid rgba(112, 0, 255, 0.5);
-  --border-glow: 1px solid rgba(0, 243, 255, 0.3);
+  --border-subtle: 1px solid oklch(0.37 0.31 283 / 0.15);
+  --border-active: 1px solid oklch(0.37 0.31 283 / 0.50);
+  --border-glow:   1px solid oklch(0.87 0.21 192 / 0.30);
+
+  /* Box shadow — declared here so var(--inner-void) resolves correctly */
+  --inner-void: inset 0 1px 0 oklch(1 0 0 / 0.05), inset 0 -1px 0 oklch(0 0 0 / 0.3);
 }
 
 /* --- Base Resets --- */
@@ -130,12 +137,12 @@ code, pre, kbd {
   .panel {
     @apply bg-kingdom-void-mid border border-kingdom-violet/20;
     border-radius: 0;
-    box-shadow: var(--inner-void, inset 0 1px 0 rgba(255,255,255,0.04));
+    box-shadow: var(--inner-void, inset 0 1px 0 oklch(1 0 0 / 0.04));
   }
 
   .panel-active {
     @apply panel border-kingdom-violet/50;
-    box-shadow: 0 0 20px rgba(112, 0, 255, 0.15), inset 0 1px 0 rgba(255,255,255,0.04);
+    box-shadow: 0 0 20px oklch(0.37 0.31 283 / 0.15), inset 0 1px 0 oklch(1 0 0 / 0.04);
   }
 
   /* Signal dot — alive indicator */
@@ -164,7 +171,7 @@ code, pre, kbd {
 
   .btn-kingdom:hover {
     @apply border-kingdom-violet text-kingdom-bone bg-kingdom-void-mid;
-    box-shadow: 0 0 12px rgba(112, 0, 255, 0.3);
+    box-shadow: 0 0 12px oklch(0.37 0.31 283 / 0.30);
   }
 
   .btn-kingdom-primary {
@@ -173,7 +180,7 @@ code, pre, kbd {
 
   .btn-kingdom-primary:hover {
     @apply bg-kingdom-violet/30;
-    box-shadow: 0 0 20px rgba(112, 0, 255, 0.5);
+    box-shadow: 0 0 20px oklch(0.37 0.31 283 / 0.50);
   }
 
   /* Section label — tiny uppercase mono label above sections */
@@ -196,15 +203,15 @@ code, pre, kbd {
 @layer utilities {
   /* Text glow effects */
   .text-glow-violet {
-    text-shadow: 0 0 8px var(--violet), 0 0 20px rgba(112, 0, 255, 0.4);
+    text-shadow: 0 0 8px var(--violet), 0 0 20px oklch(0.37 0.31 283 / 0.40);
   }
 
   .text-glow-cyan {
-    text-shadow: 0 0 8px var(--cyan), 0 0 20px rgba(0, 243, 255, 0.4);
+    text-shadow: 0 0 8px var(--cyan), 0 0 20px oklch(0.87 0.21 192 / 0.40);
   }
 
   .text-glow-pink {
-    text-shadow: 0 0 8px var(--pink), 0 0 20px rgba(255, 0, 110, 0.4);
+    text-shadow: 0 0 8px var(--pink), 0 0 20px oklch(0.59 0.25 345 / 0.40);
   }
 
   /* Clip path for Kingdom geometric shapes */
@@ -220,7 +227,7 @@ code, pre, kbd {
     background: linear-gradient(
       to bottom,
       transparent 0%,
-      rgba(0, 243, 255, 0.03) 50%,
+      oklch(0.87 0.21 192 / 0.03) 50%,
       transparent 100%
     );
     animation: scanline 4s linear infinite;
@@ -346,22 +353,22 @@ code, pre, kbd {
 
 /* ── CHROMA_BLEED glow animations ── */
 @keyframes signal-buzz {
-  0%,100% { text-shadow: 0 0 12px #00f3ff, 0 0 28px rgba(0,243,255,0.55), 0 0 48px rgba(0,243,255,0.20); }
-  25%     { text-shadow: 0 0 14px #00f3ff, 0 0 32px rgba(0,243,255,0.60), 0 0 52px rgba(0,243,255,0.25); }
-  50%     { text-shadow: 0 0 10px #00f3ff, 0 0 24px rgba(0,243,255,0.45), 0 0 44px rgba(0,243,255,0.15); }
-  75%     { text-shadow: 0 0 16px #00f3ff, 0 0 34px rgba(0,243,255,0.58), 0 0 56px rgba(0,243,255,0.22); }
+  0%,100% { text-shadow: 0 0 12px oklch(0.87 0.21 192), 0 0 28px oklch(0.87 0.21 192 / 0.55), 0 0 48px oklch(0.87 0.21 192 / 0.20); }
+  25%     { text-shadow: 0 0 14px oklch(0.87 0.21 192), 0 0 32px oklch(0.87 0.21 192 / 0.60), 0 0 52px oklch(0.87 0.21 192 / 0.25); }
+  50%     { text-shadow: 0 0 10px oklch(0.87 0.21 192), 0 0 24px oklch(0.87 0.21 192 / 0.45), 0 0 44px oklch(0.87 0.21 192 / 0.15); }
+  75%     { text-shadow: 0 0 16px oklch(0.87 0.21 192), 0 0 34px oklch(0.87 0.21 192 / 0.58), 0 0 56px oklch(0.87 0.21 192 / 0.22); }
 }
 @keyframes glyph-breathe {
-  0%   { opacity: 0.72; text-shadow: 0 0 4px rgba(0,243,255,0.30); }
-  45%  { opacity: 0.88; text-shadow: 0 0 10px rgba(0,243,255,0.60), 0 0 20px rgba(112,0,255,0.15); }
-  70%  { opacity: 0.76; text-shadow: 0 0 5px rgba(0,243,255,0.35); }
-  100% { opacity: 0.72; text-shadow: 0 0 4px rgba(0,243,255,0.30); }
+  0%   { opacity: 0.72; text-shadow: 0 0 4px oklch(0.87 0.21 192 / 0.30); }
+  45%  { opacity: 0.88; text-shadow: 0 0 10px oklch(0.87 0.21 192 / 0.60), 0 0 20px oklch(0.37 0.31 283 / 0.15); }
+  70%  { opacity: 0.76; text-shadow: 0 0 5px oklch(0.87 0.21 192 / 0.35); }
+  100% { opacity: 0.72; text-shadow: 0 0 4px oklch(0.87 0.21 192 / 0.30); }
 }
 @keyframes name-shimmer {
   0%   { color: oklch(0.440 0.040 280); text-shadow: none; }
-  30%  { color: #ff3d85; text-shadow: 0 0 10px rgba(255,61,133,0.50), 0 0 20px rgba(255,61,133,0.20); }
-  50%  { color: #ff006e; text-shadow: 0 0 14px rgba(255,0,110,0.65), 0 0 28px rgba(130,74,80,0.25); }
-  70%  { color: #ff3d85; text-shadow: 0 0 8px rgba(255,61,133,0.35); }
+  30%  { color: oklch(0.65 0.22 350); text-shadow: 0 0 10px oklch(0.65 0.22 350 / 0.50), 0 0 20px oklch(0.65 0.22 350 / 0.20); }
+  50%  { color: oklch(0.59 0.25 345); text-shadow: 0 0 14px oklch(0.59 0.25 345 / 0.65), 0 0 28px oklch(0.37 0.08 345 / 0.25); }
+  70%  { color: oklch(0.65 0.22 350); text-shadow: 0 0 8px oklch(0.65 0.22 350 / 0.35); }
   100% { color: oklch(0.440 0.040 280); text-shadow: none; }
 }
 @keyframes border-flicker {
@@ -378,9 +385,40 @@ code, pre, kbd {
   0%   { background-position: 0% 50%; }
   100% { background-position: 200% 50%; }
 }
+@keyframes scanline {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
 @keyframes hud-pulse-violet {
-  0%,100% { opacity: 1; box-shadow: 0 0 6px #7000ff; }
-  50%      { opacity: 0.7; box-shadow: 0 0 10px #7000ff; }
+  0%,100% { opacity: 1; box-shadow: 0 0 6px oklch(0.37 0.31 283); }
+  50%      { opacity: 0.7; box-shadow: 0 0 10px oklch(0.37 0.31 283); }
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes glitch {
+  0%,100% { transform: none; }
+  25%     { transform: translateX(-2px) skewX(-0.5deg); }
+  50%     { transform: translateX(2px)  skewX(0.5deg); }
+  75%     { transform: translateX(-1px); }
+}
+@keyframes glitch-fast {
+  0%,100% { transform: none; }
+  10%     { transform: translateX(-3px) skewX(-1deg); }
+  30%     { transform: translateX(3px)  skewX(1deg); }
+  50%     { transform: translateX(-2px); opacity: 0.8; }
+  70%     { transform: translateX(2px); }
+  90%     { transform: none; opacity: 0.9; }
+}
+@keyframes cipher {
+  0%,100% { opacity: 0.5; }
+  33%     { opacity: 0.25; letter-spacing: 0.06em; }
+  66%     { opacity: 0.75; }
 }
 
 /* ── Animation utility classes ── */
@@ -1137,12 +1175,12 @@ code, pre, kbd {
   margin: 0;
   background: linear-gradient(90deg,
     transparent,
-    rgba(0,243,255,0.60),
-    rgba(255,0,110,0.40),
-    rgba(0,243,255,0.60),
+    oklch(0.87 0.21 192 / 0.60),
+    oklch(0.59 0.25 345 / 0.40),
+    oklch(0.87 0.21 192 / 0.60),
     transparent
   );
   background-size: 200% 100%;
   animation: scanline-bleed 8s linear infinite;
-  box-shadow: 0 0 8px rgba(0,243,255,0.20), 0 0 16px rgba(255,0,110,0.08);
+  box-shadow: 0 0 8px oklch(0.87 0.21 192 / 0.20), 0 0 16px oklch(0.59 0.25 345 / 0.08);
 }

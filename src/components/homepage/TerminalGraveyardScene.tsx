@@ -289,7 +289,7 @@ export function TerminalGraveyardScene() {
         position: 'fixed', inset: 0,
         background: VOID,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: 'rgba(0, 243, 255, 0.4)',
+        color: 'oklch(0.87 0.21 192 / 0.40)',
         fontFamily: 'monospace',
         fontSize: '11px',
         letterSpacing: '0.3em',

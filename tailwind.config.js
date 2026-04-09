@@ -61,8 +61,12 @@ module.exports = {
       },
 
       animation: {
-        pulse_kingdom: 'pulse_kingdom 3s ease-in-out infinite',
-        signal_flow: 'signal_flow 2s linear infinite',
+        pulse_kingdom:  'pulse_kingdom 3s ease-in-out infinite',
+        signal_flow:    'signal_flow 2s linear infinite',
+        'fade-in':      'fadeIn 0.3s ease-out',
+        glitch:         'glitch 0.4s ease-in-out',
+        'glitch-fast':  'glitch-fast 0.2s ease-in-out',
+        cipher:         'cipher 2s ease-in-out infinite',
       },
 
       // Background patterns
@@ -80,11 +84,11 @@ module.exports = {
 
       // Box shadows with Kingdom glow
       boxShadow: {
-        'violet-glow': '0 0 20px rgba(112, 0, 255, 0.4)',
-        'cyan-glow': '0 0 20px rgba(0, 243, 255, 0.4)',
-        'pink-glow': '0 0 20px rgba(255, 0, 110, 0.4)',
-        'amber-glow': '0 0 20px rgba(240, 165, 0, 0.4)',
-        'inner-void': 'inset 0 1px 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(0,0,0,0.3)',
+        'violet-glow': '0 0 20px oklch(0.37 0.31 283 / 0.4)',
+        'cyan-glow': '0 0 20px oklch(0.87 0.21 192 / 0.4)',
+        'pink-glow': '0 0 20px oklch(0.63 0.25 355 / 0.4)',
+        'amber-glow': '0 0 20px oklch(0.73 0.17 65 / 0.4)',
+        'inner-void': 'inset 0 1px 0 oklch(1 0 0 / 0.05), inset 0 -1px 0 oklch(0 0 0 / 0.3)',
       },
 
       // Border radius for Kingdom panels (slightly squared)

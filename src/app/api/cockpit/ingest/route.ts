@@ -65,7 +65,17 @@ export async function POST(req: NextRequest) {
 
   const post = { id, title, slug, status, publishAt, source, excerpt, body: postBody, createdAt }
 
-  // Write to content dir
+  // Write to content dir — only works in dev (local filesystem).
+  // On Vercel the filesystem is read-only; persistent storage (Vercel Blob/KV)
+  // must be wired before this endpoint is usable in production.
+  if (process.env.VERCEL) {
+    console.error('[ingest] Cannot write post on Vercel — persistent storage not configured. Set up Vercel Blob or KV.')
+    return NextResponse.json(
+      { error: 'Content storage not configured for production. Wire Vercel Blob or KV first.' },
+      { status: 501 }
+    )
+  }
+
   try {
     await mkdir(CONTENT_DIR, { recursive: true })
     await writeFile(path.join(CONTENT_DIR, `${id}.json`), JSON.stringify(post, null, 2), 'utf-8')

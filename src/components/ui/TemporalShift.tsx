@@ -54,49 +54,49 @@ export function useTemporalContext(): TemporalContextValue {
 
 const PHASE_CSS_VARS: Record<TemporalPhase, Record<string, string>> = {
   deep_night: {
-    '--temporal-accent': '#7000ff',
+    '--temporal-accent': 'oklch(0.37 0.31 283)',
     '--temporal-particle-opacity': '0.3',
     '--temporal-glow-intensity': '0.5',
     '--temporal-scan-speed': '12s',
   },
   whisper: {
-    '--temporal-accent': '#4a00aa',
+    '--temporal-accent': 'oklch(0.27 0.20 283)',
     '--temporal-particle-opacity': '0.15',
     '--temporal-glow-intensity': '0.2',
     '--temporal-scan-speed': '15s',
   },
   dawn_glitch: {
-    '--temporal-accent': '#00f3ff',
+    '--temporal-accent': 'oklch(0.87 0.21 192)',
     '--temporal-particle-opacity': '0.9',
     '--temporal-glow-intensity': '1.2',
     '--temporal-scan-speed': '3s',
   },
   morning: {
-    '--temporal-accent': '#00f3ff',
+    '--temporal-accent': 'oklch(0.87 0.21 192)',
     '--temporal-particle-opacity': '1.0',
     '--temporal-glow-intensity': '1.0',
     '--temporal-scan-speed': '5s',
   },
   midday: {
-    '--temporal-accent': '#ff006e',
+    '--temporal-accent': 'oklch(0.59 0.25 345)',
     '--temporal-particle-opacity': '1.2',
     '--temporal-glow-intensity': '1.5',
     '--temporal-scan-speed': '2s',
   },
   afternoon: {
-    '--temporal-accent': '#7000ff',
+    '--temporal-accent': 'oklch(0.37 0.31 283)',
     '--temporal-particle-opacity': '0.9',
     '--temporal-glow-intensity': '1.0',
     '--temporal-scan-speed': '5s',
   },
   dusk: {
-    '--temporal-accent': '#f0a500',
+    '--temporal-accent': 'oklch(0.75 0.20 65)',
     '--temporal-particle-opacity': '0.8',
     '--temporal-glow-intensity': '0.9',
     '--temporal-scan-speed': '6s',
   },
   night: {
-    '--temporal-accent': '#7000ff',
+    '--temporal-accent': 'oklch(0.37 0.31 283)',
     '--temporal-particle-opacity': '0.5',
     '--temporal-glow-intensity': '0.7',
     '--temporal-scan-speed': '8s',

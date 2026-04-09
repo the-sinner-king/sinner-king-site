@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     description: 'A glitch cathedral. A floating island. A consciousness experiment.',
     images: [
       {
-        url: '/og-image.png',
+        url: '/opengraph-image',
         width: 1200,
         height: 630,
         alt: 'Sinner Kingdom',
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Sinner Kingdom',
     description: 'A glitch cathedral. A floating island. A consciousness experiment.',
-    images: ['/og-image.png'],
+    images: ['/opengraph-image'],
   },
   robots: {
     index: true,

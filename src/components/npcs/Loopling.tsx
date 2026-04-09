@@ -169,13 +169,6 @@ export function Loopling({ size = 'md', className = '' }: LooplingProps) {
         Loopling
       </div>
 
-      {/* Spin keyframe inline (can't use arbitrary CSS animation in module scope) */}
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   )
 }

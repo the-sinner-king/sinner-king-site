@@ -10,13 +10,13 @@ import type { Metadata } from 'next'
 import { KingdomMapClient } from './client'
 
 export const metadata: Metadata = {
-  title: 'Kingdom Map — The Sinner Kingdom',
+  title: { absolute: 'Kingdom Map — The Sinner Kingdom' },
   description: "Live visualization of the Sinner Kingdom's AI systems.",
 }
 
 export default function KingdomMapPage() {
   return (
-    <main style={{ width: '100vw', height: '100vh', overflow: 'hidden', background: '#0a0a0f' }}>
+    <main style={{ width: '100vw', height: '100vh', overflow: 'hidden', background: 'oklch(0.06 0.02 281)' }}>
       <KingdomMapClient />
     </main>
   )

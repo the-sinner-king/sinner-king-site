@@ -70,7 +70,7 @@ const SWARM_LABEL_FONT_SIZE = 9
 const SWARM_META_FONT_SIZE = 8
 
 /** Label color for the queue header row. */
-const HEADER_COLOR = '#504840'
+const HEADER_COLOR = 'oklch(0.37 0.02 281)'
 
 /** Header font size in px. */
 const HEADER_FONT_SIZE = 8
@@ -91,7 +91,7 @@ const panelStyle: React.CSSProperties = {
   gap:           5,
   minWidth:      PANEL_MIN_WIDTH,
   maxWidth:      PANEL_MAX_WIDTH,
-  fontFamily:    'monospace',
+  fontFamily:    'var(--font-code)',
   // pointerEvents: 'none' — HUD sits above the canvas; don't capture mouse events
   // that should pass through to Three.js orbit controls.
   pointerEvents: 'none',
@@ -103,7 +103,7 @@ const headerStyle: React.CSSProperties = {
   justifyContent: 'space-between',
   alignItems:     'center',
   paddingBottom:  3,
-  borderBottom:   '1px solid rgba(255,255,255,0.06)',
+  borderBottom:   '1px solid oklch(1 0 0 / 0.06)',
   marginBottom:   2,
 }
 
@@ -128,7 +128,7 @@ const labelRowStyle: React.CSSProperties = {
 
 const trackStyle: React.CSSProperties = {
   height:       PROGRESS_TRACK_HEIGHT,
-  background:   'rgba(255,255,255,0.05)',
+  background:   'oklch(1 0 0 / 0.05)',
   borderRadius: 1,
   overflow:     'hidden',
 }
@@ -194,7 +194,7 @@ function QueueRow({ swarm, now }: QueueRowProps) {
 
   return (
     <div style={{
-      background:      'rgba(10, 10, 15, 0.88)',
+      background:      'oklch(0.06 0.02 281 / 0.88)',
       border:          `1px solid ${color}33`,
       borderLeft:      `2px solid ${color}`,
       borderRadius:    2,

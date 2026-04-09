@@ -55,16 +55,16 @@ const STRIP_DOT_GAP = 5
 const STRIP_ROW_GAP = 14
 
 /** Background for both overlays: near-black with slight warm offset. */
-const OVERLAY_BG = 'rgba(10, 10, 15, 0.82)'
+const OVERLAY_BG = 'oklch(0.06 0.02 281 / 0.82)'
 
 /** Inactive dot fill — dark enough to recede, warm enough to read as "off". */
-const DOT_INACTIVE_COLOR = '#2a2830'
+const DOT_INACTIVE_COLOR = 'oklch(0.19 0.02 281)'
 
 /** Strip border accent — violet at low alpha. */
-const STRIP_BORDER = '1px solid rgba(112, 0, 255, 0.18)'
+const STRIP_BORDER = '1px solid oklch(0.37 0.31 283 / 0.18)'
 
 /** Strip left structural stripe. */
-const STRIP_BORDER_LEFT = '2px solid rgba(112, 0, 255, 0.5)'
+const STRIP_BORDER_LEFT = '2px solid oklch(0.37 0.31 283 / 0.50)'
 
 /** Presence label font size in px. */
 const PRESENCE_LABEL_FONT_SIZE = 8
@@ -273,7 +273,7 @@ export function ClaudeStatusBadge() {
                 color:         color,
                 fontSize:      BADGE_TOOL_FONT_SIZE,
                 letterSpacing: '0.08em',
-                fontFamily:    'monospace',
+                fontFamily:    'var(--font-code)',
                 opacity:       0.85,
               }}>
                 [{toolCode}]

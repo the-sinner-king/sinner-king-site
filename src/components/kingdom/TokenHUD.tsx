@@ -1,319 +1,313 @@
 'use client'
 
 /**
- * @file TokenHUD.tsx
+ * TokenHUD.tsx — Kingdom Map token burn overlay (S222 redesign)
  *
- * @description
- * Live token consumption overlay positioned top-right over the Kingdom Map.
- * Displays daily, weekly, and lifetime token estimates plus a qualitative burn rate.
- * At 'high' intensity the panel border animates with a CSS keyframe pulse.
+ * Redesigned to match the TOKEN_BURN.dat panel in public/index.html.
+ * Sits at the top of the right-side HUD stack (position: absolute, top:60, right:24).
  *
- * @dataSource
- * `useKingdomLive()` → `data.tokens` (populated from `/api/local/tokens/live` +
- * `/api/local/tokens/lifetime`). No independent fetch — entirely driven by the
- * shared context that polls every 15 s.
+ * DATA SOURCE
+ *   /api/kingdom-state?type=token-pulse → RawTokenPulse (direct sentinel read).
+ *   Polled every 30s. WHY NOT useKingdomLive():
+ *   The old /api/local/tokens/* endpoints expose a different schema that loses
+ *   broadcast_cost, lifetime_tokens, and territories-as-object through type
+ *   narrowing in KingdomState. The dedicated token-pulse type returns the full
+ *   sentinel sub-object with everything the panel needs. Single fetch, no adapter.
  *
- * @lifecycle
- * - Renders null during 'loading' and 'error' states.
- * - `StaleWrapper` dims to 50% opacity + STALE badge when status === 'stale'.
- * - Keyframes injected via React 19 `<style href>` deduplication.
+ * LIVE COUNTER ANIMATION
+ *   lifetime_tokens + rate_per_sec drive a throttled rAF ticker (~10fps).
+ *   Shows the full integer with commas: "15,371,348,828 tokens processed".
+ *   The last 4+ digits tick like an odometer between 30s polls.
+ *   rateRef + baseRef + pollTimeRef pattern: interval closure safety — refs are
+ *   always current without needing the effect to re-register on every poll.
  *
- * @gotcha REACT 19 BORDER SHORTHAND BUG
- * Never set both `border` (shorthand) and `borderLeft` (longhand) on the same element.
- * React 19's DOM reconciler emits a console error on every re-render when both are
- * present — it can't decide which wins. Solution: use `borderTop` + `borderRight` +
- * `borderBottom` for the intensity-driven sides, and keep `borderLeft` as the
- * separate structural accent. This is why INTENSITY_BORDER applies to three sides only.
- *
- * @gotcha INLINE STYLE vs CSS KEYFRAME PRECEDENCE
- * When `intensity === 'high'`, `boxShadow` is set to `undefined` on the container.
- * This is intentional: inline styles have higher specificity than CSS keyframe
- * animations. If a static `boxShadow` inline value were present, the `token-border-pulse`
- * keyframe animation (which also animates `box-shadow`) would be entirely overridden and
- * produce no visible effect. Omitting the inline value hands control to the keyframe.
+ * TERRITORY COLORS (CHROMA_BLEED sovereign hues — locked for life)
+ *   FORGE  H=55   oklch(0.72 0.19 55)   amber  — heat, construction
+ *   AERIS  H=145  oklch(0.68 0.20 145)  green  — growth, presence
+ *   TOWER  H=195  oklch(0.72 0.20 195)  cyan   — signal, outward face
+ *   HOUSE  H=270  oklch(0.62 0.22 270)  violet — memory, interiority
  */
 
-import { useKingdomLive, StaleWrapper } from '@/lib/kingdom-live-context'
+import { useEffect, useRef, useState, useCallback } from 'react'
+import type { RawTokenPulse } from '@/lib/kingdom-state'
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
-/** Accent color — Kingdom violet. Used for all token value text and left border stripe. */
-const ACCENT = '#7000ff'
+const POLL_INTERVAL_MS = 30_000
+const TICK_INTERVAL_MS = 100   // ~10fps — readable odometer tick, no layout thrash
 
-/** Minimum width of the HUD panel card in pixels. */
-const PANEL_MIN_WIDTH = 210
+const PANEL_BG     = 'oklch(0.040 0.035 281)'
+const PANEL_BORDER = 'oklch(0.495 0.310 281 / 0.30)'
+const HEADER_COLOR = 'oklch(0.87 0.21 192)'  // TOWER cyan — CHROMA_BLEED sovereign hue
+const LABEL_COLOR  = 'oklch(0.37 0.02 281)'
+const DIM_COLOR    = 'oklch(0.62 0.08 280)'
 
-/** Panel background — near-black with violet tint. */
-const PANEL_BG = 'oklch(0.040 0.035 281)'
-
-/** Label column minimum width — aligns all value columns regardless of label length. */
-const LABEL_MIN_WIDTH = 62
-
-/** Font size for row labels (TODAY / WEEK / CHRONICLE / RATE). */
-const ROW_LABEL_FONT_SIZE = 10
-
-/** Font size for primary token value display. */
-const ROW_VALUE_FONT_SIZE = 13
-
-/** Rate icon + label font size. */
-const RATE_VALUE_FONT_SIZE = 12
-
-/** Muted warm-gray for row labels — recedes behind the value numbers. */
-const LABEL_COLOR = '#504840'
-
-/** Header glyph + title font size. */
-const HEADER_FONT_SIZE = 9
-
-/** Cyan used for the header glyph and HUD title. */
-const HEADER_COLOR = '#00f3ff'
-
-// ─── INTENSITY MAPS ──────────────────────────────────────────────────────────
-
-/**
- * Per-intensity border style applied to borderTop/borderRight/borderBottom.
- * borderLeft is always `2px solid ${ACCENT}` — the structural left stripe.
- *
- * 'high' uses dashed to signal urgency (approaching context limits or heavy burns).
- * 'medium' / 'high' widen to 2px to increase visual weight as intensity rises.
- */
-const INTENSITY_BORDER: Record<string, string> = {
-  quiet:  '1px solid rgba(112,0,255, 0.18)',
-  low:    '1px solid rgba(112,0,255, 0.35)',
-  medium: '2px solid rgba(112,0,255, 0.60)',
-  high:   '2px dashed rgba(112,0,255, 1)',
-}
-
-/**
- * Per-intensity static box-shadow for quiet/low/medium.
- * NOT used for 'high' — see the boxShadow inline prop comment in the render.
- */
-const INTENSITY_SHADOW: Record<string, string> = {
-  quiet:  'none',
-  low:    'none',
-  medium: '0 0 8px rgba(112,0,255,0.4)',
-  high:   '0 0 12px rgba(112,0,255,0.8)',
-}
-
-// ─── RATE ROW CONFIG ─────────────────────────────────────────────────────────
-
-/** Visual configuration for each intensity level in the RATE row. */
-const RATE_CONFIG: Record<string, { icon: string; label: string; color: string }> = {
-  quiet:  { icon: '◇', label: 'QUIET',  color: '#3a3438' },
-  low:    { icon: '→', label: 'LOW',    color: '#7000ff66' },
-  medium: { icon: '↑', label: 'MED',    color: '#7000ffcc' },
-  // Amber for 'high' — visually distinct from the violet palette, signals a threshold breach.
-  high:   { icon: '⚡', label: 'HIGH',   color: '#f0a500' },
-}
-
-// ─── TYPES ────────────────────────────────────────────────────────────────────
-
-/** Props for the reusable Row helper. */
-interface RowProps {
-  label: string
-  value: string
-  color: string
-  /** When true, renders the value at 40% alpha (hex '66') instead of 80% ('cc'). */
-  dim?:  boolean
-}
-
-/** Props for the RateRow sub-component. */
-interface RateRowProps {
-  /** One of: 'quiet' | 'low' | 'medium' | 'high'. Falls back to 'quiet' for unknown values. */
-  intensity: string
-}
+// Territory config — hues locked to the CHROMA_BLEED doctrine in index.html
+const TERRITORIES = [
+  {
+    key:    'FORGE',
+    label:  'FORGE',
+    color:  'oklch(0.72 0.19 55)',
+    glow:   '0 0 5px oklch(0.72 0.19 55 / 0.65), 0 0 1px oklch(0.72 0.19 55 / 0.9)',
+  },
+  {
+    key:    'AERIS',
+    label:  'AERIS',
+    color:  'oklch(0.68 0.20 145)',
+    glow:   '0 0 5px oklch(0.68 0.20 145 / 0.55), 0 0 12px oklch(0.68 0.20 145 / 0.25)',
+  },
+  {
+    key:    'TOWER',
+    label:  'TOWER',
+    color:  'oklch(0.72 0.20 195)',
+    glow:   '0 0 5px oklch(0.72 0.20 195 / 0.65), 0 0 1px oklch(0.72 0.20 195 / 0.9)',
+  },
+  {
+    key:    'HOUSE',
+    label:  'HOUSE',
+    color:  'oklch(0.62 0.22 270)',
+    glow:   '0 0 5px oklch(0.62 0.22 270 / 0.55), 0 0 12px oklch(0.62 0.22 270 / 0.25)',
+  },
+] as const
 
 // ─── FORMATTERS ──────────────────────────────────────────────────────────────
 
-/**
- * Formats a raw token count into a human-readable string with B/M/K suffixes.
- * Returns '—' for non-finite inputs (NaN, Infinity) that can arrive when the
- * lifetime estimate endpoint is unreachable and the fallback is 0.
- */
-function fmtTokens(n: number): string {
-  if (!Number.isFinite(n) || Number.isNaN(n)) return '—'
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`
-  if (n >= 1_000_000)     return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000)         return `${(n / 1_000).toFixed(0)}K`
+/** Full integer with commas — last 4+ digits tick like an odometer at ~10fps. */
+function fmtLiveTokens(n: number): string {
+  return Math.round(n).toLocaleString('en-US') + ' tokens processed'
+}
+
+/** Compact suffix for territory bar values. */
+function fmtTok(n: number): string {
+  if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B'
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M'
+  if (n >= 1e3) return (n / 1e3).toFixed(0) + 'K'
   return String(n)
 }
 
-// ─── ROW HELPERS ─────────────────────────────────────────────────────────────
+// ─── TOKEN PULSE HOOK ─────────────────────────────────────────────────────────
 
 /**
- * Labeled token count row — label column left, value right.
- * `dim` controls whether the value renders at 80% or 40% alpha.
- * TODAY is full-brightness; WEEK and CHRONICLE are dimmed to establish hierarchy.
+ * Polls /api/kingdom-state?type=token-pulse every 30s.
+ * Returns null until the first successful response.
+ * Gracefully degrades on network error — keeps the last value.
  */
-function Row({ label, value, color, dim = false }: RowProps) {
-  // cc = 80% alpha, 66 = 40% alpha in hex
-  const alpha = dim ? '66' : 'cc'
-  return (
-    <div style={{
-      display:      'flex',
-      alignItems:   'baseline',
-      gap:          8,
-      marginBottom: 4,
-    }}>
-      <span style={{
-        color:         LABEL_COLOR,
-        fontSize:      ROW_LABEL_FONT_SIZE,
-        letterSpacing: '0.14em',
-        minWidth:      LABEL_MIN_WIDTH,
-      }}>
-        {label}
-      </span>
-      <span style={{
-        color:              `${color}${alpha}`,
-        fontSize:           ROW_VALUE_FONT_SIZE,
-        letterSpacing:      '0.06em',
-        // tabular-nums: prevents digit columns from shifting width as numbers update.
-        fontVariantNumeric: 'tabular-nums',
-      }}>
-        {value}
-      </span>
-    </div>
-  )
+function useTokenPulse(): RawTokenPulse | null {
+  const [pulse, setPulse] = useState<RawTokenPulse | null>(null)
+
+  const poll = useCallback(async () => {
+    try {
+      const r = await fetch('/api/kingdom-state?type=token-pulse')
+      if (!r.ok) return
+      const data = await r.json() as RawTokenPulse
+      if (data && typeof data.broadcast_label === 'string') {
+        setPulse(data)
+      }
+    } catch {
+      // keep last value — graceful degradation
+    }
+  }, [])
+
+  useEffect(() => {
+    poll()
+    const id = setInterval(poll, POLL_INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [poll])
+
+  return pulse
 }
 
-/**
- * RATE row — qualitative burn rate with icon and label.
- * Falls back to 'quiet' config for any unrecognized intensity value,
- * which prevents a blank row if the API returns an unexpected string.
- */
-function RateRow({ intensity }: RateRowProps) {
-  const cfg = RATE_CONFIG[intensity] ?? RATE_CONFIG.quiet
-  return (
-    <div style={{
-      display:      'flex',
-      alignItems:   'baseline',
-      gap:          8,
-      marginBottom: 4,
-    }}>
-      <span style={{
-        color:         LABEL_COLOR,
-        fontSize:      ROW_LABEL_FONT_SIZE,
-        letterSpacing: '0.14em',
-        minWidth:      LABEL_MIN_WIDTH,
-      }}>
-        RATE
-      </span>
-      <span style={{
-        color:         cfg.color,
-        fontSize:      RATE_VALUE_FONT_SIZE,
-        letterSpacing: '0.08em',
-      }}>
-        {cfg.icon} {cfg.label}
-      </span>
-    </div>
+// ─── COMPONENT ────────────────────────────────────────────────────────────────
+
+export function TokenHUD(): React.ReactElement | null {
+  const pulse = useTokenPulse()
+
+  // Live counter refs — safe to read from rAF closure without re-registering effect
+  const baseRef     = useRef<number>(0)
+  const rateRef     = useRef<number>(0)
+  const pollTimeRef = useRef<number>(0)
+  const lastTickRef = useRef<number>(0)
+  const rafRef      = useRef<number | null>(null)
+  const [liveLabel, setLiveLabel] = useState<string>('')
+
+  // Sync refs + seed label when new poll data arrives
+  useEffect(() => {
+    if (!pulse?.lifetime_tokens || !pulse?.rate_per_sec) return
+    baseRef.current     = pulse.lifetime_tokens
+    rateRef.current     = pulse.rate_per_sec
+    pollTimeRef.current = Date.now()
+    // Immediately update display to polled value before first tick fires
+    setLiveLabel(fmtLiveTokens(pulse.lifetime_tokens))
+  }, [pulse])
+
+  // rAF odometer ticker — throttled to TICK_INTERVAL_MS
+  useEffect(() => {
+    function tick() {
+      const now = Date.now()
+      if (now - lastTickRef.current >= TICK_INTERVAL_MS && baseRef.current > 0) {
+        lastTickRef.current = now
+        const elapsed = (now - pollTimeRef.current) / 1000
+        setLiveLabel(fmtLiveTokens(baseRef.current + rateRef.current * elapsed))
+      }
+      rafRef.current = requestAnimationFrame(tick)
+    }
+    rafRef.current = requestAnimationFrame(tick)
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+    }
+  }, [])
+
+  if (!pulse) return null
+
+  const territories = pulse.territories ?? {}
+  const maxTok = Math.max(
+    ...TERRITORIES.map(t => (territories as Record<string, { today_tok: number }>)[t.key]?.today_tok ?? 0),
+    1,
   )
-}
-
-// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
-
-/**
- * TokenHUD — live token burn overlay.
- *
- * The 'high' intensity path separates border animation from the static shadow
- * by omitting `boxShadow` from the inline style object entirely when intensity
- * is 'high'. This hands full control of box-shadow to the `token-border-pulse`
- * CSS keyframe, which would otherwise be overridden by any static inline value.
- */
-export function TokenHUD() {
-  const { data, status } = useKingdomLive()
-
-  if (status === 'loading' || status === 'error' || !data) return null
-
-  const tokens    = data.tokens
-  const intensity = tokens.intensity
 
   return (
     <>
-      <style href="token-hud-anim" precedence="default">{`
-        @keyframes token-hud-in {
+      <style href="token-hud-v2-anim" precedence="default">{`
+        @keyframes token-hud-v2-in {
           from { opacity: 0; transform: translateY(-6px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        @keyframes token-border-pulse {
-          0%   { box-shadow: 0 0 8px rgba(112,0,255,0.4); }
-          50%  { box-shadow: 0 0 20px rgba(112,0,255,1.0); }
-          100% { box-shadow: 0 0 8px rgba(112,0,255,0.4); }
-        }
       `}</style>
 
-      <StaleWrapper status={status}>
+      <div style={{
+        minWidth:   248,
+        fontFamily: 'var(--font-code)',
+        animation:  'token-hud-v2-in 0.4s ease-out',
+      }}>
         <div style={{
-          minWidth:   PANEL_MIN_WIDTH,
-          fontFamily: 'monospace',
-          animation:  'token-hud-in 0.4s ease-out',
+          background:     PANEL_BG,
+          borderTop:      `1px solid ${PANEL_BORDER}`,
+          borderRight:    `1px solid ${PANEL_BORDER}`,
+          borderBottom:   `1px solid ${PANEL_BORDER}`,
+          borderLeft:     `2px solid ${HEADER_COLOR}`,
+          borderRadius:   3,
+          padding:        '8px 12px 10px',
+          backdropFilter: 'blur(8px)',
         }}>
+
+          {/* Header — «◇» TOKEN_BURN.dat */}
           <div style={{
-            background:     PANEL_BG,
-            // Three sides only — borderLeft is the structural accent, set separately.
-            // Mixing border shorthand + borderLeft longhand causes React 19 reconciler errors.
-            borderTop:      INTENSITY_BORDER[intensity] ?? INTENSITY_BORDER.quiet,
-            borderRight:    INTENSITY_BORDER[intensity] ?? INTENSITY_BORDER.quiet,
-            borderBottom:   INTENSITY_BORDER[intensity] ?? INTENSITY_BORDER.quiet,
-            borderLeft:     `2px solid ${ACCENT}`,
-            borderRadius:   3,
-            padding:        '8px 12px 9px',
-            backdropFilter: 'blur(8px)',
-            // KEY: When intensity is 'high', omit boxShadow from inline styles entirely.
-            // An inline boxShadow would override the token-border-pulse keyframe animation
-            // (inline styles beat CSS animations in the cascade). Setting it to `undefined`
-            // removes the property from the element's style attribute, restoring keyframe control.
-            boxShadow:      intensity === 'high'
-              ? undefined
-              : (INTENSITY_SHADOW[intensity] ?? '0 0 18px oklch(0.495 0.310 281 / 0.10)'),
-            // Animation only active at 'high' — other intensities use static shadows above.
-            animation:      intensity === 'high'
-              ? 'token-border-pulse 0.8s ease-in-out infinite'
-              : 'none',
-            fontFamily:     '"JetBrains Mono", monospace',
+            display:       'flex',
+            alignItems:    'center',
+            gap:           5,
+            paddingBottom: 5,
+            marginBottom:  6,
+            borderBottom:  '1px solid oklch(0.495 0.310 281 / 0.18)',
           }}>
-
-            {/* Header — «▲» TOKEN_BURN.dat */}
-            <div style={{
-              display:       'flex',
-              alignItems:    'center',
-              gap:           5,
-              paddingBottom: 6,
-              marginBottom:  6,
+            <span
+              className="hud-anim-glyph"
+              style={{ color: HEADER_COLOR, fontSize: 9, letterSpacing: '0.06em' }}
+              aria-hidden="true"
+            >
+              «◇»
+            </span>
+            <span style={{
+              color:         HEADER_COLOR,
+              fontSize:      9,
+              letterSpacing: '0.20em',
+              opacity:       0.80,
             }}>
-              {/* hud-anim-glyph → glyph-breathe keyframe (globals.css) */}
-              <span
-                className="hud-anim-glyph"
-                style={{ color: HEADER_COLOR, fontSize: HEADER_FONT_SIZE, letterSpacing: '0.06em' }}
-              >
-                «▲»
-              </span>
-              <span style={{
-                color:         HEADER_COLOR,
-                fontSize:      HEADER_FONT_SIZE,
-                letterSpacing: '0.20em',
-                opacity:       0.80,
-              }}>
-                TOKEN_BURN.dat
-              </span>
-            </div>
-
-            {/* hud-divider (globals.css) — traveling scanline strip */}
-            <div className="hud-divider" style={{ marginBottom: 7 }} />
-
-            {/* TODAY — full brightness, most immediately relevant */}
-            <Row label="TODAY"     value={fmtTokens(tokens.today.tokens)}                          color={ACCENT} />
-
-            {/* WEEK — dimmed, contextual rolling total */}
-            <Row label="WEEK"      value={fmtTokens(tokens.week.tokens)}                           color={ACCENT} dim />
-
-            {/* CHRONICLE — lifetime estimate, furthest from present, most dimmed */}
-            <Row label="CHRONICLE" value={tokens.lifetime > 0 ? fmtTokens(tokens.lifetime) : '—'} color={ACCENT} dim />
-
-            {/* RATE — qualitative burn intensity, no raw numbers */}
-            <RateRow intensity={intensity} />
-
+              TOKEN_BURN.dat
+            </span>
           </div>
+
+          {/* ALL TIME counter — live odometer */}
+          <div style={{ marginBottom: 8 }}>
+            <div style={{
+              fontSize:      7,
+              letterSpacing: '0.22em',
+              color:         DIM_COLOR,
+              marginBottom:  3,
+            }}>
+              ALL TIME:
+            </div>
+            <div style={{
+              fontSize:           11,
+              color:              HEADER_COLOR,
+              letterSpacing:      '0.03em',
+              fontVariantNumeric: 'tabular-nums',
+              lineHeight:         1.2,
+            }}>
+              {liveLabel || (pulse.broadcast_label ?? '—')}
+            </div>
+            <div style={{
+              fontSize:      9,
+              color:         DIM_COLOR,
+              letterSpacing: '0.06em',
+              marginTop:     3,
+            }}>
+              {pulse.broadcast_cost ?? '—'}
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="hud-divider" style={{ marginBottom: 7 }} />
+
+          {/* Territory bars — relative scale, max today_tok = 100% */}
+          <div>
+            {TERRITORIES.map(({ key, label, color, glow }) => {
+              const terr = (territories as Record<string, { today_tok: number }>)[key]
+              const tok  = terr?.today_tok ?? 0
+              const pct  = Math.round((tok / maxTok) * 100)
+              return (
+                <div key={key} style={{ marginBottom: 5 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {/* Color rail */}
+                    <div style={{
+                      width:        2,
+                      height:       10,
+                      background:   color,
+                      flexShrink:   0,
+                      borderRadius: 1,
+                    }} />
+                    {/* Label */}
+                    <span style={{
+                      fontSize:      7,
+                      letterSpacing: '0.14em',
+                      color:         LABEL_COLOR,
+                      minWidth:      32,
+                    }}>
+                      {label}
+                    </span>
+                    {/* Bar track */}
+                    <div style={{
+                      flex:         1,
+                      height:       4,
+                      background:   'oklch(0.14 0.02 281)',
+                      borderRadius: 1,
+                    }}>
+                      <div style={{
+                        width:        `${pct}%`,
+                        height:       '100%',
+                        background:   color,
+                        borderRadius: 1,
+                        transition:   'width 0.8s ease',
+                        boxShadow:    glow,
+                      }} />
+                    </div>
+                    {/* Value */}
+                    <span style={{
+                      fontSize:           8,
+                      color,
+                      minWidth:           32,
+                      textAlign:          'right',
+                      fontVariantNumeric: 'tabular-nums',
+                    }}>
+                      {tok > 0 ? fmtTok(tok) : '—'}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
         </div>
-      </StaleWrapper>
+      </div>
     </>
   )
 }

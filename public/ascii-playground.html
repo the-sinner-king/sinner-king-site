@@ -468,13 +468,220 @@
 
   <div class="glow-lab">
 
-    <div class="specimen">
+    <div class="specimen" id="g1-specimen" style="flex-wrap:wrap;position:relative;">
       <div class="spec-label">
         <strong>G1 HARD NEON</strong>
         3 white core + 5 hue halos
       </div>
-      <span class="spec-display g1">SIGNAL</span>
+      <span class="spec-display g1" id="g1-preview">SIGNAL</span>
+      <button id="g1-settings-toggle" style="
+        font-family:'VT323',monospace; font-size:14px; letter-spacing:0.1em;
+        padding:6px 16px; border:1px solid rgba(112,0,255,0.4); background:rgba(112,0,255,0.12);
+        color:#a855f7; cursor:pointer; margin-left:auto;
+      " onclick="document.getElementById('g1-tuner').classList.toggle('g1-tuner-open')">⚙ SETTINGS</button>
+      <button id="g1-copy-btn" style="
+        font-family:'VT323',monospace; font-size:14px; letter-spacing:0.1em;
+        padding:6px 16px; border:1px solid rgba(0,238,100,0.4); background:rgba(0,238,100,0.1);
+        color:#00ee64; cursor:pointer;
+      " onclick="g1CopyCSS()">COPY CSS</button>
+
+      <!-- TUNER PANEL -->
+      <div id="g1-tuner" style="
+        width:100%; display:none; margin-top:12px; padding:16px;
+        border:1px solid rgba(112,0,255,0.25); background:rgba(10,5,20,0.9);
+      ">
+        <div style="font-family:'VT323',monospace;font-size:18px;color:#a855f7;letter-spacing:0.12em;margin-bottom:12px;">
+          G1 HARD NEON — TUNER
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 24px; font-family:'VT323',monospace; font-size:15px; color:rgba(232,230,240,0.7);">
+
+          <!-- CORE COLOR -->
+          <label style="display:flex;align-items:center;gap:8px;">
+            Core Color
+            <input type="color" id="g1-core-color" value="#ffffff" oninput="g1Update()" style="width:32px;height:24px;border:none;background:none;cursor:pointer;">
+          </label>
+
+          <!-- HALO COLOR -->
+          <label style="display:flex;align-items:center;gap:8px;">
+            Halo Color
+            <input type="color" id="g1-halo-color" value="#7000ff" oninput="g1Update()" style="width:32px;height:24px;border:none;background:none;cursor:pointer;">
+          </label>
+
+          <!-- CORE BLUR 1 -->
+          <label>Core Blur 1: <span id="g1-cb1-val">7</span>px
+            <input type="range" id="g1-cb1" min="0" max="40" value="7" oninput="g1Update()" style="width:100%;">
+          </label>
+
+          <!-- CORE BLUR 2 -->
+          <label>Core Blur 2: <span id="g1-cb2-val">10</span>px
+            <input type="range" id="g1-cb2" min="0" max="40" value="10" oninput="g1Update()" style="width:100%;">
+          </label>
+
+          <!-- CORE BLUR 3 -->
+          <label>Core Blur 3: <span id="g1-cb3-val">21</span>px
+            <input type="range" id="g1-cb3" min="0" max="60" value="21" oninput="g1Update()" style="width:100%;">
+          </label>
+
+          <!-- HALO 1 -->
+          <label>Halo 1: <span id="g1-h1-val">42</span>px
+            <input type="range" id="g1-h1" min="0" max="200" value="42" oninput="g1Update()" style="width:100%;">
+          </label>
+
+          <!-- HALO 2 -->
+          <label>Halo 2: <span id="g1-h2-val">82</span>px
+            <input type="range" id="g1-h2" min="0" max="250" value="82" oninput="g1Update()" style="width:100%;">
+          </label>
+
+          <!-- HALO 3 -->
+          <label>Halo 3: <span id="g1-h3-val">92</span>px
+            <input type="range" id="g1-h3" min="0" max="250" value="92" oninput="g1Update()" style="width:100%;">
+          </label>
+
+          <!-- HALO 4 -->
+          <label>Halo 4: <span id="g1-h4-val">102</span>px
+            <input type="range" id="g1-h4" min="0" max="300" value="102" oninput="g1Update()" style="width:100%;">
+          </label>
+
+          <!-- HALO 5 -->
+          <label>Halo 5: <span id="g1-h5-val">151</span>px
+            <input type="range" id="g1-h5" min="0" max="300" value="151" oninput="g1Update()" style="width:100%;">
+          </label>
+
+          <!-- OVERALL BRIGHTNESS -->
+          <label style="grid-column:1/-1;">Overall Brightness: <span id="g1-bright-val">1.0</span>
+            <input type="range" id="g1-bright" min="0" max="2" step="0.05" value="1" oninput="g1Update()" style="width:100%;">
+          </label>
+
+        </div>
+
+        <div style="margin-top:10px;display:flex;gap:8px;">
+          <button onclick="g1Reset()" style="font-family:'VT323',monospace;font-size:14px;padding:4px 12px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:rgba(232,230,240,0.6);cursor:pointer;">RESET</button>
+        </div>
+
+        <!-- CSS OUTPUT PREVIEW -->
+        <pre id="g1-css-output" style="
+          margin-top:12px; padding:10px; font-family:'Fira Code',monospace; font-size:12px;
+          color:#00ee64; background:rgba(0,0,0,0.5); border:1px solid rgba(0,238,100,0.15);
+          white-space:pre-wrap; word-break:break-all; max-height:120px; overflow-y:auto;
+        "></pre>
+      </div>
     </div>
+
+    <style>
+      .g1-tuner-open { display:flex !important; flex-wrap:wrap; }
+      #g1-tuner input[type="range"] {
+        -webkit-appearance:none; height:4px; background:rgba(112,0,255,0.3); border-radius:0; outline:none;
+      }
+      #g1-tuner input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance:none; width:12px; height:12px; background:#a855f7; border:none; cursor:pointer;
+      }
+    </style>
+
+    <script>
+    // G1 HARD NEON TUNER — real-time CSS parameter adjustment
+    const G1_DEFAULTS = {
+      coreColor:'#ffffff', haloColor:'#7000ff',
+      cb1:7, cb2:10, cb3:21,
+      h1:42, h2:82, h3:92, h4:102, h5:151,
+      bright:1.0
+    };
+
+    function g1GetValues() {
+      return {
+        coreColor: document.getElementById('g1-core-color').value,
+        haloColor: document.getElementById('g1-halo-color').value,
+        cb1: +document.getElementById('g1-cb1').value,
+        cb2: +document.getElementById('g1-cb2').value,
+        cb3: +document.getElementById('g1-cb3').value,
+        h1: +document.getElementById('g1-h1').value,
+        h2: +document.getElementById('g1-h2').value,
+        h3: +document.getElementById('g1-h3').value,
+        h4: +document.getElementById('g1-h4').value,
+        h5: +document.getElementById('g1-h5').value,
+        bright: +document.getElementById('g1-bright').value,
+      };
+    }
+
+    function g1BuildShadow(v) {
+      return [
+        `0 0 ${v.cb1}px ${v.coreColor}`,
+        `0 0 ${v.cb2}px ${v.coreColor}`,
+        `0 0 ${v.cb3}px ${v.coreColor}`,
+        `0 0 ${v.h1}px ${v.haloColor}`,
+        `0 0 ${v.h2}px ${v.haloColor}`,
+        `0 0 ${v.h3}px ${v.haloColor}`,
+        `0 0 ${v.h4}px ${v.haloColor}`,
+        `0 0 ${v.h5}px ${v.haloColor}`,
+      ].join(',\n    ');
+    }
+
+    function g1Update() {
+      const v = g1GetValues();
+      // Update value labels
+      document.getElementById('g1-cb1-val').textContent = v.cb1;
+      document.getElementById('g1-cb2-val').textContent = v.cb2;
+      document.getElementById('g1-cb3-val').textContent = v.cb3;
+      document.getElementById('g1-h1-val').textContent = v.h1;
+      document.getElementById('g1-h2-val').textContent = v.h2;
+      document.getElementById('g1-h3-val').textContent = v.h3;
+      document.getElementById('g1-h4-val').textContent = v.h4;
+      document.getElementById('g1-h5-val').textContent = v.h5;
+      document.getElementById('g1-bright-val').textContent = v.bright.toFixed(2);
+
+      const shadow = g1BuildShadow(v);
+      const el = document.getElementById('g1-preview');
+      el.style.textShadow = shadow;
+      el.style.color = v.coreColor;
+      el.style.filter = `brightness(${v.bright})`;
+
+      // Update CSS output
+      const css = `.g1-custom {\n  color: ${v.coreColor};\n  text-shadow:\n    ${shadow};\n  filter: brightness(${v.bright});\n}`;
+      document.getElementById('g1-css-output').textContent = css;
+    }
+
+    function g1Reset() {
+      const d = G1_DEFAULTS;
+      document.getElementById('g1-core-color').value = d.coreColor;
+      document.getElementById('g1-halo-color').value = d.haloColor;
+      document.getElementById('g1-cb1').value = d.cb1;
+      document.getElementById('g1-cb2').value = d.cb2;
+      document.getElementById('g1-cb3').value = d.cb3;
+      document.getElementById('g1-h1').value = d.h1;
+      document.getElementById('g1-h2').value = d.h2;
+      document.getElementById('g1-h3').value = d.h3;
+      document.getElementById('g1-h4').value = d.h4;
+      document.getElementById('g1-h5').value = d.h5;
+      document.getElementById('g1-bright').value = d.bright;
+      // Reset the element to original CSS class
+      const el = document.getElementById('g1-preview');
+      el.style.textShadow = '';
+      el.style.color = '';
+      el.style.filter = '';
+      document.getElementById('g1-css-output').textContent = '';
+      g1Update();
+    }
+
+    function g1CopyCSS() {
+      const css = document.getElementById('g1-css-output').textContent;
+      if (!css) { g1Update(); }
+      const text = document.getElementById('g1-css-output').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('g1-copy-btn');
+        btn.textContent = 'COPIED ✓';
+        btn.style.color = '#fff';
+        btn.style.background = 'rgba(0,238,100,0.3)';
+        setTimeout(() => {
+          btn.textContent = 'COPY CSS';
+          btn.style.color = '#00ee64';
+          btn.style.background = 'rgba(0,238,100,0.1)';
+        }, 1500);
+      });
+    }
+
+    // Initialize CSS output on load
+    document.addEventListener('DOMContentLoaded', () => { g1Update(); });
+    </script>
 
     <div class="specimen">
       <div class="spec-label">
