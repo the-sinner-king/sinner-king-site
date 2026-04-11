@@ -3,17 +3,15 @@
  *
  * Storage adapter for the guestbook.
  *
- * In production (Vercel): uses Vercel KV (Redis).
- *   Setup: Vercel dashboard → Storage → Create KV Database
- *   Vercel auto-injects KV_REST_API_URL + KV_REST_API_TOKEN into env.
+ * In production (Vercel): uses Vercel Blob.
+ *   Setup: Vercel dashboard → Storage → Connect on any existing Blob store.
+ *   Vercel auto-injects BLOB_READ_WRITE_TOKEN into env.
+ *   Each entry stored as guestbook/<id>.json — no race conditions, no overwrite needed.
  *
  * In local dev: falls back to data/guestbook.json.
- *
- * KV schema: Redis list at key "guestbook".
- *   lpush → newest entries at index 0.
- *   lrange 0 -1 → all entries, newest first.
  */
 
+import { put, list } from '@vercel/blob'
 import { readFileSync, writeFileSync, renameSync, mkdirSync, existsSync } from 'fs'
 import { join, dirname } from 'path'
 
@@ -27,39 +25,31 @@ export interface GuestbookEntry {
   date:      string
 }
 
-// ─── VERCEL KV ADAPTER ────────────────────────────────────────────────────────
+// ─── VERCEL BLOB ADAPTER ──────────────────────────────────────────────────────
 
-const KV_KEY = 'guestbook'
-
-function isKvConfigured(): boolean {
-  return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN)
+function isBlobConfigured(): boolean {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN)
 }
 
-async function kvFetch(path: string, init?: RequestInit): Promise<Response> {
-  return fetch(`${process.env.KV_REST_API_URL}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
-      'Content-Type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
+async function blobRead(): Promise<GuestbookEntry[]> {
+  const { blobs } = await list({ prefix: 'guestbook/', token: process.env.BLOB_READ_WRITE_TOKEN })
+  if (!blobs.length) return []
+  const entries = await Promise.all(
+    blobs.map(async (b) => {
+      const res = await fetch(b.url, { cache: 'no-store' })
+      return res.json() as Promise<GuestbookEntry>
+    })
+  )
+  return entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+}
+
+async function blobInsert(entry: GuestbookEntry): Promise<void> {
+  await put(`guestbook/${entry.id}.json`, JSON.stringify(entry), {
+    access: 'public',
+    contentType: 'application/json',
+    addRandomSuffix: false,
+    token: process.env.BLOB_READ_WRITE_TOKEN,
   })
-}
-
-async function kvRead(): Promise<GuestbookEntry[]> {
-  const res = await kvFetch(`/lrange/${KV_KEY}/0/-1`)
-  if (!res.ok) throw new Error(`KV read failed: ${res.status}`)
-  const { result } = await res.json() as { result: string[] }
-  if (!Array.isArray(result)) return []
-  return result.map((s) => JSON.parse(s) as GuestbookEntry)
-}
-
-async function kvInsert(entry: GuestbookEntry): Promise<void> {
-  const res = await kvFetch(`/lpush/${KV_KEY}`, {
-    method: 'POST',
-    body: JSON.stringify([JSON.stringify(entry)]),
-  })
-  if (!res.ok) throw new Error(`KV insert failed: ${res.status}`)
 }
 
 // ─── LOCAL FS FALLBACK (dev only) ─────────────────────────────────────────────
@@ -94,11 +84,11 @@ function fsInsert(entry: GuestbookEntry): Promise<void> {
 // ─── PUBLIC API ───────────────────────────────────────────────────────────────
 
 export async function readEntries(): Promise<GuestbookEntry[]> {
-  if (isKvConfigured()) return kvRead()
+  if (isBlobConfigured()) return blobRead()
   return fsRead()
 }
 
 export async function insertEntry(entry: GuestbookEntry): Promise<void> {
-  if (isKvConfigured()) return kvInsert(entry)
+  if (isBlobConfigured()) return blobInsert(entry)
   return fsInsert(entry)
 }
