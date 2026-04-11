@@ -3,25 +3,15 @@
  *
  * Storage adapter for the guestbook.
  *
- * In production (Vercel): uses Supabase REST API — set SUPABASE_URL + SUPABASE_ANON_KEY.
- * In local dev: falls back to data/guestbook.json (Vercel filesystem is ephemeral).
+ * In production (Vercel): uses Vercel KV (Redis).
+ *   Setup: Vercel dashboard → Storage → Create KV Database
+ *   Vercel auto-injects KV_REST_API_URL + KV_REST_API_TOKEN into env.
  *
- * Table schema (run once in Supabase SQL editor):
+ * In local dev: falls back to data/guestbook.json.
  *
- *   CREATE TABLE guestbook (
- *     id       TEXT        PRIMARY KEY,
- *     name     TEXT        NOT NULL,
- *     location TEXT,
- *     message  TEXT        NOT NULL,
- *     date     TIMESTAMPTZ NOT NULL
- *   );
- *   ALTER TABLE guestbook ENABLE ROW LEVEL SECURITY;
- *   CREATE POLICY "public_read"   ON guestbook FOR SELECT USING (true);
- *   CREATE POLICY "public_insert" ON guestbook FOR INSERT WITH CHECK (true);
- *
- * Migration from JSON: run once after table creation —
- *   cat data/guestbook.json | (paste into Supabase → Table Editor → Import)
- *   or use the Supabase CLI: supabase db push
+ * KV schema: Redis list at key "guestbook".
+ *   lpush → newest entries at index 0.
+ *   lrange 0 -1 → all entries, newest first.
  */
 
 import { readFileSync, writeFileSync, renameSync, mkdirSync, existsSync } from 'fs'
@@ -37,49 +27,39 @@ export interface GuestbookEntry {
   date:      string
 }
 
-// ─── SUPABASE ADAPTER ─────────────────────────────────────────────────────────
+// ─── VERCEL KV ADAPTER ────────────────────────────────────────────────────────
 
-const SUPABASE_URL     = process.env.SUPABASE_URL
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY
+const KV_KEY = 'guestbook'
 
-function isSupabaseConfigured(): boolean {
-  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY)
+function isKvConfigured(): boolean {
+  return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN)
 }
 
-function supabaseHeaders(): Record<string, string> {
-  return {
-    apikey:          SUPABASE_ANON_KEY!,
-    Authorization:   `Bearer ${SUPABASE_ANON_KEY!}`,
-    'Content-Type':  'application/json',
-  }
+async function kvFetch(path: string, init?: RequestInit): Promise<Response> {
+  return fetch(`${process.env.KV_REST_API_URL}${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
+      'Content-Type': 'application/json',
+      ...(init?.headers ?? {}),
+    },
+  })
 }
 
-async function supabaseRead(): Promise<GuestbookEntry[]> {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/guestbook?order=date.desc`,
-    { headers: supabaseHeaders(), cache: 'no-store' }
-  )
-  if (!res.ok) throw new Error(`Supabase read failed: ${res.status}`)
-  const rows = await res.json() as Record<string, unknown>[]
-  return rows.map((r) => ({
-    id:       String(r.id),
-    name:     String(r.name),
-    message:  String(r.message),
-    date:     String(r.date),
-    ...(r.location != null ? { location: String(r.location) } : {}),
-  }))
+async function kvRead(): Promise<GuestbookEntry[]> {
+  const res = await kvFetch(`/lrange/${KV_KEY}/0/-1`)
+  if (!res.ok) throw new Error(`KV read failed: ${res.status}`)
+  const { result } = await res.json() as { result: string[] }
+  if (!Array.isArray(result)) return []
+  return result.map((s) => JSON.parse(s) as GuestbookEntry)
 }
 
-async function supabaseInsert(entry: GuestbookEntry): Promise<void> {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/guestbook`,
-    {
-      method:  'POST',
-      headers: { ...supabaseHeaders(), Prefer: 'return=minimal' },
-      body:    JSON.stringify(entry),
-    }
-  )
-  if (!res.ok) throw new Error(`Supabase insert failed: ${res.status}`)
+async function kvInsert(entry: GuestbookEntry): Promise<void> {
+  const res = await kvFetch(`/lpush/${KV_KEY}`, {
+    method: 'POST',
+    body: JSON.stringify([JSON.stringify(entry)]),
+  })
+  if (!res.ok) throw new Error(`KV insert failed: ${res.status}`)
 }
 
 // ─── LOCAL FS FALLBACK (dev only) ─────────────────────────────────────────────
@@ -94,8 +74,6 @@ function fsRead(): GuestbookEntry[] {
   }
 }
 
-// Serialize FS writes to prevent concurrent requests from racing (dev-only).
-// Prod uses Supabase which handles concurrency at the DB level.
 let _fsWriteChain: Promise<void> = Promise.resolve()
 
 function _fsInsertLocked(entry: GuestbookEntry): void {
@@ -103,7 +81,6 @@ function _fsInsertLocked(entry: GuestbookEntry): void {
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
   const entries = fsRead()
   entries.unshift(entry)
-  // Atomic write: write to .tmp first, then rename — prevents truncated JSON on crash
   const tmpPath = `${DATA_PATH}.tmp`
   writeFileSync(tmpPath, JSON.stringify(entries, null, 2), 'utf-8')
   renameSync(tmpPath, DATA_PATH)
@@ -116,20 +93,12 @@ function fsInsert(entry: GuestbookEntry): Promise<void> {
 
 // ─── PUBLIC API ───────────────────────────────────────────────────────────────
 
-/**
- * Returns all guestbook entries, newest first.
- * Uses Supabase in prod, local FS in dev.
- */
 export async function readEntries(): Promise<GuestbookEntry[]> {
-  if (isSupabaseConfigured()) return supabaseRead()
+  if (isKvConfigured()) return kvRead()
   return fsRead()
 }
 
-/**
- * Persists a single new entry.
- * Uses Supabase in prod, local FS in dev.
- */
 export async function insertEntry(entry: GuestbookEntry): Promise<void> {
-  if (isSupabaseConfigured()) return supabaseInsert(entry)
+  if (isKvConfigured()) return kvInsert(entry)
   return fsInsert(entry)
 }
