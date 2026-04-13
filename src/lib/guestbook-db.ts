@@ -37,7 +37,7 @@ async function blobRead(): Promise<GuestbookEntry[]> {
   const entries = await Promise.all(
     blobs.map(async (b) => {
       const res = await fetch(b.url, { cache: 'no-store' })
-      return res.json() as Promise<GuestbookEntry>
+      return (await res.json()) as GuestbookEntry
     })
   )
   return entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())

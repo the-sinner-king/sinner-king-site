@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, Space_Mono } from 'next/font/google'
 import './globals.css'
 import { VisitorBeacon } from '@/components/VisitorBeacon'
+import { Analytics } from '@vercel/analytics/next'
 
 // --- Fonts ---
 const inter = Inter({
@@ -141,6 +142,9 @@ export default function RootLayout({
         <div className="relative z-10">
           {children}
         </div>
+
+        {/* Vercel Analytics — privacy-first, no cookies */}
+        <Analytics />
       </body>
     </html>
   )
