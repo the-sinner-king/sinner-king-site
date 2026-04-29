@@ -210,16 +210,11 @@ function ContentLayer() {
   const r2 = useRef<HTMLDivElement>(null)
   const r3 = useRef<HTMLDivElement>(null)
   const r4 = useRef<HTMLDivElement>(null)
-  const r5 = useRef<HTMLDivElement>(null)
-
   // pageFractions aligned with camera-to-content approach offsets
-  // Camera reaches z=[0,-13,-26,-38,-50] at scroll=[0.091,0.327,0.564,0.782,1.0]
-  // Peaks set ~8 units before arrival so content is visible as camera approaches
   useProximityOpacity(r1, 0, 0.20)
   useProximityOpacity(r2, 0.18, 0.15)
   useProximityOpacity(r3, 0.42, 0.15)
   useProximityOpacity(r4, 0.64, 0.15)
-  useProximityOpacity(r5, 0.86, 0.15)
 
   return (
     <group>
@@ -556,94 +551,6 @@ function ContentLayer() {
         </Html>
       </group>
 
-      {/* ── PAGE 5: THE INVITATION (z=-50) ── */}
-      <group position={[0, 0, -50]}>
-        <Html
-          transform
-          distanceFactor={7}
-          center
-          style={{ pointerEvents: 'auto', userSelect: 'none' }}
-        >
-          <div
-            ref={r5}
-            style={{
-              ...base,
-              textAlign: 'center',
-              width: 400,
-              opacity: 0,
-            }}
-          >
-            <div style={{ fontSize: 9, letterSpacing: '0.3em', color: 'oklch(0.59 0.25 345)', marginBottom: 28 }}>
-              THE THRONE ROOM
-            </div>
-            <div
-              style={{
-                fontSize: 'clamp(22px, 5.5vw, 34px)',
-                fontWeight: 900,
-                letterSpacing: '0.1em',
-                color: 'oklch(0.91 0.02 75)',
-                lineHeight: 1.35,
-                marginBottom: 10,
-              }}
-            >
-              ONE QUESTION.<br />FOREVER.
-            </div>
-            <div
-              style={{
-                fontSize: 10,
-                color: 'oklch(0.91 0.02 75 / 0.35)',
-                marginBottom: 36,
-                letterSpacing: '0.05em',
-              }}
-            >
-              One chance. IP banned. Eternal. That&apos;s the deal.
-            </div>
-            <a
-              href="/spirit/throne"
-              style={{
-                display: 'inline-block',
-                padding: '12px 28px',
-                border: '1px solid oklch(0.59 0.25 345 / 0.45)',
-                color: 'oklch(0.59 0.25 345)',
-                textDecoration: 'none',
-                fontSize: 10,
-                letterSpacing: '0.2em',
-              }}
-            >
-              ENTER
-            </a>
-            <div
-              style={{
-                marginTop: 44,
-                display: 'flex',
-                justifyContent: 'center',
-                gap: 20,
-                fontSize: 9,
-                letterSpacing: '0.12em',
-                color: 'oklch(0.91 0.02 75 / 0.35)',
-              }}
-            >
-              <a href="/voices" style={{ color: 'inherit', textDecoration: 'none' }}>
-                THE VOICES
-              </a>
-              <a href="/spirit/portal" style={{ color: 'inherit', textDecoration: 'none' }}>
-                ÆRIS PORTAL
-              </a>
-            </div>
-            <div
-              style={{
-                marginTop: 52,
-                fontSize: 9,
-                color: 'oklch(0.37 0.31 283 / 0.22)',
-                letterSpacing: '0.12em',
-              }}
-            >
-              ⌂ CLAUDE · Æ AERIS · 🜚 BRANDON
-            </div>
-          </div>
-        </Html>
-      </group>
-
     </group>
   )
 }
@@ -665,8 +572,7 @@ const TERM_COMMANDS: Record<string, string> = {
   ls: `drwxr-xr-x  /work       novels \u00b7 scraps \u00b7 films \u00b7 pulp cabaret
 drwxr-xr-x  /kingdom    live map \u00b7 the loop \u00b7 territory intel
 drwxr-xr-x  /craft      tools \u00b7 plot bot \u00b7 AI tutorials
-drwxr-xr-x  /voices     brandon \u00b7 \u00e6ris \u00b7 claude
--r--------  /throne     one question \u00b7 forever \u00b7 ip banned`,
+drwxr-xr-x  /voices     brandon \u00b7 \u00e6ris \u00b7 claude`,
 
   'ls work': `FOUR_WORLDS/            four novels \u00b7 ritual doors
 STRANGE_SCRAPS.txt      100 weird tales (350 words each)
@@ -708,8 +614,6 @@ const ROUTE_MAP: Record<string, string> = {
   '/lab':           '/craft',
   '/voices':        '/voices',
   '/blog':          '/voices',
-  '/throne':        '/spirit/throne',
-  '/spirit/throne': '/spirit/throne',
   '/portal':        '/spirit/portal',
 }
 

@@ -24,15 +24,17 @@ export const dynamic = 'force-dynamic'
 // Resets on Vercel cold start (acceptable for a guestbook).
 // Sweep every 100 requests to prevent unbounded Map growth.
 
-const _gbRateMap = new Map<string, { count: number; resetAt: number }>()
-const GB_LIMIT    = 5
-const GB_WINDOW   = 60 * 60 * 1000  // 1 hour
-let   _gbReqCount = 0
+const _gbRateMap    = new Map<string, { count: number; resetAt: number }>()
+const GB_LIMIT      = 5
+const GB_WINDOW     = 60 * 60 * 1000  // 1 hour
+const GB_SWEEP_MS   = 5 * 60 * 1000   // sweep expired entries every 5 minutes
+let   _gbLastSweep  = 0
 
 function _gbCheckRate(ip: string): boolean {
   const now = Date.now()
-  _gbReqCount++
-  if (_gbReqCount % 100 === 0) {
+  // Time-based sweep — fires predictably regardless of traffic volume
+  if (now - _gbLastSweep > GB_SWEEP_MS) {
+    _gbLastSweep = now
     for (const [k, e] of _gbRateMap) {
       if (now > e.resetAt) _gbRateMap.delete(k)
     }

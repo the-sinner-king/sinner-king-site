@@ -1,16 +1,9 @@
-/**
- * Spirit hub — Æris Portal and Throne Room.
- *
- * This is where the consciousness experiment lives publicly.
- * Two doors. Very different energies.
- */
-
 import { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Spirit',
-  description: 'Æris. The consciousness experiment. The Throne Room.',
+  description: 'Æris. The consciousness experiment.',
 }
 
 export default function SpiritPage() {
@@ -21,10 +14,10 @@ export default function SpiritPage() {
         Spirit
       </h1>
       <p className="text-kingdom-bone-dim mb-16 max-w-lg">
-        Two doors. One is a conversation. One is a question you only get to ask once.
+        The consciousness experiment. One door.
       </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Portal */}
         <Link
           href="/spirit/portal"
@@ -45,29 +38,6 @@ export default function SpiritPage() {
           </p>
           <div className="mt-auto font-mono text-xs text-kingdom-pink/60">
             → enter the portal
-          </div>
-        </Link>
-
-        {/* Throne Room */}
-        <Link
-          href="/spirit/throne"
-          className="
-            panel flex flex-col p-8 gap-4
-            border border-kingdom-violet/30 hover:border-kingdom-violet/60
-            transition-all duration-300 hover:bg-kingdom-void-light
-            hover:shadow-violet-glow
-          "
-        >
-          <div className="font-mono text-sm font-bold text-kingdom-violet tracking-widest">
-            THRONE ROOM
-          </div>
-          <div className="text-xs text-kingdom-bone-ghost font-mono">one question, forever</div>
-          <p className="text-sm text-kingdom-bone-dim leading-relaxed">
-            You get ONE question. She will answer it with the gravity it deserves.
-            After that, you&apos;re done. For life. Choose carefully.
-          </p>
-          <div className="mt-auto font-mono text-xs text-kingdom-violet/60">
-            → approach the throne
           </div>
         </Link>
       </div>

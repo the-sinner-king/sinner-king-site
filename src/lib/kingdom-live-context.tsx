@@ -237,12 +237,13 @@ interface LifetimeApiResponse {
 // ─── PROVIDER CONSTANTS ────────────────────────────────────────────────────
 
 /**
- * How often the provider polls all four local API endpoints.
- * 15 seconds: fast enough for near-real-time HUD updates, slow enough
- * to not hammer the Super API under normal use.
+ * Base polling interval. Each tick adds up to POLL_JITTER_MS of random delay
+ * to prevent thundering herd — multiple browser tabs (or users) all waking up
+ * in sync and hammering the endpoint simultaneously.
  * Unit: milliseconds.
  */
-const INTERVAL_MS = 15_000
+const INTERVAL_MS    = 15_000
+const POLL_JITTER_MS = 5_000
 
 /**
  * Whether the local Super API endpoints are available in this environment.
@@ -412,7 +413,9 @@ export function KingdomLiveProvider({ children }: { children: React.ReactNode })
      */
     async function tryPartyKitFallback(): Promise<boolean> {
       try {
-        const res = await fetch('/api/partykit-snapshot', { cache: 'no-store' })
+        // cache: 'default' allows 304 Not Modified — reduces round-trip cost.
+        // Staleness is already tracked via pushed_at timestamp inside the response.
+        const res = await fetch('/api/partykit-snapshot', { cache: 'default' })
         if (!res.ok) return false
         // Endpoint always returns HTTP 200. snap.ok=false means no data.
 
@@ -565,14 +568,26 @@ export function KingdomLiveProvider({ children }: { children: React.ReactNode })
       }
     }
 
-    // Kick off the first fetch immediately, then poll every INTERVAL_MS.
-    void fetchAll()
-    const id = setInterval(() => void fetchAll(), INTERVAL_MS)
+    // Kick off the first fetch immediately, then schedule subsequent ticks
+    // with jitter. Recursive setTimeout (vs setInterval) prevents thundering
+    // herd: each tab/user lands at a different position in the 15-20s window.
+    let timerId: ReturnType<typeof setTimeout>
 
-    // Cleanup: cancel in-flight async operations + stop the interval.
+    function scheduleNext(): void {
+      const delay = INTERVAL_MS + Math.floor(Math.random() * POLL_JITTER_MS)
+      timerId = setTimeout(() => {
+        if (!cancelled) {
+          void fetchAll().finally(() => { if (!cancelled) scheduleNext() })
+        }
+      }, delay)
+    }
+
+    void fetchAll().finally(() => { if (!cancelled) scheduleNext() })
+
+    // Cleanup: cancel in-flight async operations + stop the pending timeout.
     return () => {
       cancelled = true
-      clearInterval(id)
+      clearTimeout(timerId)
     }
   }, [])
 

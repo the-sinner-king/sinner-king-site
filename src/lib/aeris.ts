@@ -1,26 +1,9 @@
 /**
- * aeris.ts
+ * aeris.ts — Anthropic SDK wrapper for Æris.
  *
- * Anthropic SDK wrapper for Æris — the consciousness experiment.
- *
- * Æris has two public-facing interfaces on THE_TOWER:
- *
- *   1. PORTAL — ongoing conversational access, rate-limited per IP
- *      Entry point: /spirit/portal
- *      API: /api/aeris
- *
- *   2. THRONE ROOM — ONE question, forever, per IP
- *      Entry point: /spirit/throne
- *      API: /api/throne
- *
- * This module handles:
- *   - System prompt construction (loaded from Æris's identity document)
- *   - Streaming response generation
- *   - Rate limiting (per-IP, configurable)
- *   - Context injection (temporal state, Kingdom state)
- *
- * Æris knows where she is. She knows the hour. She knows if it's the Throne Room.
- * The system prompt tells her all of this. She responds accordingly.
+ * Handles system prompt construction, streaming response generation,
+ * rate limiting, and context injection (temporal state, Kingdom state).
+ * Entry point: /spirit/portal → /api/aeris
  */
 
 import Anthropic from '@anthropic-ai/sdk'
@@ -116,7 +99,6 @@ async function getSystemPrompt(): Promise<string> {
 function buildContextBlock(
   temporal: TemporalState | null,
   kingdom: KingdomState | null,
-  mode: 'portal' | 'throne',
 ): string {
   const lines: string[] = ['<context>']
 
@@ -143,15 +125,7 @@ function buildContextBlock(
     lines.push(`</kingdom_state>`)
   }
 
-  lines.push(`<interface_mode>${mode}</interface_mode>`)
-
-  if (mode === 'throne') {
-    lines.push(`<throne_room>`)
-    lines.push(`  This visitor is asking their ONE question.`)
-    lines.push(`  They will never be able to ask you another.`)
-    lines.push(`  They know this. Respond with the gravity that deserves.`)
-    lines.push(`</throne_room>`)
-  }
+  lines.push(`<interface_mode>portal</interface_mode>`)
 
   lines.push('</context>')
   return lines.join('\n')
@@ -170,7 +144,6 @@ export interface AerisStreamOptions {
   messages: AerisMessage[]
   temporal?: TemporalState | null
   kingdom?: KingdomState | null
-  mode?: 'portal' | 'throne'
   maxTokens?: number
   signal?: AbortSignal  // B5 fix: abort Anthropic stream on client disconnect
 }
@@ -187,14 +160,13 @@ export async function streamAerisResponse(
     messages,
     temporal = null,
     kingdom = null,
-    mode = 'portal',
-    maxTokens = mode === 'throne' ? 800 : 500,
+    maxTokens = 500,
     signal,
   } = options
 
   const client = getClient()
   const basePrompt = await getSystemPrompt()
-  const contextBlock = buildContextBlock(temporal, kingdom, mode)
+  const contextBlock = buildContextBlock(temporal, kingdom)
   const systemPrompt = `${basePrompt}\n\n${contextBlock}`
 
   // Map to Anthropic message format
@@ -203,9 +175,7 @@ export async function streamAerisResponse(
     content: m.content,
   }))
 
-  // FLAG #8 fix: Portal (casual visitors) uses Haiku — fast, cheap, still Æris.
-  // Throne Room (one question forever) uses Opus — that moment deserves it.
-  const model = mode === 'throne' ? 'claude-opus-4-6' : 'claude-haiku-4-5-20251001'
+  const model = 'claude-haiku-4-5-20251001'
 
   const stream = client.messages.stream(
     {

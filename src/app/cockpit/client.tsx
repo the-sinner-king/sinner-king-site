@@ -465,6 +465,117 @@ function ContentPanel() {
 }
 
 // ---------------------------------------------------------------------------
+// SCOUT.MINUTE Panel
+// ---------------------------------------------------------------------------
+
+interface ScoutData {
+  ok:            boolean
+  timestamp?:    string
+  spark?:        string
+  chronicle?:    string
+  model?:        string
+  context_chars?: number
+  error?:        string
+}
+
+function ScoutMinutePanel() {
+  const [data, setData] = useState<ScoutData | null>(null)
+  const [age, setAge]   = useState<number | null>(null)
+
+  useEffect(() => {
+    async function poll() {
+      try {
+        const res = await fetch('/api/cockpit/scout', { cache: 'no-store' })
+        const json = await res.json() as ScoutData
+        setData(json)
+        if (json.timestamp) {
+          setAge(Date.now() - new Date(json.timestamp).getTime())
+        }
+      } catch { /* ignore */ }
+    }
+    void poll()
+    const id = setInterval(() => void poll(), 30_000)
+    return () => clearInterval(id)
+  }, [])
+
+  const spark     = data?.spark ?? ''
+  const chronicle = data?.chronicle ?? ''
+  const stale     = age != null && age > 10 * 60 * 1000  // >10 min = stale
+
+  return (
+    <div style={{
+      background:  'var(--void-mid, #12121a)',
+      border:      `1px solid oklch(0.87 0.21 192 / ${stale ? '0.10' : '0.25'})`,
+      padding:     20,
+      width:       '100%',
+    }}>
+      <PanelLabel>
+        <Dot color={stale ? 'oklch(0.37 0.02 45)' : 'var(--cyan, #00f3ff)'} />
+        SCOUT.MINUTE
+        {age != null && (
+          <span style={{ marginLeft: 10, color: stale ? 'var(--amber)' : 'oklch(0.87 0.21 192 / 0.40)' }}>
+            {Math.round(age / 60000)}m ago
+          </span>
+        )}
+      </PanelLabel>
+
+      {data?.ok ? (
+        <>
+          {/* THE SPARK */}
+          {spark && (
+            <div style={{
+              fontFamily:   'var(--font-mono, monospace)',
+              fontSize:     15,
+              fontWeight:   600,
+              color:        'var(--bone, #e8e0d0)',
+              lineHeight:   1.4,
+              marginBottom: 12,
+              borderLeft:   '2px solid var(--cyan, #00f3ff)',
+              paddingLeft:  12,
+            }}>
+              {spark}
+            </div>
+          )}
+
+          {/* THE CHRONICLE */}
+          {chronicle && (
+            <div style={{
+              fontFamily: 'var(--font-mono, monospace)',
+              fontSize:   11,
+              color:      'var(--bone-dim, #a09888)',
+              lineHeight: 1.6,
+            }}>
+              {chronicle}
+            </div>
+          )}
+
+          {/* Meta */}
+          <div style={{
+            marginTop:    10,
+            fontFamily:   'var(--font-mono, monospace)',
+            fontSize:      9,
+            color:        'oklch(0.37 0.02 45)',
+            letterSpacing: '0.1em',
+            display:      'flex',
+            gap:          16,
+          }}>
+            <span>{data.model}</span>
+            <span>{data.context_chars?.toLocaleString()} ctx chars</span>
+            {data.timestamp && (
+              <span>{new Date(data.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+            )}
+          </div>
+        </>
+      ) : (
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'oklch(0.37 0.02 45)' }}>
+          {data ? 'SCOUT.MINUTE offline' : 'loading...'}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Root — Admin Shell
 // ---------------------------------------------------------------------------
 
@@ -498,15 +609,18 @@ export function AdminClient() {
       </div>
 
       {/* Panels */}
-      <div style={{
-        display:        'flex',
-        gap:            16,
-        flexWrap:       'wrap',
-        alignItems:     'flex-start',
-      }}>
-        <VisitorsPanel />
-        <KingdomStatePanel />
-        <ContentPanel />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <ScoutMinutePanel />
+        <div style={{
+          display:    'flex',
+          gap:        16,
+          flexWrap:   'wrap',
+          alignItems: 'flex-start',
+        }}>
+          <VisitorsPanel />
+          <KingdomStatePanel />
+          <ContentPanel />
+        </div>
       </div>
 
       {/* Footer */}

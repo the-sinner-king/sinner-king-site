@@ -84,12 +84,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
     {
-      url: `${BASE_URL}/spirit/throne`,
-      lastModified: new Date(),
-      changeFrequency: 'yearly',
-      priority: 0.8,
-    },
-    {
       url: `${BASE_URL}/thealreadyhaunted`,
       lastModified: new Date(),
       changeFrequency: 'weekly',

@@ -225,19 +225,52 @@ RULES:
  *    2. Prompt injection via fabricated "assistant" turns in the message history */
 const conversations = new Map<string, Array<{ role: string; content: string }>>()
 
+/** Per-IP session tracking — prevents FIFO DoS.
+ *  Without this, an attacker with many IPs can open MAX_SESSIONS sessions and
+ *  evict all legitimate visitors. Cap limits damage from any single IP. */
+const ipSessions = new Map<string, string[]>()  // ip → [oldest..newest] session IDs
+const MAX_SESSIONS_PER_IP = 3
+
+/** Remove a session from both maps, keeping ipSessions in sync. */
+function _removeSession(sessionId: string): void {
+  conversations.delete(sessionId)
+  for (const [ip, queue] of ipSessions) {
+    const idx = queue.indexOf(sessionId)
+    if (idx !== -1) {
+      queue.splice(idx, 1)
+      if (queue.length === 0) ipSessions.delete(ip)
+      break
+    }
+  }
+}
+
 /**
  * Returns the session ID from the X-Archivist-Session header, but ONLY if that
  * token belongs to an active server-side conversation. If absent or unrecognized,
  * generates a new UUID — this prevents session hijacking by guessing or constructing
  * UUIDs that happen to belong to another visitor's ongoing session.
  *
+ * Enforces MAX_SESSIONS_PER_IP: if the IP already has the maximum number of
+ * open sessions, the oldest one is evicted before a new one is created.
+ *
  * The client must echo the returned sessionId in subsequent requests.
  */
-function getSessionId(request: NextRequest): string {
+function getSessionId(request: NextRequest, ip: string): string {
   const token = request.headers.get('x-archivist-session')
   // Only honor a token we issued — unknown tokens start a fresh session
   if (token && conversations.has(token)) return token
-  return crypto.randomUUID()
+
+  // Enforce per-IP session cap before creating a new session
+  const ipQueue = ipSessions.get(ip) ?? []
+  while (ipQueue.length >= MAX_SESSIONS_PER_IP) {
+    const evictId = ipQueue.shift()!
+    _removeSession(evictId)
+  }
+
+  const newId = crypto.randomUUID()
+  ipQueue.push(newId)
+  ipSessions.set(ip, ipQueue)
+  return newId
 }
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
@@ -308,7 +341,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // from the previous response via the X-Archivist-Session header.
     // Using a header (server-controlled channel) prevents the client from providing
     // a sessionId that maps to another user's conversation history.
-    const sessionId = getSessionId(request)
+    const sessionId = getSessionId(request, ip)
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
@@ -386,10 +419,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // FIFO eviction — oldest session deleted when map exceeds MAX_SESSIONS.
     // Map iteration order is insertion order in V8, so .keys().next().value is
-    // always the oldest entry. Keeps memory bounded without a full sweep.
+    // always the oldest entry. _removeSession keeps ipSessions in sync so the
+    // per-IP cap remains accurate after global eviction.
     if (conversations.size > MAX_SESSIONS) {
       const firstKey = conversations.keys().next().value
-      if (firstKey !== undefined) conversations.delete(firstKey)
+      if (firstKey !== undefined) _removeSession(firstKey)
     }
 
     return NextResponse.json({ reply, sessionId }, { headers: corsHeaders(origin) })

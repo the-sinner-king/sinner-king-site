@@ -136,8 +136,17 @@ export interface ActiveEvents {
 // --- File paths ---
 
 function getFeedsPath(): string {
-  return process.env.SCRYER_FEEDS_PATH
-    ?? path.join(process.cwd(), '..', '..', '..', 'SCRYER_FEEDS')
+  if (process.env.SCRYER_FEEDS_PATH) return process.env.SCRYER_FEEDS_PATH
+  // On Vercel, the local SCRYER_FEEDS/ directory does not exist — reads will
+  // silently return null/empty without this warning. Set SCRYER_FEEDS_PATH or
+  // USE_MOCK_SCRYER_DATA=true in Vercel env vars to silence this.
+  if (process.env.VERCEL) {
+    console.warn(
+      '[kingdom-state] SCRYER_FEEDS_PATH not set on Vercel — filesystem reads will fail. ' +
+      'Set SCRYER_FEEDS_PATH or USE_MOCK_SCRYER_DATA=true in Vercel env vars.'
+    )
+  }
+  return path.join(process.cwd(), '..', '..', '..', 'SCRYER_FEEDS')
 }
 
 function getKingdomLiveMapPath(): string {

@@ -21,39 +21,21 @@ const nextConfig = {
     ],
   },
 
-  // Headers for SCRYER feed CORS (local Kingdom reads)
-  // FLAG #3 fix: never fall back to * — default to sinner-king.com in prod, localhost in dev
+  // Headers for audio CORS — Web Audio API AnalyserNode requires it.
+  // API routes (/api/aeris, /api/archivist) manage their own CORS in their
+  // route handlers. Config-level headers stack on top of route-level headers,
+  // creating duplicate Access-Control-Allow-Origin values — browser behavior
+  // with duplicate ACAO is undefined and can leak the wildcard. Single source
+  // of truth: each route owns its own CORS policy.
   async headers() {
-    const isDev = process.env.NODE_ENV === 'development'
-    const allowedOrigin = process.env.KINGDOM_ORIGIN
-      || (isDev ? 'http://localhost:3033' : 'https://sinner-king.com')
     return [
       {
-        // The Archivist needs * because the wiki is served from file:// during dev
-        // and from the main domain in prod. file:// sends Origin: null which
-        // can't be matched with a specific origin header.
-        source: '/api/archivist',
-        headers: [
-          { key: 'Access-Control-Allow-Origin', value: '*' },
-          { key: 'Access-Control-Allow-Methods', value: 'POST, OPTIONS' },
-          { key: 'Access-Control-Allow-Headers', value: 'Content-Type' },
-        ],
-      },
-      {
-        // Audio files need CORS headers so the Web Audio API AnalyserNode can read them.
-        // crossOrigin="anonymous" on <audio> alone is insufficient — the server must also
-        // respond with Access-Control-Allow-Origin or the browser blocks context.createMediaElementSource().
+        // Audio files need CORS so the Web Audio API AnalyserNode can read them.
+        // crossOrigin="anonymous" on <audio> alone is insufficient — the server
+        // must also respond with Access-Control-Allow-Origin.
         source: '/audio/:path*',
         headers: [
           { key: 'Access-Control-Allow-Origin', value: '*' },
-        ],
-      },
-      {
-        source: '/api/:path*',
-        headers: [
-          { key: 'Access-Control-Allow-Origin', value: allowedOrigin },
-          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, OPTIONS' },
-          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
         ],
       },
     ]

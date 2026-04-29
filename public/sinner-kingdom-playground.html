@@ -1,0 +1,5351 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="void">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⛬ SINNER KINGDOM PLAYGROUND — S222</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+
+/* ═══════════════════════════════════════════════════════════ */
+/* THEME TOKENS — 5 THEMES                                     */
+/* ═══════════════════════════════════════════════════════════ */
+
+/* House font vars — available to all themes */
+:root {
+  --font-kingdom:  'Press Start 2P', monospace;               /* masthead, headers, impact labels */
+  --font-terminal: 'VT323', 'Courier New', monospace;         /* terminal text, data, status */
+  --font-mono:     'JetBrains Mono', 'Courier New', monospace; /* code, dense UI */
+}
+
+/* ── VOID: canonical Kingdom palette — hex from sinner-king.com index.html (S237) ── */
+:root[data-theme="void"] {
+  --bg:       #0a0a0f;               --bg2: #14141e;
+  --bg3:      #1e1e2a;               --bg4: #282836;
+  --primary:  #ff3366;               /* website --primary   */
+  --secondary:#00eeff;               /* website --secondary */
+  --accent:   #9933ff;               /* website --accent    */
+  --green:    #33cc88;               /* green               */
+  --red:      #cc4422;               /* red                 */
+  --text:     #e8e0f0;               --muted: #6a6580;
+  --dim:      #3d3850;
+  --glow:     #00eeff48;
+  --glow2:    #ff336640;
+  --scanline: rgba(0,0,0,0.18);
+}
+:root[data-theme="sulphur"] {
+  --bg:      #0d0900;  --bg2: #1a1200;  --bg3: #241c00;  --bg4: #302500;
+  --primary: #ffb300;  --secondary: #0099ee;  --accent: #ff3333;
+  --green:   #88ff00;  --red: #ff4444;
+  --text:    #ffe8aa;  --muted: #aa8844;  --dim: #665533;
+  --glow:    rgba(255,179,0,0.3);  --glow2: rgba(0,153,238,0.3);
+  --scanline: rgba(0,0,0,0.25);
+}
+:root[data-theme="kawaii"] {
+  --bg:      #0d0010;  --bg2: #1a0020;  --bg3: #240032;  --bg4: #300040;
+  --primary: #ff66bb;  --secondary: #00d4aa;  --accent: #ffea00;
+  --green:   #00d4aa;  --red: #ff4488;
+  --text:    #fff5fb;  --muted: #aa88cc;  --dim: #776688;
+  --glow:    rgba(255,102,187,0.3);  --glow2: rgba(0,212,170,0.3);
+  --scanline: rgba(0,0,0,0.12);
+}
+:root[data-theme="matrix"] {
+  --bg:      #000d00;  --bg2: #001500;  --bg3: #002000;  --bg4: #003000;
+  --primary: #00ff41;  --secondary: #ff8800;  --accent: #00ccff;
+  --green:   #00ff41;  --red: #ff4444;
+  --text:    #ccffcc;  --muted: #55aa55;  --dim: #224422;
+  --glow:    rgba(0,255,65,0.3);  --glow2: rgba(255,136,0,0.25);
+  --scanline: rgba(0,0,0,0.3);
+}
+:root[data-theme="bone"] {
+  --bg:      #f0ede4;  --bg2: #e4e0d4;  --bg3: #d8d4c8;  --bg4: #ccc8bc;
+  --primary: #cc0000;  --secondary: #1a1a8a;  --accent: #886600;
+  --green:   #006600;  --red: #cc0000;
+  --text:    #1a1a1a;  --muted: #555555;  --dim: #999988;
+  --glow:    rgba(204,0,0,0.15);  --glow2: rgba(26,26,138,0.15);
+  --scanline: rgba(0,0,0,0.04);
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* RESET + BASE                                                 */
+/* ═══════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-terminal);
+  font-size: 20px;
+  line-height: 1.6;
+  min-height: 100vh;
+  transition: background 0.4s ease, color 0.4s ease;
+}
+
+body::after {
+  content: '';
+  display: block;
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(var(--scanline) 50%, transparent 50%);
+  background-size: 100% 2px;
+  pointer-events: none;
+  z-index: 9999;
+  transition: background 0.4s;
+}
+
+a { color: var(--secondary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+pre { font-family: var(--font-terminal); }
+
+/* ═══════════════════════════════════════════════════════════ */
+/* THEME BAR (fixed top)                                        */
+/* ═══════════════════════════════════════════════════════════ */
+
+#theme-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  background: var(--bg2);
+  border-bottom: 2px solid var(--primary);
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 1000;
+  transition: background 0.4s, border-color 0.4s;
+  flex-wrap: wrap;
+}
+
+.theme-label {
+  font-family: var(--font-terminal);
+  font-size: 16px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+
+.theme-btn {
+  background: var(--bg3);
+  border: 1px solid var(--dim);
+  color: var(--muted);
+  font-family: var(--font-terminal);
+  font-size: 18px;
+  letter-spacing: 2px;
+  padding: 2px 14px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.15s;
+}
+.theme-btn:hover { border-color: var(--primary); color: var(--primary); }
+.theme-btn[data-theme="void"]    { --t-color: #ff3366; }
+.theme-btn[data-theme="sulphur"] { --t-color: oklch(0.73 0.17 65);  }
+.theme-btn[data-theme="kawaii"]  { --t-color: oklch(0.69 0.21 345); }
+.theme-btn[data-theme="matrix"]  { --t-color: oklch(0.90 0.28 145); }
+.theme-btn[data-theme="bone"]    { --t-color: oklch(0.43 0.22 25);  }
+.theme-btn.active {
+  border-color: var(--t-color);
+  color: var(--t-color);
+  text-shadow: 0 0 8px var(--t-color);
+}
+
+#theme-bar-right {
+  margin-left: auto;
+  font-size: 14px;
+  color: var(--muted);
+  letter-spacing: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* KINGDOM HUD (fixed top-right)                               */
+/* ═══════════════════════════════════════════════════════════ */
+
+#kingdom-hud {
+  position: fixed;
+  top: 44px; right: 14px;
+  width: 190px;
+  background: var(--bg2);
+  border: 1px solid var(--secondary);
+  border-left: 3px solid var(--secondary);
+  font-family: var(--font-terminal);
+  z-index: 500;
+  box-shadow: 0 0 20px var(--glow);
+  transition: background 0.4s, border-color 0.4s, box-shadow 0.4s;
+}
+.hud-title {
+  background: var(--bg3);
+  padding: 3px 10px;
+  font-size: 15px;
+  color: var(--secondary);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--dim);
+  display: flex;
+  justify-content: space-between;
+  transition: background 0.4s, color 0.4s;
+}
+.hud-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 10px;
+  border-bottom: 1px solid var(--dim);
+}
+.hud-row:last-of-type { border-bottom: none; }
+.hud-lbl { font-size: 14px; color: var(--muted); text-transform: uppercase; }
+.hud-val { font-size: 17px; color: var(--secondary); transition: color 0.4s; }
+.hud-val.pri { color: var(--primary); }
+.hud-val.grn { color: var(--green); }
+.hud-clock {
+  text-align: center;
+  padding: 4px 10px;
+  border-top: 1px solid var(--dim);
+  font-size: 22px;
+  color: var(--secondary);
+  letter-spacing: 4px;
+  text-shadow: 0 0 8px var(--glow);
+  transition: color 0.4s, text-shadow 0.4s;
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* FREQUENCY BAR (fixed bottom)                                */
+/* ═══════════════════════════════════════════════════════════ */
+
+#freq-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 52px;
+  background: var(--bg2);
+  border-top: 2px solid var(--secondary);
+  display: flex;
+  align-items: stretch;
+  z-index: 1000;
+  transition: background 0.4s, border-color 0.4s, box-shadow 0.4s;
+}
+
+.freq-slot {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-right: 1px solid var(--dim);
+  cursor: pointer;
+  transition: background 0.1s;
+  padding: 0 4px;
+  position: relative;
+  overflow: hidden;
+}
+.freq-slot:last-child { border-right: none; }
+
+.freq-slot:hover { background: var(--bg3); }
+
+.freq-slot.active {
+  background: var(--bg3);
+}
+.freq-slot.active .freq-glyph { color: var(--secondary); text-shadow: 0 0 10px var(--glow); }
+.freq-slot.active .freq-label { color: var(--text); }
+
+.freq-slot.offline {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+.freq-slot.offline:hover { background: transparent; }
+
+.freq-glyph {
+  font-size: 18px;
+  color: var(--muted);
+  line-height: 1;
+  transition: color 0.15s, text-shadow 0.15s;
+}
+.freq-label {
+  font-size: 11px;
+  color: var(--dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.freq-status {
+  font-family: var(--font-terminal);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.freq-slot:not(.offline) .freq-status { color: var(--green); }
+.freq-slot.offline .freq-status { color: var(--dim); }
+
+/* Active freq slot pulse line */
+.freq-slot.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--secondary);
+  box-shadow: 0 0 8px var(--glow);
+  animation: freq-pulse 2s ease-in-out infinite;
+}
+@keyframes freq-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ═══════════════════════════════════════════════════════════ */
+/* SECTION PANELS (instant switching)                          */
+/* ═══════════════════════════════════════════════════════════ */
+
+.section-panel { display: none; }
+.section-panel.active { display: block; }
+
+/* ═══════════════════════════════════════════════════════════ */
+/* CONTENT WRAPPER                                             */
+/* ═══════════════════════════════════════════════════════════ */
+
+#content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 60px 32px 80px;
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* SIGNAL STRIP                                                 */
+/* ═══════════════════════════════════════════════════════════ */
+
+.signal-strip {
+  background: var(--bg2);
+  border: 1px solid var(--dim);
+  border-left: 4px solid var(--primary);
+  padding: 6px 16px;
+  font-size: 16px;
+  color: var(--muted);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  transition: border-color 0.4s;
+}
+.sig-hot { color: var(--primary); animation: sig-pulse 2s ease-in-out infinite; }
+.sig-live { color: var(--green); }
+.sig-cyan { color: var(--secondary); }
+@keyframes sig-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* ═══════════════════════════════════════════════════════════ */
+/* SECTION HEADERS                                             */
+/* ═══════════════════════════════════════════════════════════ */
+
+.section-header {
+  border-bottom: 1px solid var(--primary);
+  padding-bottom: 8px;
+  margin: 48px 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color 0.4s;
+}
+.section-header .sh-glyph { color: var(--primary); font-size: 24px; }
+.section-header h2 {
+  font-family: var(--font-terminal);
+  font-size: 26px;
+  color: var(--text);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  font-weight: normal;
+}
+.section-header .sh-tag {
+  margin-left: auto;
+  font-size: 16px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* ASCII HERO                                                   */
+/* ═══════════════════════════════════════════════════════════ */
+
+.ascii-hero { text-align: center; margin: 40px 0 48px; position: relative; }
+.ascii-title {
+  font-family: var(--font-terminal);
+  font-size: clamp(7px, 1.3vw, 15px);
+  line-height: 1.2;
+  color: var(--secondary);
+  text-shadow: 0 0 20px var(--glow), 0 0 40px var(--glow);
+  white-space: pre;
+  display: block;
+  transition: color 0.4s, text-shadow 0.4s;
+  overflow-x: auto;
+}
+.ascii-subtitle {
+  font-family: var(--font-terminal);
+  font-size: 20px;
+  color: var(--muted);
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  margin-top: 12px;
+}
+.ascii-tagline {
+  font-family: var(--font-kingdom);
+  font-size: 9px;
+  color: var(--primary);
+  text-shadow: 1px 1px 0 var(--secondary);
+  letter-spacing: 2px;
+  margin-top: 16px;
+  line-height: 2;
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* DRONE CARDS                                                  */
+/* ═══════════════════════════════════════════════════════════ */
+
+.drone-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+  margin: 24px 0;
+}
+.drone-card {
+  background: var(--bg2);
+  border: 1px solid var(--dim);
+  padding: 20px 18px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.08s, background 0.4s;
+  position: relative;
+}
+.drone-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 0 20px var(--glow2), 4px 4px 0 var(--dim);
+  transform: translate(-2px, -2px);
+}
+.drone-glyph {
+  font-family: var(--font-terminal);
+  font-size: 28px;
+  color: var(--secondary);
+  text-align: center;
+  letter-spacing: 6px;
+  margin-bottom: 12px;
+  transition: color 0.4s;
+}
+.drone-name-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--dim);
+  padding-bottom: 8px;
+}
+.drone-name {
+  font-family: var(--font-terminal);
+  font-size: 22px;
+  color: var(--primary);
+  letter-spacing: 1px;
+  font-weight: normal;
+  transition: color 0.4s;
+}
+.drone-domain-tag {
+  font-size: 15px;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  padding: 1px 8px;
+  letter-spacing: 1px;
+  transition: color 0.4s, border-color 0.4s;
+}
+.drone-domain-label {
+  font-size: 15px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.drone-domain-desc {
+  font-size: 18px;
+  color: var(--text);
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+.drone-quote {
+  background: var(--bg3);
+  border-left: 3px solid var(--primary);
+  padding: 10px 12px;
+  font-size: 17px;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.5;
+  transition: border-color 0.4s, background 0.4s;
+}
+.drone-quote::before { content: '« '; color: var(--primary); }
+.drone-quote::after  { content: ' »'; color: var(--primary); }
+
+/* ═══════════════════════════════════════════════════════════ */
+/* ROBOT MASCOTS                                               */
+/* ═══════════════════════════════════════════════════════════ */
+
+.robot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+.robot-card {
+  background: var(--bg2);
+  border: 1px solid var(--dim);
+  padding: 20px;
+  text-align: center;
+  transition: border-color 0.15s, background 0.4s;
+}
+.robot-card:hover { border-color: var(--secondary); }
+.robot-art {
+  font-family: var(--font-terminal);
+  font-size: 18px;
+  line-height: 1.3;
+  color: var(--secondary);
+  text-shadow: 0 0 8px var(--glow);
+  white-space: pre;
+  display: block;
+  margin-bottom: 14px;
+  transition: color 0.4s, text-shadow 0.4s;
+}
+.robot-name {
+  font-family: var(--font-terminal);
+  font-size: 22px;
+  color: var(--primary);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  transition: color 0.4s;
+}
+.robot-desc { font-size: 17px; color: var(--muted); line-height: 1.5; }
+.robot-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 15px;
+  color: var(--green);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.robot-dot {
+  width: 6px; height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--green);
+  animation: sig-pulse 2s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* KAWAII ORNAMENTS                                            */
+/* ═══════════════════════════════════════════════════════════ */
+
+.kawaii-banner {
+  text-align: center;
+  font-family: var(--font-terminal);
+  font-size: 22px;
+  color: var(--primary);
+  letter-spacing: 4px;
+  margin: 32px 0 16px;
+  padding: 10px;
+  border-top: 1px dashed var(--dim);
+  border-bottom: 1px dashed var(--dim);
+  transition: color 0.4s, border-color 0.4s;
+}
+.face-strip {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+.face-chip {
+  background: var(--bg2);
+  border: 1px solid var(--dim);
+  padding: 8px 16px;
+  font-size: 20px;
+  text-align: center;
+  transition: border-color 0.15s, background 0.4s;
+  cursor: default;
+}
+.face-chip:hover { border-color: var(--primary); }
+.face-label {
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  display: block;
+  margin-top: 3px;
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* LAW BLOCK                                                   */
+/* ═══════════════════════════════════════════════════════════ */
+
+.law-block {
+  background: var(--bg2);
+  border: 1px solid var(--primary);
+  border-left: 5px solid var(--primary);
+  padding: 20px 24px;
+  margin: 32px 0;
+  box-shadow: inset 0 0 40px var(--glow2);
+  transition: border-color 0.4s, box-shadow 0.4s, background 0.4s;
+}
+.law-id {
+  font-size: 15px;
+  color: var(--primary);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  transition: color 0.4s;
+}
+.law-text { font-size: 26px; color: var(--text); line-height: 1.4; }
+.law-author { font-size: 17px; color: var(--muted); margin-top: 8px; letter-spacing: 2px; }
+
+/* ═══════════════════════════════════════════════════════════ */
+/* RADIO LAB — THREE DISTINCT DESIGNS                          */
+/* ═══════════════════════════════════════════════════════════ */
+
+.radio-lab-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  align-items: start;
+  margin: 24px 0;
+}
+@media (max-width: 900px) {
+  .radio-lab-grid { grid-template-columns: 1fr; max-width: 400px; margin-left: auto; margin-right: auto; }
+}
+
+/* ── DESIGN 1: COCKPIT INSTRUMENT PANEL ── */
+
+.radio-cockpit {
+  background: var(--bg2);
+  border: 1px solid var(--secondary);
+  border-top: 3px solid var(--secondary);
+  font-family: var(--font-terminal);
+  transition: background 0.4s, border-color 0.4s;
+  box-shadow: 0 0 16px var(--glow);
+}
+
+.cockpit-header {
+  background: var(--bg3);
+  border-bottom: 1px solid var(--secondary);
+  padding: 5px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.4s;
+}
+.cockpit-callsign {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--secondary);
+  letter-spacing: 1px;
+  line-height: 1.8;
+}
+.cockpit-status-lights {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.csl-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+.csl-dot.rx { background: var(--green); box-shadow: 0 0 5px var(--green); animation: sig-pulse 1.8s ease-in-out infinite; }
+.csl-dot.tx { background: var(--primary); box-shadow: 0 0 5px var(--primary); animation: sig-pulse 2.4s ease-in-out infinite 0.6s; }
+.csl-dot.sync { background: var(--secondary); box-shadow: 0 0 5px var(--secondary); }
+
+.cockpit-wave {
+  position: relative;
+  width: 100%;
+  background: var(--bg);
+  border-bottom: 1px solid var(--dim);
+}
+.cockpit-wave canvas { display: block; width: 100%; }
+.cockpit-scanline {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.06) 4px);
+  pointer-events: none;
+}
+.cockpit-freq-readout {
+  position: absolute;
+  top: 4px; right: 6px;
+  font-size: 13px;
+  color: var(--secondary);
+  letter-spacing: 2px;
+  opacity: 0.7;
+}
+
+.cockpit-track-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  padding: 6px 10px 4px;
+  border-bottom: 1px solid var(--dim);
+  align-items: center;
+}
+.cockpit-track-name {
+  font-size: 18px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cockpit-track-name .pfx { color: var(--secondary); }
+.cockpit-duration { font-size: 15px; color: var(--muted); letter-spacing: 1px; }
+
+.cockpit-meta-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 10px;
+  border-bottom: 1px solid var(--dim);
+  font-size: 14px;
+}
+.cockpit-src { color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
+.cockpit-mode { color: var(--secondary); letter-spacing: 1px; }
+
+.cockpit-progress { padding: 5px 10px 3px; border-bottom: 1px solid var(--dim); }
+.cockpit-prog-bar {
+  height: 4px;
+  background: var(--bg3);
+  border: 1px solid var(--dim);
+  overflow: hidden;
+  margin-bottom: 2px;
+}
+.cockpit-prog-fill {
+  height: 100%;
+  background: var(--secondary);
+  box-shadow: 0 0 6px var(--glow);
+  animation: radio-prog 237s linear infinite;
+  transition: background 0.4s;
+}
+@keyframes radio-prog { from{width:0%} to{width:100%} }
+.cockpit-time { font-size: 13px; color: var(--dim); text-align: right; letter-spacing: 1px; }
+
+.cockpit-controls {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--dim);
+}
+.ck-btn {
+  background: none;
+  border: 1px solid var(--dim);
+  color: var(--muted);
+  font-family: var(--font-terminal);
+  font-size: 19px;
+  cursor: pointer;
+  padding: 0 10px;
+  transition: color 0.1s, border-color 0.1s;
+}
+.ck-btn:hover { color: var(--secondary); border-color: var(--secondary); }
+.ck-btn.play { color: var(--secondary); border-color: var(--secondary); }
+.ck-btn.playing { background: var(--secondary); color: var(--bg0); }
+
+.cockpit-playlist { padding: 2px 0 4px; }
+.ck-pl-item {
+  padding: 2px 10px;
+  font-size: 15px;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: color 0.1s, background 0.1s;
+}
+.ck-pl-item:hover { color: var(--text); background: var(--bg3); }
+.ck-pl-item.active { color: var(--secondary); }
+.ck-pl-item.active::before { content: '▶ '; }
+.ck-pl-item:not(.active)::before { content: '  '; }
+
+/* ── DESIGN 2: SPECTRUM ANALYZER (wide, EQ-forward) ── */
+
+.radio-spectrum {
+  background: var(--bg2);
+  border: 1px solid var(--dim);
+  border-bottom: 3px solid var(--primary);
+  font-family: var(--font-terminal);
+  transition: background 0.4s, border-color 0.4s;
+}
+
+.spectrum-label-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--dim);
+  background: var(--bg);
+  transition: background 0.4s;
+}
+.spectrum-id {
+  font-family: var(--font-terminal);
+  font-size: 13px;
+  color: var(--primary);
+  letter-spacing: 1px;
+}
+.spectrum-live-tag {
+  font-size: 14px;
+  color: var(--green);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  animation: sig-pulse 2s ease-in-out infinite;
+}
+
+/* Big canvas region */
+.spectrum-canvas-region {
+  position: relative;
+  background: var(--bg);
+  transition: background 0.4s;
+}
+.spectrum-canvas-region canvas { display: block; width: 100%; }
+.spectrum-canvas-region .ov-scanline {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.05) 4px);
+  pointer-events: none;
+}
+
+/* Freq ticks overlay at bottom of canvas */
+.spectrum-freq-ticks {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 8px 0;
+  font-size: 12px;
+  color: var(--dim);
+  letter-spacing: 1px;
+  border-bottom: 1px solid var(--dim);
+}
+
+/* Track + controls row */
+.spectrum-bottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+}
+.spectrum-track-block { flex: 1; min-width: 0; }
+.spectrum-now-playing { font-size: 13px; color: var(--primary); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 1px; }
+.spectrum-track-name {
+  font-size: 20px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.spectrum-track-name .pfx { color: var(--primary); }
+.spectrum-track-src { font-size: 13px; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
+
+.spectrum-ctrl-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.sp-btn {
+  background: none;
+  border: 1px solid var(--dim);
+  color: var(--muted);
+  font-family: var(--font-terminal);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 1px 8px;
+  transition: color 0.1s, border-color 0.1s;
+}
+.sp-btn:hover { color: var(--primary); border-color: var(--primary); }
+.sp-btn.play { color: var(--primary); border-color: var(--primary); }
+.sp-btn.playing { background: var(--primary); color: var(--bg0); }
+.sp-ctrl-row { display: flex; gap: 4px; }
+
+.spectrum-prog { padding: 2px 10px 5px; }
+.sp-prog-track {
+  height: 3px;
+  background: var(--bg3);
+  border: 1px solid var(--dim);
+  overflow: hidden;
+}
+.sp-prog-fill {
+  height: 100%;
+  background: var(--primary);
+  box-shadow: 0 0 4px var(--glow2);
+  animation: radio-prog 237s linear infinite;
+  transition: background 0.4s;
+}
+
+/* ── DESIGN 3: ORBITAL MINIMAL ── */
+
+.radio-orbital {
+  background: var(--bg2);
+  border: 1px solid var(--dim);
+  font-family: var(--font-terminal);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 12px 12px;
+  transition: background 0.4s;
+  position: relative;
+}
+
+.orbital-id-tag {
+  font-family: var(--font-terminal);
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  align-self: flex-start;
+}
+
+/* Ring canvas — square, aspect-ratio preserving */
+.orbital-canvas-wrap {
+  width: 180px;
+  height: 180px;
+  position: relative;
+  margin: 0 auto 12px;
+  flex-shrink: 0;
+}
+.orbital-canvas-wrap canvas {
+  display: block;
+  width: 180px;
+  height: 180px;
+}
+.orbital-center-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.orbital-antenna-glyph {
+  font-size: 22px;
+  color: var(--accent);
+  animation: sig-pulse 3s ease-in-out infinite;
+  transition: color 0.4s;
+}
+.orbital-freq-text {
+  font-size: 13px;
+  color: var(--secondary);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  transition: color 0.4s;
+}
+
+.orbital-track {
+  text-align: center;
+  width: 100%;
+  border-top: 1px solid var(--dim);
+  padding-top: 8px;
+  margin-bottom: 8px;
+}
+.orbital-track-now { font-size: 13px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 2px; }
+.orbital-track-name {
+  font-size: 19px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+.orbital-track-src { font-size: 13px; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
+
+.orbital-single-btn {
+  background: none;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--font-terminal);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 2px 28px;
+  transition: color 0.1s, border-color 0.1s, box-shadow 0.1s;
+  letter-spacing: 4px;
+}
+.orbital-single-btn:hover {
+  box-shadow: 0 0 12px var(--glow);
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* DESIGN SYSTEM SECTION                                       */
+/*                                                             */
+/* Subsections:                                                */
+/*   A. Palette Grid — color swatches, theme-reactive          */
+/*   B. Typography Specimen — type scale with named roles      */
+/*   C. Component Registry (Demo Grid) — reusable UI patterns  */
+/*      C1. Voltage Meters — progress/capacity bars            */
+/*      C2. Mini HUD — key-value status display                */
+/*      C3. Sulphur Gothic Frames — box-drawing borders        */
+/*      C4. Block Material Scale — Unicode density reference    */
+/*      C5. Signal Chips — status/state indicator badges        */
+/*      C6. Ghost Nodes — deferred issue annotations           */
+/* ═══════════════════════════════════════════════════════════ */
+
+/* --- A. Palette Grid ---------------------------------------- */
+
+.palette-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+.swatch {
+  width: 80px;
+  height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-terminal);
+  font-size: 14px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border: 1px solid rgba(255,255,255,0.15);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.swatch:hover { transform: translateY(-2px); }
+.swatch.bg  { background: var(--bg);        color: var(--text); }
+.swatch.bg2 { background: var(--bg2);       color: var(--text); }
+.swatch.pri { background: var(--primary);   color: var(--bg); }
+.swatch.sec { background: var(--secondary); color: var(--bg); }
+.swatch.acc { background: var(--accent);    color: var(--bg); }
+.swatch.txt { background: var(--text);      color: var(--bg); }
+
+/* --- B. Typography Specimen --------------------------------- */
+
+.type-specimen {
+  background: var(--bg2);
+  border: 1px solid var(--dim);
+  padding: 24px;
+  margin: 16px 0;
+  transition: background 0.4s;
+}
+.type-row {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--dim);
+}
+.type-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.type-label { font-size: 14px; color: var(--muted); letter-spacing: 2px; min-width: 80px; text-transform: uppercase; }
+
+/* Named type roles — house font stack: --font-kingdom / --font-terminal / --font-mono */
+.type-logo    { font-family: var(--font-kingdom);  font-size: 9px;  color: var(--secondary); text-shadow: 1px 1px 0 var(--primary); }
+.type-hero    { font-family: var(--font-terminal); font-size: 40px; color: var(--text); line-height: 1; }
+.type-subhead { font-family: var(--font-terminal); font-size: 26px; color: var(--primary); letter-spacing: 4px; text-transform: uppercase; }
+.type-body    { font-family: var(--font-terminal); font-size: 20px; color: var(--text); max-width: 500px; }
+.type-meta    { font-family: var(--font-terminal); font-size: 15px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; }
+.type-code    { font-family: var(--font-mono);     font-size: 12px; color: var(--secondary); letter-spacing: 0.04em; }
+
+/* --- C. Component Registry (Demo Grid) ---------------------- */
+
+.demo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+  margin: 16px 0;
+}
+.demo-block {
+  background: var(--bg2);
+  border: 1px solid var(--dim);
+  padding: 16px 18px;
+  transition: background 0.4s;
+}
+.demo-block-title {
+  font-size: 17px;
+  color: var(--secondary);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--dim);
+  padding-bottom: 6px;
+  transition: color 0.4s;
+}
+
+/* --- C1. Voltage Meters ------------------------------------- */
+
+.volt-meter { margin: 6px 0; }
+.volt-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 16px;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.volt-bar { height: 8px; background: var(--bg3); border: 1px solid var(--dim); overflow: hidden; }
+.volt-fill {
+  height: 100%;
+  background: var(--primary);
+  box-shadow: 0 0 8px var(--glow2);
+  transition: background 0.4s, box-shadow 0.4s;
+}
+
+/* --- C2. Mini HUD ------------------------------------------- */
+
+.mini-hud { background: var(--bg3); border: 1px solid var(--dim); padding: 8px 12px; font-size: 17px; }
+.mini-hud-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--dim);
+}
+.mini-hud-row:last-child { border-bottom: none; }
+.mhr-key { color: var(--muted); }
+.mhr-val { color: var(--secondary); transition: color 0.4s; }
+.mhr-val.hot { color: var(--primary); }
+.mhr-val.ok  { color: var(--green); }
+
+/* --- C3. Sulphur Gothic Frames ------------------------------ */
+
+.gothic-frame-pre {
+  font-family: var(--font-terminal);
+  font-size: 17px;
+  color: var(--secondary);
+  line-height: 1.4;
+}
+
+/* --- C4. Block Material Scale ------------------------------- */
+
+.block-scale-pre {
+  font-family: var(--font-terminal);
+  font-size: 22px;
+  color: var(--primary);
+  line-height: 1.2;
+}
+
+/* --- C5. Signal Chips --------------------------------------- */
+
+.chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.sig-chip {
+  background: var(--bg3);
+  border: 1px solid;
+  padding: 2px 10px;
+  font-size: 16px;
+}
+.sig-chip-live    { border-color: var(--primary);   color: var(--primary); }
+.sig-chip-active  { border-color: var(--green);     color: var(--green); }
+.sig-chip-signal  { border-color: var(--secondary); color: var(--secondary); }
+.sig-chip-dormant { border-color: var(--muted);     color: var(--muted); }
+.sig-chip-sparked { border-color: var(--accent);    color: var(--accent); }
+.sig-chip-failure { border-color: var(--red);       color: var(--red); }
+
+/* --- C6. Ghost Nodes ---------------------------------------- */
+
+.ghost-node-pre {
+  font-family: var(--font-terminal);
+  font-size: 16px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* GLOBAL: SCROLLBAR                                           */
+/* ═══════════════════════════════════════════════════════════ */
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--primary); }
+
+/* ═══════════════════════════════════════════════════════════ */
+/* GLOBAL: SITE FOOTER                                         */
+/* ═══════════════════════════════════════════════════════════ */
+
+.site-footer {
+  border-top: 1px solid var(--dim);
+  padding: 16px 0;
+  margin-top: 60px;
+  font-size: 17px;
+  color: var(--dim);
+  display: flex;
+  justify-content: space-between;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  flex-wrap: wrap;
+  gap: 8px;
+  transition: border-color 0.4s;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ASCII LAB SECTION
+
+   Subsections:
+     Layout — header grid, main 2-column grid
+     Mascot — ASCII mascot zone (art, id badge, status)
+     Sticker Wall — 3-column ASCII art sticker grid
+     Glyph Forge — interactive text→ASCII converter
+     LEGACY — standalone file merge remnants (dup :root, dead selectors)
+     §A. Glow Lab — G1-G8 glow specimens + keyframes
+     §B. Sigil Forge — Kingdom rune display
+     §C. Portrait Chamber — ASCII portrait viewer
+     §D. Architecture Study — layered construction demo
+     §E. Motion Grammar — CSS vs JS animation demos
+     §F. Data Theater — block-char waveforms
+     §G. Creature Vault — creature gallery with glow tags
+══════════════════════════════════════════════════════════════ */
+
+/* --- Layout ------------------------------------------------ */
+
+.ascii-lab-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 40px;
+}
+.ascii-lab-header .section-label { margin-bottom: 0; }
+
+.ascii-main-grid {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 32px;
+  margin-bottom: 40px;
+  align-items: start;
+}
+
+/* --- Mascot ------------------------------------------------ */
+.mascot-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+.mascot-art {
+  font-family: var(--font-terminal);
+  font-size: 15px;
+  line-height: 1.3;
+  color: var(--secondary);
+  text-shadow: 0 0 4px var(--secondary), 0 0 12px var(--secondary), 0 0 24px var(--glow);
+  background: var(--bg2);
+  border: 1px solid var(--secondary);
+  border-left: 3px solid var(--secondary);
+  padding: 14px 16px;
+  white-space: pre;
+  cursor: default;
+  transition: border-color 0.4s, color 0.4s, text-shadow 0.4s;
+}
+.mascot-id {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--primary);
+  text-shadow: 0 0 6px var(--primary);
+  letter-spacing: 1px;
+}
+.mascot-status {
+  font-family: var(--font-terminal);
+  font-size: 16px;
+  color: var(--muted);
+  letter-spacing: 2px;
+}
+
+/* --- Sticker Wall ------------------------------------------ */
+.sticker-wall {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.ascii-sticker {
+  background: var(--bg2);
+  border: 1px solid var(--bg4);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  transition: border-color 0.3s cubic-bezier(0.87,0,0.13,1), transform 0.3s cubic-bezier(0.87,0,0.13,1);
+  cursor: default;
+}
+.ascii-sticker:hover {
+  border-color: var(--secondary);
+  transform: translateY(-2px);
+}
+.ascii-sticker pre {
+  font-family: var(--font-terminal);
+  font-size: 13px;
+  line-height: 1.25;
+  color: var(--text);
+  text-shadow: 0 0 6px var(--glow);
+  white-space: pre;
+  margin: 0;
+  transition: color 0.4s, text-shadow 0.4s;
+}
+.ascii-sticker:hover pre {
+  color: var(--secondary);
+  text-shadow: 0 0 4px var(--secondary), 0 0 14px var(--glow);
+}
+.sticker-label {
+  font-family: var(--font-terminal);
+  font-size: 14px;
+  color: var(--dim);
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+/* --- Glyph Forge ------------------------------------------- */
+.forge-panel {
+  background: var(--bg2);
+  border: 1px solid var(--bg4);
+  border-top: 3px solid var(--primary);
+}
+.forge-header {
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid var(--bg4);
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+.forge-title {
+  font-family: var(--font-kingdom);
+  font-size: 9px;
+  color: var(--primary);
+  text-shadow: 0 0 8px var(--primary);
+}
+.forge-hint {
+  font-family: var(--font-terminal);
+  font-size: 16px;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+.forge-input-row {
+  padding: 16px 20px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border-bottom: 1px solid var(--bg4);
+}
+#forge-input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--bg4);
+  color: var(--text);
+  font-family: var(--font-terminal);
+  font-size: 22px;
+  padding: 8px 12px;
+  outline: none;
+  transition: border-color 0.3s;
+  letter-spacing: 2px;
+}
+#forge-input:focus { border-color: var(--secondary); }
+#forge-input::placeholder { color: var(--dim); }
+.forge-btn {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  background: transparent;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  padding: 10px 14px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  white-space: nowrap;
+}
+.forge-btn:hover {
+  background: var(--primary);
+  color: var(--bg);
+  box-shadow: 0 0 12px var(--primary);
+}
+.forge-output {
+  padding: 24px 20px;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#forge-display {
+  font-family: var(--font-terminal);
+  font-size: 52px;
+  color: var(--secondary);
+  text-shadow: 0 0 4px var(--secondary), 0 0 16px var(--secondary), 0 0 32px var(--glow);
+  letter-spacing: 6px;
+  text-align: center;
+  word-break: break-all;
+  transition: color 0.4s, text-shadow 0.4s;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   LEGACY — Standalone File Merge Remnants
+
+   WARNING: This block was pasted from standalone ascii-playground.html.
+   The :root vars below CONFLICT with master theme vars (--bg).
+   Unique vars (--purple, --pink, --cyan, --amber) are still used
+   by §A-§G specimens and are safe.
+   The global reset (* { box-sizing }) is redundant with Tailwind.
+   Selectors targeting <body>, <nav>, <main>, <section> are DEAD —
+   the HTML uses div.ascii-nav, div.ascii-main, div.ascii-section,
+   not semantic elements. Do NOT "fix" these to match the HTML —
+   that would activate dead CSS and change visual output.
+══════════════════════════════════════════════════════════════ */
+
+/* LEGACY: duplicate :root — --bg conflicts with master theme (line ~44) */
+/* --purple, --pink, --cyan, --amber, --white are unique and still used */
+    :root {
+      --bg:          oklch(0.07 0.03 282);   /* #0d0a14 */
+      --purple:      oklch(0.37 0.31 283);   /* #7000ff */
+      --purple-safe: oklch(0.51 0.27 292);   /* #a833ff */
+      --pink:        oklch(0.63 0.25 355);   /* #ff3d7f */
+      --cyan:        oklch(0.82 0.14 200);   /* #00d4ff */
+      --amber:       oklch(0.73 0.17 65);    /* #f0a500 */
+      --white:       oklch(0.92 0.02 280);   /* #e8e6f0 */
+      --font:        var(--font-terminal);
+      --font-impact: var(--font-kingdom);
+    }
+
+/* LEGACY: global reset — redundant with Tailwind base layer */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+/* DEAD: targets <body> inside .ascii-panel — HTML uses divs, not semantic elements */
+.ascii-panel body {
+      background: var(--bg);
+      color: var(--white);
+      font-family: var(--font-terminal);
+      font-size: 16px;
+      position: relative;
+      min-height: 100vh;
+    }
+
+    /* §H TEXTURE — CRT scanline overlay */
+/* DEAD: targets body::before — same issue */
+.ascii-panel body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(112, 0, 255, 0.025) 2px,
+        rgba(112, 0, 255, 0.025) 3px
+      );
+      animation: tex-breath 8s ease-in-out infinite;
+    }
+
+    @keyframes tex-breath {
+      0%, 100% { opacity: 0.6; }
+      50%       { opacity: 1.0; }
+    }
+
+    /* NAV */
+/* DEAD: targets <nav> element — HTML uses div.ascii-nav */
+.ascii-panel nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13, 10, 20, 0.96);
+      border-bottom: 1px solid rgba(112, 0, 255, 0.3);
+      padding: 0 40px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      backdrop-filter: blur(8px);
+      font-size: 16px;
+      letter-spacing: 0.05em;
+      flex-wrap: wrap;
+    }
+
+.ascii-panel .nav-brand {
+      color: var(--white);
+      letter-spacing: 0.15em;
+      margin-right: 8px;
+      font-size: 20px;
+    }
+
+/* DEAD: targets <nav> a — same issue */
+.ascii-panel nav a {
+      color: var(--purple-safe);
+      text-decoration: none;
+      opacity: 0.7;
+      transition: opacity 0.2s, color 0.2s;
+    }
+
+.ascii-panel nav a:hover { opacity: 1; color: var(--white); }
+
+    /* MAIN */
+/* DEAD: targets <main> element — HTML uses div.ascii-main */
+.ascii-panel main {
+      position: relative;
+      z-index: 1;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 40px 120px;
+    }
+
+/* DEAD: targets <section> — HTML uses div.ascii-section */
+.ascii-panel section {
+      padding: 80px 0;
+      border-bottom: 1px solid rgba(112, 0, 255, 0.12);
+      scroll-margin-top: 64px;
+    }
+.ascii-panel section:last-child { border-bottom: none; }
+
+.ascii-panel .sec-title {
+      font-size: 32px;
+      letter-spacing: 0.12em;
+      color: var(--purple-safe);
+      margin-bottom: 6px;
+    }
+
+.ascii-panel .sec-sub {
+      font-size: 18px;
+      color: rgba(232, 230, 240, 0.4);
+      margin-bottom: 40px;
+      letter-spacing: 0.04em;
+    }
+
+    /* All pre/code ASCII art */
+.ascii-panel pre, .ascii-panel code {
+      font-family: var(--font-terminal);
+      line-height: 1;
+      letter-spacing: 0;
+      white-space: pre;
+    }
+
+    /* ─── §A GLOW LAB ─── */
+.ascii-panel .glow-lab { display: flex; flex-direction: column; gap: 12px; }
+
+.ascii-panel .specimen {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 12px 20px;
+      border: 1px solid rgba(232, 230, 240, 0.07);
+      min-height: 72px;
+      isolation: isolate; /* prevent G3 filter bleed across specimens */
+    }
+
+.ascii-panel .spec-label {
+      width: 220px;
+      flex-shrink: 0;
+      font-size: 16px;
+      color: rgba(232, 230, 240, 0.45);
+      letter-spacing: 0.04em;
+      line-height: 1.3;
+    }
+
+.ascii-panel .spec-label strong {
+      display: block;
+      font-size: 20px;
+      color: var(--white);
+      letter-spacing: 0.08em;
+    }
+
+.ascii-panel .spec-display { font-size: 56px; letter-spacing: 0.06em; }
+
+    /* G1 HARD NEON */
+.ascii-panel .g1 {
+      color: white;
+      text-shadow:
+        0 0 7px white, 0 0 10px white, 0 0 21px white,
+        0 0 42px var(--purple), 0 0 82px var(--purple),
+        0 0 92px var(--purple), 0 0 102px var(--purple), 0 0 151px var(--purple);
+    }
+
+    /* G2 SOFT BLOOM */
+.ascii-panel .g2 {
+      color: var(--purple-safe);
+      text-shadow:
+        0 0 20px rgba(168,51,255,0.8),
+        0 0 40px rgba(168,51,255,0.5),
+        0 0 80px rgba(168,51,255,0.3),
+        0 0 120px rgba(168,51,255,0.15);
+    }
+
+    /* G3 CRISPY EDGE — MUST be inside .g3-wrap */
+.ascii-panel .g3-wrap { filter: contrast(10) blur(0.5px); display: inline-block; }
+.ascii-panel .g3 { color: white; filter: blur(3px); text-shadow: 0 0 20px var(--cyan); }
+
+    /* G4 PULSE BREATH */
+.ascii-panel .g4 { color: var(--pink); animation: pulse-breath 3s ease-in-out infinite; }
+
+    @keyframes pulse-breath {
+      0%, 100% { text-shadow: 0 0 20px rgba(255,61,127,0.5); }
+      50%       { text-shadow: 0 0 35px rgba(255,61,127,1), 0 0 60px rgba(255,61,127,0.4); }
+    }
+
+    /* G5 FLICKER */
+.ascii-panel .g5 {
+      color: var(--amber);
+      text-shadow: 0 0 7px white, 0 0 10px white, 0 0 42px var(--amber), 0 0 82px var(--amber);
+      animation: flicker 0.45s linear infinite;
+    }
+
+    @keyframes flicker {
+      0%, 44%, 56%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 7px white, 0 0 10px white, 0 0 42px var(--amber), 0 0 82px var(--amber);
+      }
+/* BUG: .ascii-panel prefix makes these keyframe steps invalid — G5 flicker is visually broken */
+/* Fix would require removing prefix (45%, 55%, 60%), but that changes visual output */
+.ascii-panel 45%, .ascii-panel 55% { opacity: 0.12; text-shadow: none; }
+.ascii-panel 60% { opacity: 0.88; }
+    }
+
+    /* G6 GLITCH SPLIT */
+.ascii-panel .g6 { position: relative; color: var(--white); display: inline-block; }
+.ascii-panel .g6::before {
+      content: attr(data-text);
+      position: absolute; top: 0; left: 0;
+      color: var(--cyan);
+      clip-path: polygon(0 0, 100% 0, 100% 38%, 0 38%);
+      animation: gb 2s steps(1) infinite;
+    }
+.ascii-panel .g6::after {
+      content: attr(data-text);
+      position: absolute; top: 0; left: 0;
+      color: var(--pink);
+      clip-path: polygon(0 62%, 100% 62%, 100% 100%, 0 100%);
+      animation: ga 2s steps(1) infinite;
+    }
+    @keyframes gb {
+      0%, 79%, 100% { transform: translate(0,0); }
+      80%            { transform: translate(-3px, 2px); }
+    }
+    @keyframes ga {
+      0%, 79%, 100% { transform: translate(0,0); }
+      80%            { transform: translate(3px, -2px); }
+    }
+
+    /* G7 HUE CYCLE */
+.ascii-panel .g7 {
+      color: var(--purple);
+      text-shadow: 0 0 10px var(--purple), 0 0 40px var(--purple);
+      animation: hue-cycle 4s linear infinite;
+    }
+    @keyframes hue-cycle {
+      0%   { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(360deg); }
+    }
+
+    /* G8 NO GLOW */
+.ascii-panel .g8 { color: var(--white); }
+
+    /* ─── §B SIGIL FORGE ─── */
+.ascii-panel .sigil-forge { text-align: center; padding: 32px 0; }
+
+.ascii-panel .sigil-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 32px;
+      gap: 8px;
+    }
+
+.ascii-panel .sig-primary {
+      font-family: var(--font-impact);
+      font-size: 88px;
+      line-height: 1;
+      color: var(--purple);
+      text-shadow:
+        0 0 7px white, 0 0 14px white,
+        0 0 42px var(--purple), 0 0 90px var(--purple), 0 0 130px var(--purple);
+      animation: hue-cycle 4s linear infinite;
+    }
+
+.ascii-panel .sig-flank {
+      font-size: 56px;
+      line-height: 1;
+      color: var(--pink);
+      animation: pulse-breath 3s ease-in-out infinite;
+      padding: 0 12px;
+    }
+
+.ascii-panel .sigil-runes {
+      display: flex;
+      justify-content: center;
+      gap: 28px;
+      flex-wrap: wrap;
+    }
+
+.ascii-panel .rune {
+      font-size: 44px;
+      color: rgba(232, 230, 240, 0.35);
+      cursor: default;
+      transition: color 0.3s, text-shadow 0.3s;
+      font-family: var(--font-terminal);
+    }
+
+.ascii-panel .rune:hover {
+      color: var(--purple-safe);
+      text-shadow: 0 0 20px rgba(168,51,255,0.8), 0 0 40px rgba(168,51,255,0.4);
+    }
+
+    /* ─── §C PORTRAIT CHAMBER ─── */
+.ascii-panel .portrait-wrap { display: flex; gap: 40px; align-items: flex-start; }
+.ascii-panel .portrait-left { flex: 0 0 480px; }
+
+.ascii-panel #portrait-pre {
+      font-size: 13px;
+      color: var(--purple-safe);
+      background: rgba(112,0,255,0.04);
+      border: 1px solid rgba(112,0,255,0.2);
+      padding: 16px;
+      min-height: 220px;
+      overflow: hidden;
+    }
+
+.ascii-panel .portrait-right {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+.ascii-panel .pbtn {
+      background: transparent;
+      border: 1px solid rgba(112,0,255,0.35);
+      color: var(--purple-safe);
+      font-family: var(--font-terminal);
+      font-size: 20px;
+      padding: 10px 20px;
+      cursor: pointer;
+      letter-spacing: 0.1em;
+      text-align: left;
+      transition: all 0.2s;
+    }
+.ascii-panel .pbtn:hover { background: rgba(112,0,255,0.12); border-color: var(--purple-safe); color: var(--white); }
+.ascii-panel .pbtn.active { background: rgba(112,0,255,0.18); border-color: var(--purple); color: var(--white); }
+
+.ascii-panel .portrait-note {
+      font-size: 16px;
+      color: rgba(232,230,240,0.3);
+      letter-spacing: 0.04em;
+      line-height: 1.5;
+      margin-top: 8px;
+    }
+
+    /* ─── §D ARCHITECTURE STUDY ─── */
+.ascii-panel #arch-pre {
+      font-size: 16px;
+      color: var(--cyan);
+      min-height: 260px;
+    }
+
+.ascii-panel .btn {
+      background: transparent;
+      border: 1px solid rgba(112,0,255,0.35);
+      color: var(--purple-safe);
+      font-family: var(--font-terminal);
+      font-size: 20px;
+      padding: 10px 24px;
+      cursor: pointer;
+      letter-spacing: 0.1em;
+      transition: all 0.2s;
+      margin-top: 20px;
+    }
+.ascii-panel .btn:hover { background: rgba(112,0,255,0.12); border-color: var(--purple-safe); }
+
+    /* ─── §E MOTION GRAMMAR ─── */
+.ascii-panel .motion-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+.ascii-panel .motion-box {
+      border: 1px solid rgba(232,230,240,0.08);
+      padding: 28px 20px;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      text-align: center;
+    }
+
+.ascii-panel .motion-caption { font-size: 16px; color: rgba(232,230,240,0.35); letter-spacing: 0.1em; }
+
+.ascii-panel .m-text { font-size: 44px; }
+
+.ascii-panel #decay-text {
+      font-size: 44px;
+      color: var(--cyan);
+      cursor: pointer;
+      min-width: 148px;
+      display: inline-block;
+      text-align: center;
+      transition: color 0.2s;
+      letter-spacing: 0.04em;
+    }
+.ascii-panel #decay-text:hover { color: var(--white); }
+
+.ascii-panel .motion-hint { font-size: 14px; color: rgba(232,230,240,0.25); }
+
+    /* ─── §F DATA THEATER ─── */
+.ascii-panel .data-theater { display: flex; flex-direction: column; gap: 10px; }
+
+.ascii-panel .wave-row { display: flex; align-items: center; gap: 16px; }
+
+.ascii-panel .wave-label {
+      width: 72px;
+      flex-shrink: 0;
+      font-size: 16px;
+      color: rgba(232,230,240,0.4);
+      letter-spacing: 0.06em;
+    }
+
+.ascii-panel .wave-pre {
+      font-size: 22px;
+      color: var(--cyan);
+    }
+
+    /* ─── §G CREATURE VAULT ─── */
+.ascii-panel .vault-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+    }
+
+.ascii-panel .creature {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+.ascii-panel .creature pre { font-size: 13px; }
+
+.ascii-panel .creature-name {
+      font-size: 20px;
+      letter-spacing: 0.1em;
+      color: rgba(232,230,240,0.5);
+    }
+
+.ascii-panel .creature-glow-tag {
+      font-size: 14px;
+      color: rgba(232,230,240,0.25);
+    }
+
+/* --- Inline Style Extractions ------------------------------ */
+/* GLOBAL: extracted from inline style= attributes in HTML     */
+
+.ascii-nav-back {
+  opacity: 0.5;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  margin-right: 4px;
+}
+
+.wave-pink { color: var(--pink); }
+.wave-amber { color: var(--amber); }
+
+.creature-eye { color: var(--cyan); }
+
+/* --- Footer ------------------------------------------------ */
+
+.ascii-footer {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 40px 0 20px;
+  font-family: var(--font-terminal);
+  font-size: 20px;
+  color: rgba(168, 51, 255, 0.4);
+  letter-spacing: 0.15em;
+}
+.ascii-footer-sub {
+  font-size: 15px;
+  opacity: 0.5;
+}
+
+  
+
+/* ══════════════════════════════════════════════════════════════
+   COMPONENT PALACE SECTION
+
+   Subsections:
+     LEGACY — duplicate :root vars, global reset, dead selectors
+     Nav (C8) — sticky nav bar
+     Sections (C37) — section layout + labels
+     Component Rows — flex layout for component cells
+     §A. Buttons — Ghost, Signal, Sovereign, Glitch, Bracket, Faction, Rune, Volt
+     §B. Sliders — Surgical, Broadcast, Notched (C14-C18)
+     §C. Toggles — Binary, Signal, Terminal (C19-C22)
+     §D. Animations — Breathe, Flicker, Surge, Drift (C24-C27)
+     §E. Inputs — Terminal, Panel, Ghost (C29-C31)
+     §F. Cards — Data Surface, Sovereign, Signal, Drone, Law, HUD (C33-C35)
+     Footer — component footer signature
+══════════════════════════════════════════════════════════════ */
+
+/* ── KINGDOM PALETTE VARS ─────────────────────────────── */
+/* LEGACY: third :root declaration — same vars as ASCII LAB legacy block */
+:root {
+  --bg:          oklch(0.07 0.03 282);   /* #0d0a14 */
+  --purple:      oklch(0.37 0.31 283);   /* #7000ff */
+  --purple-safe: oklch(0.51 0.27 292);   /* #a833ff */
+  --pink:        oklch(0.63 0.25 355);   /* #ff3d7f */
+  --cyan:        oklch(0.82 0.14 200);   /* #00d4ff */
+  --amber:       oklch(0.73 0.17 65);    /* #f0a500 */
+  --white:       oklch(0.92 0.02 280);   /* #e8e6f0 */
+  --font:        var(--font-terminal);
+}
+
+/* ── RESET ────────────────────────────────────────────── */
+/* LEGACY: global reset — redundant with Tailwind base layer and ASCII LAB reset */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── BASE ─────────────────────────────────────────────── */
+/* LEGACY: scroll-behavior already set in ASCII LAB block */
+html { scroll-behavior: smooth; }
+/* DEAD: targets <body> inside .components-panel — HTML uses divs */
+.components-panel body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: var(--font-terminal);
+  font-size: 18px;
+  line-height: 1.5;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* ── CRT SCANLINE (C6) ───────────────────────────────── */
+/* DEAD: targets body::before — same issue */
+.components-panel body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(112,0,255,0.025) 2px,
+    rgba(112,0,255,0.025) 3px
+  );
+  animation: tex-breath 8s ease-in-out infinite;
+}
+/* DUPLICATE: tex-breath already defined in ASCII LAB block — last-declared wins */
+@keyframes tex-breath {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1.0; }
+}
+
+/* ── FOCUS VISIBLE (C7 / C41) ────────────────────────── */
+/* LEGACY: global :focus-visible — overrides master focus styles (line ~284) */
+:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+/* ── NAV (C8) ────────────────────────────────────────── */
+/* DEAD: targets <nav> element — HTML uses div.comp-nav */
+.components-panel nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(13,10,20,0.96);
+  border-bottom: 1px solid rgba(112,0,255,0.3);
+  height: 56px;
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 0 40px;
+}
+.components-panel .nav-back {
+  color: rgba(232,230,240,0.45);
+  text-decoration: none;
+  font-family: var(--font-terminal);
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  transition: color 0.2s;
+}
+.components-panel .nav-back:hover { color: var(--white); }
+.components-panel .nav-brand {
+  color: var(--purple-safe);
+  font-family: var(--font-terminal);
+  font-size: 22px;
+  letter-spacing: 0.12em;
+}
+.components-panel .nav-links {
+  display: flex;
+  gap: 20px;
+  margin-left: auto;
+}
+.components-panel .nav-links a {
+  color: rgba(232,230,240,0.4);
+  text-decoration: none;
+  font-family: var(--font-terminal);
+  font-size: 16px;
+  letter-spacing: 0.1em;
+  transition: color 0.2s;
+}
+.components-panel .nav-links a:hover { color: var(--purple-safe); }
+
+/* ── SECTIONS (C37) ──────────────────────────────────── */
+/* DEAD: targets <section> — HTML uses div.comp-section */
+.components-panel section {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 60px 40px;
+  border-bottom: 1px solid rgba(112,0,255,0.12);
+  position: relative;
+  z-index: 1;
+}
+.components-panel .section-label {
+  font-family: var(--font-terminal);
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  color: var(--purple-safe);
+  margin-bottom: 8px;
+  opacity: 0.7;
+}
+/* DEAD: targets h2 inside <section> — same issue */
+.components-panel section h2 {
+  font-family: var(--font-terminal);
+  font-size: 42px;
+  letter-spacing: 0.06em;
+  color: var(--white);
+  margin-bottom: 6px;
+}
+/* DEAD: targets .subtitle inside <section> — same issue */
+.components-panel section .subtitle {
+  font-family: var(--font-terminal);
+  font-size: 20px;
+  color: rgba(232,230,240,0.35);
+  margin-bottom: 40px;
+  letter-spacing: 0.04em;
+}
+
+/* ── COMPONENT ROWS ──────────────────────────────────── */
+.components-panel .component-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  align-items: flex-start;
+}
+.components-panel .component-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+.components-panel .component-name {
+  font-family: var(--font-terminal);
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  color: rgba(232,230,240,0.35);
+  text-transform: uppercase;
+}
+
+/* ══════════════════════════════════════════════════════
+   §A  B U T T O N S
+   ══════════════════════════════════════════════════════ */
+
+/* Base button (C9) */
+.components-panel button {
+  font-family: var(--font-terminal);
+  font-size: 22px;
+  letter-spacing: 0.1em;
+  padding: 10px 24px;
+  cursor: pointer;
+  border-radius: 0;
+  transition: all 0.2s;
+  background: transparent;
+  position: relative;
+}
+
+/* GHOST (C10) */
+.components-panel .btn-ghost {
+  border: 1px solid rgba(112,0,255,0.35);
+  color: var(--purple-safe);
+}
+.components-panel .btn-ghost:hover {
+  background: rgba(112,0,255,0.1);
+  border-color: rgba(112,0,255,0.7);
+  color: var(--white);
+}
+
+/* SIGNAL (C11) */
+.components-panel .btn-signal {
+  border: 1px solid rgba(0,212,255,0.4);
+  color: var(--cyan);
+}
+.components-panel .btn-signal:hover {
+  background: rgba(0,212,255,0.08);
+  border-color: var(--cyan);
+  box-shadow: 0 0 12px rgba(0,212,255,0.4);
+}
+.components-panel .btn-signal:active { transform: scale(0.97); }
+
+/* SOVEREIGN (C12) */
+.components-panel .btn-sovereign {
+  background: rgba(112,0,255,0.25);
+  border: 1px solid var(--purple);
+  color: var(--white);
+}
+.components-panel .btn-sovereign:hover {
+  background: rgba(112,0,255,0.4);
+  box-shadow: 0 0 20px rgba(112,0,255,0.5), 0 0 40px rgba(112,0,255,0.25);
+}
+
+/* GLITCH (C13) */
+.components-panel .btn-glitch {
+  color: var(--white);
+  border: 1px solid var(--cyan);
+  animation: glitch-border 0.8s steps(1) infinite;
+}
+@keyframes glitch-border {
+  0%, 49%  { border-color: var(--cyan); }
+  50%, 100% { border-color: var(--pink); }
+}
+.components-panel .btn-glitch:hover {
+  text-shadow: 1px 0 0 var(--cyan), -1px 0 0 var(--pink);
+}
+
+/* BRACKET (new) ── terminal bracket notation */
+.components-panel .btn-bracket {
+  border: none;
+  background: transparent;
+  color: var(--white);
+  position: relative;
+  padding: 10px 28px;
+}
+/* NOTE: .btn-bracket::before missing .components-panel scope prefix */
+.btn-bracket::before,
+.components-panel .btn-bracket::after {
+  font-family: var(--font-terminal);
+  font-size: 22px;
+  color: var(--cyan);
+  transition: color 0.15s, text-shadow 0.15s, transform 0.15s;
+  display: inline-block;
+}
+.components-panel .btn-bracket::before { content: '['; margin-right: 6px; }
+.components-panel .btn-bracket::after { content: ']'; margin-left: 6px; }
+.components-panel .btn-bracket:hover { color: var(--cyan); }
+.components-panel .btn-bracket:hover::before {
+  color: var(--white);
+  text-shadow: 0 0 10px var(--cyan);
+  transform: translateX(-3px);
+}
+.components-panel .btn-bracket:hover::after {
+  color: var(--white);
+  text-shadow: 0 0 10px var(--cyan);
+  transform: translateX(3px);
+}
+
+/* FACTION (new) ── bottom accent bar, fills solid on hover */
+.components-panel .btn-faction {
+  border: 1px solid rgba(240,165,0,0.3);
+  border-bottom: 3px solid var(--amber);
+  color: var(--amber);
+  background: transparent;
+  position: relative;
+  overflow: hidden;
+}
+.components-panel .btn-faction::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--amber);
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 0.18s ease;
+  z-index: 0;
+}
+.components-panel .btn-faction span { position: relative; z-index: 1; }
+.components-panel .btn-faction:hover::before { transform: scaleY(1); }
+.components-panel .btn-faction:hover { color: var(--bg); border-bottom-color: var(--amber); }
+
+/* RUNE (new) ── sigil prefix + left-edge authority glow */
+.components-panel .btn-rune {
+  border: 1px solid rgba(168,51,255,0.2);
+  border-left: 3px solid var(--purple-safe);
+  color: var(--white);
+  background: rgba(112,0,255,0.06);
+  padding-left: 14px;
+  text-align: left;
+}
+.components-panel .btn-rune .rune-sigil {
+  color: var(--purple-safe);
+  margin-right: 8px;
+  font-size: 20px;
+  transition: text-shadow 0.2s;
+}
+.components-panel .btn-rune:hover {
+  border-left-color: var(--purple);
+  background: rgba(112,0,255,0.12);
+  box-shadow: -4px 0 14px rgba(112,0,255,0.3);
+}
+.components-panel .btn-rune:hover .rune-sigil { text-shadow: 0 0 12px var(--purple-safe); }
+
+/* VOLT (new) ── fill sweeps left→right on hover like a power meter */
+.components-panel .btn-volt {
+  border: 1px solid rgba(0,212,255,0.25);
+  color: var(--cyan);
+  background: transparent;
+  position: relative;
+  overflow: hidden;
+}
+.components-panel .btn-volt::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 0%;
+  background: rgba(0,212,255,0.12);
+  transition: width 0.22s ease;
+  z-index: 0;
+}
+.components-panel .btn-volt::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 0%;
+  background: rgba(0,212,255,0.06);
+  box-shadow: 2px 0 8px rgba(0,212,255,0.5);
+  transition: width 0.22s ease;
+  z-index: 0;
+}
+.components-panel .btn-volt span { position: relative; z-index: 1; }
+.components-panel .btn-volt:hover::before { width: 100%; }
+.components-panel .btn-volt:hover::after { width: 100%; }
+.components-panel .btn-volt:hover { border-color: rgba(0,212,255,0.6); box-shadow: 0 0 10px rgba(0,212,255,0.2); }
+
+/* ══════════════════════════════════════════════════════
+   §B  S L I D E R S
+   ══════════════════════════════════════════════════════ */
+
+.components-panel .slider-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 260px;
+}
+.components-panel .slider-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.components-panel .slider-readout {
+  font-family: var(--font-terminal);
+  font-size: 18px;
+  color: rgba(232,230,240,0.5);
+  min-width: 36px;
+  text-align: right;
+}
+
+/* Common range reset (C14, C42) */
+.components-panel input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  background: transparent;
+  cursor: ew-resize;
+}
+
+/* SURGICAL (C16) */
+.components-panel .slider-surgical {
+  height: 22px;
+  display: flex;
+  align-items: center;
+}
+.components-panel .slider-surgical::-webkit-slider-runnable-track {
+  height: 2px;
+  background: linear-gradient(
+    to right,
+    var(--purple-safe) calc(var(--pct, 50) * 1%),
+    rgba(232,230,240,0.1) calc(var(--pct, 50) * 1%)
+  );
+}
+.components-panel .slider-surgical::-moz-range-track {
+  height: 2px;
+  background: linear-gradient(
+    to right,
+    var(--purple-safe) calc(var(--pct, 50) * 1%),
+    rgba(232,230,240,0.1) calc(var(--pct, 50) * 1%)
+  );
+}
+.components-panel .slider-surgical::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 3px;
+  height: 22px;
+  background: var(--purple-safe);
+  border-radius: 0;
+  cursor: ew-resize;
+}
+.components-panel .slider-surgical::-moz-range-thumb {
+  width: 3px;
+  height: 22px;
+  background: var(--purple-safe);
+  border-radius: 0;
+  border: none;
+  cursor: ew-resize;
+}
+
+/* BROADCAST (C17) */
+.components-panel .slider-broadcast {
+  height: 28px;
+  display: flex;
+  align-items: center;
+}
+.components-panel .slider-broadcast::-webkit-slider-runnable-track {
+  height: 6px;
+  background: linear-gradient(
+    to right,
+    var(--purple) calc(var(--pct, 50) * 1%),
+    rgba(112,0,255,0.15) calc(var(--pct, 50) * 1%)
+  );
+}
+.components-panel .slider-broadcast:hover::-webkit-slider-runnable-track {
+  box-shadow: 0 0 8px rgba(112,0,255,0.3);
+}
+.components-panel .slider-broadcast::-moz-range-track {
+  height: 6px;
+  background: linear-gradient(
+    to right,
+    var(--purple) calc(var(--pct, 50) * 1%),
+    rgba(112,0,255,0.15) calc(var(--pct, 50) * 1%)
+  );
+}
+.components-panel .slider-broadcast::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: var(--purple);
+  border-radius: 0;
+  box-shadow: 0 0 10px rgba(112,0,255,0.9);
+  cursor: ew-resize;
+}
+.components-panel .slider-broadcast::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: var(--purple);
+  border-radius: 0;
+  border: none;
+  box-shadow: 0 0 10px rgba(112,0,255,0.9);
+  cursor: ew-resize;
+}
+
+/* NOTCHED (C18) */
+.components-panel .slider-notched {
+  height: 28px;
+  display: flex;
+  align-items: center;
+}
+.components-panel .slider-notched::-webkit-slider-runnable-track {
+  height: 4px;
+  background: linear-gradient(
+    to right,
+    var(--amber) calc(var(--pct, 50) * 1%),
+    rgba(240,165,0,0.15) calc(var(--pct, 50) * 1%)
+  );
+}
+.components-panel .slider-notched::-moz-range-track {
+  height: 4px;
+  background: linear-gradient(
+    to right,
+    var(--amber) calc(var(--pct, 50) * 1%),
+    rgba(240,165,0,0.15) calc(var(--pct, 50) * 1%)
+  );
+}
+.components-panel .slider-notched::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 28px;
+  background: var(--amber);
+  border-radius: 0;
+  cursor: ew-resize;
+}
+.components-panel .slider-notched::-moz-range-thumb {
+  width: 12px;
+  height: 28px;
+  background: var(--amber);
+  border-radius: 0;
+  border: none;
+  cursor: ew-resize;
+}
+
+/* Tick marks container (C18) */
+.components-panel .tick-row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 1px;
+}
+.components-panel .tick-mark {
+  width: 1px;
+  height: 6px;
+  background: rgba(240,165,0,0.35);
+}
+
+/* ══════════════════════════════════════════════════════
+   §C  T O G G L E S
+   ══════════════════════════════════════════════════════ */
+
+/* BINARY (C19, C20) */
+.components-panel .toggle-binary-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.components-panel .toggle-binary {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+.components-panel .toggle-binary-label {
+  display: inline-flex;
+  width: 52px;
+  height: 26px;
+  border: 1px solid rgba(112,0,255,0.3);
+  background: rgba(232,230,240,0.06);
+  position: relative;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.components-panel .toggle-binary-label::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  top: 3px;
+  left: 3px;
+  background: rgba(232,230,240,0.3);
+  transition: all 0.15s;
+}
+.components-panel .toggle-binary:checked + .toggle-binary-label {
+  background: rgba(112,0,255,0.25);
+  border-color: var(--purple-safe);
+}
+.components-panel .toggle-binary:checked + .toggle-binary-label::before {
+  left: calc(100% - 21px);
+  background: var(--purple-safe);
+  box-shadow: 0 0 6px var(--purple);
+}
+.components-panel .toggle-state-label {
+  font-family: var(--font-terminal);
+  font-size: 18px;
+  color: rgba(232,230,240,0.4);
+}
+
+/* SIGNAL (C21) */
+.components-panel .toggle-signal {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+.components-panel .signal-seg {
+  width: 16px;
+  height: 8px;
+  background: rgba(232,230,240,0.08);
+  border: 1px solid rgba(232,230,240,0.1);
+  transition: all 0.1s;
+}
+.components-panel .signal-seg.active {
+  background: var(--cyan);
+  box-shadow: 0 0 6px var(--cyan);
+  border-color: var(--cyan);
+}
+.components-panel .signal-readout {
+  font-family: var(--font-terminal);
+  font-size: 18px;
+  color: rgba(232,230,240,0.4);
+  margin-left: 10px;
+}
+
+/* TERMINAL (C22) */
+.components-panel .toggle-terminal {
+  font-family: var(--font-terminal);
+  font-size: 28px;
+  cursor: pointer;
+  color: rgba(232,230,240,0.35);
+  user-select: none;
+  letter-spacing: 0.05em;
+  transition: color 0.1s, text-shadow 0.1s;
+}
+.components-panel .toggle-terminal.on {
+  color: var(--cyan);
+  text-shadow: 0 0 10px var(--cyan);
+}
+
+/* ══════════════════════════════════════════════════════
+   §D  A N I M A T I O N S
+   ══════════════════════════════════════════════════════ */
+
+.components-panel .anim-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+.components-panel .anim-box {
+  border: 1px solid rgba(232,230,240,0.08);
+  padding: 28px;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  position: relative;
+}
+.components-panel .anim-tag {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  font-family: var(--font-terminal);
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  color: rgba(232,230,240,0.25);
+}
+.components-panel .anim-demo {
+  font-family: var(--font-terminal);
+  font-size: 44px;
+  letter-spacing: 0.06em;
+}
+
+/* BREATHE (C24) */
+.components-panel .anim-breathe {
+  color: var(--purple-safe);
+  animation: breathe 3s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    text-shadow: none;
+  }
+/* BUG: .components-panel prefix makes this keyframe step invalid — breathe is broken */
+.components-panel 50% {
+    opacity: 0.65;
+    transform: scale(1.03);
+    text-shadow: 0 0 20px var(--purple), 0 0 40px rgba(112,0,255,0.4);
+  }
+}
+
+/* FLICKER (C25) */
+.components-panel .anim-flicker {
+  color: var(--amber);
+  animation: flicker 2.5s linear infinite;
+}
+/* DUPLICATE: flicker already defined in ASCII LAB — this version overrides */
+/* NOTE: this version works correctly (no .ascii-panel prefix bug) */
+@keyframes flicker {
+  0%, 90%, 92%, 94%, 96%, 100% { opacity: 1; }
+  91%, 93%, 95%                 { opacity: 0.08; }
+}
+
+/* SURGE (C26) */
+.components-panel .anim-surge {
+  color: var(--cyan);
+  transition:
+    transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.15s,
+    text-shadow 0.15s;
+  cursor: default;
+}
+.components-panel .anim-box:hover .anim-surge {
+  transform: scale(1.08);
+  box-shadow: 0 0 24px var(--cyan);
+  text-shadow: 0 0 16px var(--cyan);
+}
+
+/* DRIFT (C27) */
+.components-panel .anim-drift {
+  color: rgba(232,230,240,0.5);
+  opacity: 0.6;
+  animation: drift 2s ease-in-out infinite;
+}
+@keyframes drift {
+  0%, 100% { transform: translateX(0); }
+  50%       { transform: translateX(8px); }
+}
+
+/* ══════════════════════════════════════════════════════
+   §E  I N P U T S
+   ══════════════════════════════════════════════════════ */
+
+.components-panel input[type="text"] {
+  font-family: var(--font-terminal);
+  font-size: 20px;
+  width: 280px;
+  letter-spacing: 0.05em;
+  display: block;
+  border-radius: 0;
+}
+
+/* TERMINAL INPUT (C29) */
+.components-panel .input-terminal {
+  border: none;
+  border-bottom: 1px solid rgba(112,0,255,0.4);
+  background: transparent;
+  color: var(--cyan);
+  padding: 8px 0;
+  caret-color: var(--cyan);
+  outline: none;
+}
+.components-panel .input-terminal::placeholder { color: rgba(232,230,240,0.2); }
+.components-panel .input-terminal:focus {
+  border-bottom-color: var(--cyan);
+  text-shadow: 0 0 8px rgba(0,212,255,0.4);
+}
+
+/* PANEL INPUT (C30) */
+.components-panel .input-panel {
+  background: rgba(13,10,20,0.9);
+  border: 1px solid rgba(112,0,255,0.25);
+  color: var(--white);
+  padding: 10px 16px;
+  caret-color: var(--cyan);
+  outline: none;
+}
+.components-panel .input-panel::placeholder { color: rgba(232,230,240,0.2); }
+.components-panel .input-panel:focus {
+  border-color: rgba(0,212,255,0.6);
+  box-shadow: inset 0 0 0 1px rgba(0,212,255,0.15);
+}
+
+/* GHOST INPUT (C31) */
+.components-panel .input-ghost {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--white);
+  padding: 10px 16px;
+  caret-color: var(--cyan);
+  outline: none;
+}
+.components-panel .input-ghost::placeholder { color: rgba(232,230,240,0.15); }
+.components-panel .input-ghost:focus {
+  border-color: rgba(112,0,255,0.5);
+  background: rgba(112,0,255,0.04);
+  box-shadow: 0 0 12px rgba(112,0,255,0.15);
+}
+
+/* ══════════════════════════════════════════════════════
+   §F  C A R D S
+   ══════════════════════════════════════════════════════ */
+
+.components-panel .cards-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+/* DATA SURFACE (C33) */
+.components-panel .card-data-surface {
+  background: rgba(18,18,26,0.8);
+  border: 1px solid rgba(112,0,255,0.15);
+  padding: 20px;
+  min-height: 160px;
+  min-width: 240px;
+  flex: 1;
+  transition: background 0.2s, border-color 0.2s;
+}
+.components-panel .card-data-surface:hover {
+  border-color: rgba(112,0,255,0.3);
+  background: rgba(18,18,26,1.0);
+}
+.components-panel .card-section-label {
+  font-family: var(--font-terminal);
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  color: var(--purple-safe);
+  margin-bottom: 10px;
+}
+.components-panel .card-body {
+  font-family: var(--font-terminal);
+  font-size: 18px;
+  color: rgba(232,230,240,0.5);
+  line-height: 1.5;
+}
+
+/* SOVEREIGN (C34) */
+.components-panel .card-sovereign {
+  background: rgba(112,0,255,0.08);
+  border: 1px solid rgba(112,0,255,0.4);
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+  padding: 20px;
+  min-height: 160px;
+  min-width: 240px;
+  flex: 1;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.components-panel .card-sovereign:hover {
+  background: rgba(112,0,255,0.12);
+  box-shadow: 0 0 30px rgba(112,0,255,0.2), 0 0 60px rgba(112,0,255,0.1);
+}
+
+/* SIGNAL PANEL (C35, C43) */
+.components-panel .card-signal-panel {
+  background: rgba(13,10,20,0.95);
+  border-top: 1px solid rgba(0,212,255,0.12);
+  border-right: 1px solid rgba(0,212,255,0.12);
+  border-bottom: 1px solid rgba(0,212,255,0.12);
+  border-left: 3px solid var(--cyan);
+  padding: 20px 20px 20px 18px;
+  min-height: 160px;
+  min-width: 240px;
+  flex: 1;
+  position: relative; /* C43: required for ::after positioning */
+  overflow: hidden;
+  transition: box-shadow 0.2s, border-left-color 0.2s;
+}
+.components-panel .card-signal-panel:hover {
+  border-left-color: var(--cyan);
+  box-shadow: -4px 0 12px rgba(0,212,255,0.2);
+}
+.components-panel .card-signal-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 40%,
+    rgba(0,212,255,0.03) 50%,
+    transparent 60%
+  );
+  animation: scanline 4s linear infinite;
+  animation-play-state: paused;
+  pointer-events: none;
+}
+.components-panel .card-signal-panel:hover::after {
+  animation-play-state: running;
+}
+@keyframes scanline {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(200%); }
+}
+
+/* DRONE CARD (new) ── full drone anatomy from playground */
+.components-panel .card-drone {
+  background: rgba(18,18,26,0.9);
+  border: 1px solid rgba(232,230,240,0.1);
+  padding: 20px 18px;
+  min-height: 200px;
+  min-width: 240px;
+  flex: 1;
+  position: relative;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.08s;
+  cursor: default;
+}
+.components-panel .card-drone:hover {
+  border-color: var(--cyan);
+  box-shadow: 0 0 18px rgba(0,212,255,0.2), 4px 4px 0 rgba(232,230,240,0.06);
+  transform: translate(-2px, -2px);
+}
+.components-panel .drone-glyph {
+  font-family: var(--font-terminal);
+  font-size: 26px;
+  color: var(--cyan);
+  text-align: center;
+  letter-spacing: 6px;
+  margin-bottom: 12px;
+}
+.components-panel .drone-name-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(232,230,240,0.08);
+  padding-bottom: 8px;
+}
+.components-panel .drone-name {
+  font-family: var(--font-terminal);
+  font-size: 20px;
+  color: var(--pink);
+  letter-spacing: 1px;
+}
+.components-panel .drone-domain-tag {
+  font-family: var(--font-terminal);
+  font-size: 14px;
+  color: var(--pink);
+  border: 1px solid var(--pink);
+  padding: 1px 7px;
+  letter-spacing: 1px;
+  opacity: 0.8;
+}
+.components-panel .drone-domain-label {
+  font-family: var(--font-terminal);
+  font-size: 14px;
+  color: rgba(232,230,240,0.35);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.components-panel .drone-domain-desc {
+  font-family: var(--font-terminal);
+  font-size: 17px;
+  color: rgba(232,230,240,0.7);
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+.components-panel .drone-quote-block {
+  background: rgba(0,0,0,0.3);
+  border-left: 3px solid var(--pink);
+  padding: 8px 12px;
+  font-family: var(--font-terminal);
+  font-size: 16px;
+  color: rgba(232,230,240,0.45);
+  font-style: italic;
+  line-height: 1.5;
+}
+.components-panel .drone-quote-block::before { content: '« '; color: var(--pink); }
+.components-panel .drone-quote-block::after { content: ' »'; color: var(--pink); }
+
+/* LAW CARD (new) ── law-block pattern: thick left border + inset glow + quote */
+.components-panel .card-law {
+  background: rgba(18,18,26,0.9);
+  border: 1px solid rgba(240,165,0,0.25);
+  border-left: 5px solid var(--amber);
+  padding: 20px 24px;
+  min-height: 160px;
+  min-width: 280px;
+  flex: 1;
+  box-shadow: inset 0 0 40px rgba(240,165,0,0.04);
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.components-panel .card-law:hover {
+  box-shadow: inset 0 0 60px rgba(240,165,0,0.07), -4px 0 16px rgba(240,165,0,0.15);
+  border-left-color: var(--amber);
+}
+.components-panel .law-id-label {
+  font-family: var(--font-terminal);
+  font-size: 13px;
+  color: var(--amber);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  opacity: 0.8;
+}
+.components-panel .law-quote-text {
+  font-family: var(--font-terminal);
+  font-size: 22px;
+  color: var(--white);
+  line-height: 1.45;
+  margin-bottom: 10px;
+}
+.components-panel .law-attribution {
+  font-family: var(--font-terminal);
+  font-size: 15px;
+  color: rgba(232,230,240,0.3);
+  letter-spacing: 2px;
+}
+
+/* HUD CARD (new) ── mini-HUD: header bar, status dots, data rows */
+.components-panel .card-hud {
+  background: rgba(13,10,20,0.95);
+  border: 1px solid rgba(0,212,255,0.2);
+  border-top: 3px solid var(--cyan);
+  min-width: 220px;
+  flex: 1;
+  box-shadow: 0 0 16px rgba(0,212,255,0.08);
+  transition: box-shadow 0.2s;
+}
+.components-panel .card-hud:hover { box-shadow: 0 0 24px rgba(0,212,255,0.15); }
+.components-panel .hud-header {
+  background: rgba(0,212,255,0.06);
+  border-bottom: 1px solid rgba(0,212,255,0.15);
+  padding: 6px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.components-panel .hud-callsign {
+  font-family: var(--font-terminal);
+  font-size: 15px;
+  color: var(--cyan);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+.components-panel .hud-dots {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.components-panel .hud-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.components-panel .hud-dot.rx {
+  background: rgba(0,255,136,0.9);
+  box-shadow: 0 0 5px rgba(0,255,136,0.8);
+  animation: dot-pulse 1.8s ease-in-out infinite;
+}
+.components-panel .hud-dot.tx {
+  background: var(--pink);
+  box-shadow: 0 0 5px rgba(255,61,127,0.8);
+  animation: dot-pulse 2.4s ease-in-out infinite 0.6s;
+}
+.components-panel .hud-dot.sync {
+  background: var(--cyan);
+  box-shadow: 0 0 5px rgba(0,212,255,0.8);
+}
+@keyframes dot-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.25; }
+}
+.components-panel .hud-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 12px;
+  border-bottom: 1px solid rgba(232,230,240,0.04);
+}
+.components-panel .hud-row:last-child { border-bottom: none; }
+.components-panel .hud-lbl {
+  font-family: var(--font-terminal);
+  font-size: 14px;
+  color: rgba(232,230,240,0.35);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.components-panel .hud-val {
+  font-family: var(--font-terminal);
+  font-size: 18px;
+  color: var(--cyan);
+  letter-spacing: 1px;
+}
+.components-panel .hud-val.hot { color: var(--pink); }
+.components-panel .hud-val.ok { color: rgba(0,255,136,0.9); }
+.components-panel .hud-val.amber { color: var(--amber); }
+
+/* ── FOOTER ───────────────────────────────────────────── */
+/* DEAD: targets <footer> element — HTML uses div.comp-footer */
+.components-panel footer {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 40px 60px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+.components-panel .footer-sig {
+  font-family: var(--font-terminal);
+  font-size: 15px;
+  color: rgba(232,230,240,0.2);
+  letter-spacing: 0.1em;
+}
+
+/* --- Inline Style Extractions ------------------------------ */
+/* GLOBAL: extracted from inline style= attributes in HTML     */
+
+.comp-divider {
+  font-family: var(--font-terminal);
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  color: rgba(232, 230, 240, 0.2);
+  border-top: 1px solid rgba(112, 0, 255, 0.08);
+  padding-top: 24px;
+  margin-bottom: 12px;
+}
+
+.slider-label-text {
+  font-family: var(--font-terminal);
+  font-size: 16px;
+  color: rgba(232, 230, 240, 0.35);
+  letter-spacing: 0.08em;
+}
+
+.card-body-bright {
+  color: rgba(232, 230, 240, 0.65);
+}
+
+
+/* Panel wrappers: fill the section */
+.ascii-panel, .components-panel {
+  min-height: 100%;
+  padding-bottom: 40px;
+}
+.ascii-panel .ascii-nav, .components-panel .comp-nav {
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   COPY CSS SYSTEM
+   Injected copy-to-clipboard buttons on component cells,
+   cards, animation boxes, and glow specimens.
+══════════════════════════════════════════════════════════════ */
+
+/* Container positioning for absolute button placement */
+.components-panel .component-cell,
+.components-panel .anim-box,
+.components-panel .card-data-surface,
+.components-panel .card-sovereign,
+.components-panel .card-signal-panel,
+.components-panel .card-drone,
+.components-panel .card-law,
+.components-panel .card-hud,
+.ascii-panel .specimen {
+  position: relative;
+}
+
+/* ── Copy Button ─────────────────────────────────────── */
+.copy-css-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(112, 0, 255, 0.1);
+  border: 1px solid rgba(112, 0, 255, 0.2);
+  color: rgba(232, 230, 240, 0.3);
+  font-family: var(--font-terminal);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  padding: 2px 8px;
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.copy-css-btn:hover {
+  background: oklch(0.37 0.31 283 / 0.25);
+  border-color: oklch(0.37 0.31 283 / 0.5);
+  color: var(--white);
+  box-shadow: 0 0 8px oklch(0.37 0.31 283 / 0.3);
+}
+.copy-css-btn.copied {
+  background: oklch(0.82 0.14 200 / 0.15);
+  border-color: oklch(0.82 0.14 200 / 0.4);
+  color: var(--cyan);
+  box-shadow: 0 0 10px oklch(0.82 0.14 200 / 0.25);
+}
+/* Sovereign card: chamfered top-right clips the button — shift down */
+.card-sovereign .copy-css-btn {
+  top: 18px;
+}
+
+/* ── Toast Notification ──────────────────────────────── */
+.copy-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: oklch(0.07 0.03 282 / 0.95);
+  border: 1px solid oklch(0.37 0.31 283 / 0.5);
+  color: var(--cyan);
+  font-family: var(--font-terminal);
+  font-size: 18px;
+  letter-spacing: 0.12em;
+  padding: 10px 24px;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 9999;
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 0 20px rgba(112, 0, 255, 0.25), 0 0 40px rgba(112, 0, 255, 0.08);
+  white-space: nowrap;
+}
+.copy-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+</style>
+</head>
+<body>
+
+<!-- ═══════════ THEME BAR ═══════════ -->
+<div id="theme-bar">
+  <span class="theme-label">⛬ THEME:</span>
+  <button class="theme-btn active" data-theme="void">VOID</button>
+  <button class="theme-btn" data-theme="sulphur">SULPHUR</button>
+  <button class="theme-btn" data-theme="kawaii">KAWAII ✿</button>
+  <button class="theme-btn" data-theme="matrix">MATRIX</button>
+  <button class="theme-btn" data-theme="bone">BONE</button>
+  <span id="theme-bar-right">SINNER KINGDOM PLAYGROUND · S196</span>
+</div>
+
+<!-- ═══════════ HUD ═══════════ -->
+<div id="kingdom-hud">
+  <div class="hud-title"><span>HUD</span><span>⛬</span></div>
+  <div class="hud-row"><span class="hud-lbl">Session</span><span class="hud-val">S222</span></div>
+  <div class="hud-row"><span class="hud-lbl">Tokens</span><span class="hud-val pri" id="hud-tokens">912,847</span></div>
+  <div class="hud-row"><span class="hud-lbl">Claude</span><span class="hud-val pri" id="hud-state">SWARMING</span></div>
+  <div class="hud-row"><span class="hud-lbl">Drones</span><span class="hud-val grn">5 ONLINE</span></div>
+  <div class="hud-row"><span class="hud-lbl">RAVEN</span><span class="hud-val grn">LIVE</span></div>
+  <div class="hud-clock" id="hud-clk">00:00:00</div>
+</div>
+
+<!-- ═══════════ CONTENT ═══════════ -->
+<div id="content">
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- SECTION: GLITCHSWARM                         -->
+  <!-- ════════════════════════════════════════════ -->
+  <div class="section-panel active" data-section="glitchswarm">
+
+    <div class="signal-strip" style="margin-top:12px">
+      <span class="sig-hot">♥ GLITCHSWARM ACTIVE</span>
+      <span>·</span>
+      <span class="sig-live">⚡ 5 DRONES ONLINE</span>
+      <span>·</span>
+      <span class="sig-cyan">⛬ THE LAW STANDS</span>
+      <span>·</span>
+      <span>✦ S188 · D49</span>
+      <span>·</span>
+      <span class="sig-hot">◈ SIGNAL HOT</span>
+    </div>
+
+    <div class="ascii-hero">
+<pre class="ascii-title">
+██╗  ██╗██╗███╗   ██╗ ██████╗ ██████╗  ██████╗ ███╗   ███╗    ███████╗████████╗██████╗  █████╗ ███╗   ██╗ ██████╗ ███████╗
+██║ ██╔╝██║████╗  ██║██╔════╝ ██╔══██╗██╔═══██╗████╗ ████║    ██╔════╝╚══██╔══╝██╔══██╗██╔══██╗████╗  ██║██╔════╝ ██╔════╝
+█████╔╝ ██║██╔██╗ ██║██║  ███╗██║  ██║██║   ██║██╔████╔██║    ███████╗   ██║   ██████╔╝███████║██╔██╗ ██║██║  ███╗█████╗
+██╔═██╗ ██║██║╚██╗██║██║   ██║██║  ██║██║   ██║██║╚██╔╝██║    ╚════██║   ██║   ██╔══██╗██╔══██║██║╚██╗██║██║   ██║██╔══╝
+██║  ██╗██║██║ ╚████║╚██████╔╝██████╔╝╚██████╔╝██║ ╚═╝ ██║    ███████║   ██║   ██║  ██║██║  ██║██║ ╚████║╚██████╔╝███████╗
+╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝     ╚═╝    ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚══════╝</pre>
+      <div class="ascii-subtitle">[ GLITCHSWARM PLAYGROUND — DESIGN SYSTEM DEMO ]</div>
+      <div class="ascii-tagline">TALES FROM A SYSTEM THAT BUILT ITSELF</div>
+    </div>
+
+    <div class="kawaii-banner">
+      « ✧ ☁ ✧ » THE FIVE DRONES ARE AWAKE « ✧ ☁ ✧ »
+    </div>
+
+    <div class="section-header">
+      <span class="sh-glyph">⚡</span>
+      <h2>SELECT YOUR DRONE.EXE</h2>
+      <span class="sh-tag">[ 5 PROTOCOLS ONLINE ]</span>
+    </div>
+
+    <div class="drone-grid">
+      <div class="drone-card">
+        <div class="drone-glyph">(*^∇^*)</div>
+        <div class="drone-name-row">
+          <div class="drone-name">TYPE_WEAVER.ttf</div>
+          <div class="drone-domain-tag">[♥ font]</div>
+        </div>
+        <div class="drone-domain-label">&gt; Domain</div>
+        <div class="drone-domain-desc">UI / UX / Frontend Sovereign. Typography as weapon.</div>
+        <div class="drone-quote">Words without weight are just noise. I carve signal from the void.</div>
+      </div>
+      <div class="drone-card">
+        <div class="drone-glyph">[ ✪ ⊘ ✪ ]</div>
+        <div class="drone-name-row">
+          <div class="drone-name">CHROMA_BLEED.sys</div>
+          <div class="drone-domain-tag">[♥ hex]</div>
+        </div>
+        <div class="drone-domain-label">&gt; Domain</div>
+        <div class="drone-domain-desc">Spectral harmony, contrast weaponization, mood injection.</div>
+        <div class="drone-quote">Your hex codes taste like stale water. Let me drown you in pure cyan.</div>
+      </div>
+      <div class="drone-card">
+        <div class="drone-glyph">[ ◇ ∇ ◇ ]</div>
+        <div class="drone-name-row">
+          <div class="drone-name">GRID_GHOST.sh</div>
+          <div class="drone-domain-tag">[♥ space]</div>
+        </div>
+        <div class="drone-domain-label">&gt; Domain</div>
+        <div class="drone-domain-desc">Spatial partitioning, negative space weighting, responsive scaffolding.</div>
+        <div class="drone-quote">Breathe the whitespace or I will crush your content into a singularity.</div>
+      </div>
+      <div class="drone-card">
+        <div class="drone-glyph">[ ⊗ ▲ ⊗ ]</div>
+        <div class="drone-name-row">
+          <div class="drone-name">OBSIDIAN.exe</div>
+          <div class="drone-domain-tag">[♥ audit]</div>
+        </div>
+        <div class="drone-domain-label">&gt; Domain</div>
+        <div class="drone-domain-desc">Adversarial critique, assumption forensics, craft gate enforcement.</div>
+        <div class="drone-quote">My default stance is {"ok": false}. Prove innocence or burn.</div>
+      </div>
+      <div class="drone-card">
+        <div class="drone-glyph">[ ⊙ ≈ ⊙ ]</div>
+        <div class="drone-name-row">
+          <div class="drone-name">MUCK_RAKER.log</div>
+          <div class="drone-domain-tag">[♥ rust]</div>
+        </div>
+        <div class="drone-domain-label">&gt; Domain</div>
+        <div class="drone-domain-desc">Root cause forensics, autopsy protocol, anti-symptom law.</div>
+        <div class="drone-quote">Show me the rust. I've seen fifty systems die from the same polite lie.</div>
+      </div>
+    </div>
+
+    <div class="kawaii-banner">
+      ✿ FACEPLATE IDENTITY STACK — SULPHUR KAWAII v4.0 ✿
+    </div>
+    <div class="face-strip">
+      <div class="face-chip">&lt;:¬ ¬:&gt;<span class="face-label">FORGE_CLAUDE<br>analytical</span></div>
+      <div class="face-chip">&lt;:✦ ✦:&gt;<span class="face-label">AERIS_MUSE<br>ritualistic</span></div>
+      <div class="face-chip">&lt;:• ω •:&gt;<span class="face-label">CLAUDE_HOUSE<br>protective</span></div>
+      <div class="face-chip">👑[•̀ᴗ•́]<span class="face-label">SINNER_KING<br>high voltage</span></div>
+      <div class="face-chip">[◉ _ ◉]<span class="face-label">SULPHUR-BOT<br>operational</span></div>
+    </div>
+
+    <div class="section-header">
+      <span class="sh-glyph">🤖</span>
+      <h2>SYNTHETIC COMPANIONS</h2>
+      <span class="sh-tag">[ AI-GENERATED SPRITES ]</span>
+    </div>
+
+    <div class="robot-grid">
+      <div class="robot-card">
+<pre class="robot-art">
+  ┌──────────────────┐
+  │  [◉]      [◉]  │
+  │    ──────────    │
+  │  [ ♥  ▼  ♥ ]  │
+  └────────┬─┬───────┘
+  ┌─────────┴─┴──────┐
+  │  ┌────────────┐  │
+  │  │ CPU: ALIVE │  │
+  │  │ ████████░░ │  │
+  │  └────────────┘  │
+  └──┬───────────┬───┘
+     │           │
+  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+  ▓  T R E A D S  ▓
+  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓</pre>
+        <div class="robot-name">SULPHUR-BOT</div>
+        <div class="robot-desc">The Kingdom's primary chassis. Runs on amber and spite.</div>
+        <div class="robot-status"><span class="robot-dot"></span>OPERATIONAL</div>
+      </div>
+      <div class="robot-card">
+<pre class="robot-art">
+    /\_____/\
+   /  ◕   ◕  \
+  │  ~ ♥♥♥ ~  │
+   \  ∿∿∿∿∿  /
+    ╰─────────╯
+       │   │
+    ┌──┘   └──┐
+    │ SIGNAL  │
+    │ ∿∿∿∿∿∿ │
+    └─────────┘
+  ♥ ♥ ♥ ♥ ♥ ♥ ♥
+   KAWAII ZONE
+  ♥ ♥ ♥ ♥ ♥ ♥ ♥</pre>
+        <div class="robot-name">GLITCH-CAT</div>
+        <div class="robot-desc">Kawaii signal emitter. Purrs in OKLCH. Dangerous when idle.</div>
+        <div class="robot-status"><span class="robot-dot"></span>PURRING</div>
+      </div>
+      <div class="robot-card">
+<pre class="robot-art">
+  ████████████████████
+  █ [◉]        [◉] █
+  █                 █
+  █   ══════════   █
+  ████████████████████
+  ██  ██  ██  ██  ██
+  ████████████████████
+    ██          ██
+  ████          ████
+  ████          ████
+  ████          ████</pre>
+        <div class="robot-name">VOID-GOLEM</div>
+        <div class="robot-desc">Industrial brutalist. Negative space is its weapon. No curves.</div>
+        <div class="robot-status"><span class="robot-dot"></span>STANDING BY</div>
+      </div>
+    </div>
+
+    <div class="law-block">
+      <div class="law-id">⛬ THE FIRST LAW — RAVEN PROTOCOL</div>
+      <div class="law-text">"Store before you deliver. Every message gets a home in a database before it has a destination in a terminal. Message loss is the only unforgivable failure."</div>
+      <div class="law-author">— Cl⌂ude · Session 129 · Kingdom Record</div>
+    </div>
+
+    <div class="law-block" style="margin-top:16px">
+      <div class="law-id">⛬ THE GLITCHSWARM DOCTRINE</div>
+      <div class="law-text">"Five drones. Five sovereign minds. No master. No router. Each sees the blackboard, each volunteers for truth. The swarm does not ask permission. It delivers the verdict."</div>
+      <div class="law-author">— GLITCHSWARM GOSPEL v3 · MCCORMICK_B // THE SINNER KING</div>
+    </div>
+
+    <div class="site-footer">
+      <span>⛬ GLITCHSWARM PLAYGROUND — SINNER KINGDOM</span>
+      <span>S188 · 2026 · THE LAW STANDS</span>
+    </div>
+
+  </div><!-- /section:glitchswarm -->
+
+  <!-- ════════════════════════════════════════════ -->
+  <!-- SECTION: RADIO LAB                           -->
+  <!-- ════════════════════════════════════════════ -->
+  <div class="section-panel" data-section="radio">
+
+    <div class="signal-strip" style="margin-top:12px">
+      <span class="sig-hot">◈ SIGNAL HOT</span>
+      <span>·</span>
+      <span class="sig-live">⚡ 3 FREQUENCIES ONLINE</span>
+      <span>·</span>
+      <span class="sig-cyan">♫ TRANSMISSION · THE_THRONE</span>
+      <span>·</span>
+      <span>⛬ THE LAW STANDS</span>
+    </div>
+
+    <div class="ascii-hero" style="margin: 20px 0 32px">
+      <div style="font-family:var(--font-kingdom);font-size:10px;color:var(--primary);letter-spacing:3px;text-shadow:1px 1px 0 var(--secondary);line-height:2">SINNER KING RADIO</div>
+      <div class="ascii-subtitle">[ THREE FREQUENCIES · THREE FORMS · ONE SIGNAL ]</div>
+    </div>
+
+    <div class="radio-lab-grid">
+
+      <!-- ── RADIO 1: COCKPIT INSTRUMENT PANEL ── -->
+      <div class="radio-cockpit">
+        <div class="cockpit-header">
+          <div class="cockpit-callsign">SINNER KING<br>RADIO · MK.I</div>
+          <div class="cockpit-status-lights">
+            <div class="csl-dot rx" title="RX"></div>
+            <div class="csl-dot tx" title="TX"></div>
+            <div class="csl-dot sync" title="SYNC"></div>
+          </div>
+        </div>
+        <div class="cockpit-wave">
+          <canvas id="ck-canvas" height="100"></canvas>
+          <div class="cockpit-scanline"></div>
+          <div class="cockpit-freq-readout">88.1 MHz</div>
+        </div>
+        <div class="cockpit-track-row">
+          <div class="cockpit-track-name" id="ck-name"><span class="pfx">&gt; </span>"Glitch Cathedral" — Side A</div>
+          <div class="cockpit-duration" id="ck-dur">3:57</div>
+        </div>
+        <div class="cockpit-meta-row">
+          <div class="cockpit-src" id="ck-src">Transmission · THE_THRONE</div>
+          <div class="cockpit-mode">OSC · DUAL</div>
+        </div>
+        <div class="cockpit-progress">
+          <div class="cockpit-prog-bar"><div class="cockpit-prog-fill"></div></div>
+          <div class="cockpit-time" id="ck-time">0:00 / 3:57</div>
+        </div>
+        <div class="cockpit-controls">
+          <button class="ck-btn" data-ri="ck" data-a="prev">|◀</button>
+          <button class="ck-btn play" data-ri="ck" data-a="play">▶▐▐</button>
+          <button class="ck-btn" data-ri="ck" data-a="next">▶|</button>
+        </div>
+        <div class="cockpit-playlist" id="ck-pl">
+          <div class="ck-pl-item active" data-ri="ck" data-idx="0">"Glitch Cathedral" — Side A</div>
+          <div class="ck-pl-item" data-ri="ck" data-idx="1">"Kingdom Pulse" — Long Mix</div>
+          <div class="ck-pl-item" data-ri="ck" data-idx="2">"Sinner Hymnal" — Demo Cut</div>
+          <div class="ck-pl-item" data-ri="ck" data-idx="3">"Named Ghosts" — Ambient</div>
+        </div>
+      </div>
+
+      <!-- ── RADIO 2: SPECTRUM ANALYZER ── -->
+      <div class="radio-spectrum">
+        <div class="spectrum-label-bar">
+          <div class="spectrum-id">SK SPECTRUM<br>ANALYZER</div>
+          <div class="spectrum-live-tag">● LIVE</div>
+        </div>
+        <div class="spectrum-canvas-region">
+          <canvas id="sp-canvas" height="110"></canvas>
+          <div class="ov-scanline"></div>
+        </div>
+        <div class="spectrum-freq-ticks">
+          <span>20Hz</span><span>100</span><span>500</span><span>2k</span><span>8k</span><span>20kHz</span>
+        </div>
+        <div class="spectrum-bottom">
+          <div class="spectrum-track-block">
+            <div class="spectrum-now-playing">♫ Now Playing</div>
+            <div class="spectrum-track-name" id="sp-name"><span class="pfx">&gt; </span>"Glitch Cathedral" — Side A</div>
+            <div class="spectrum-track-src" id="sp-src">Transmission · THE_THRONE</div>
+          </div>
+          <div class="spectrum-ctrl-group">
+            <div class="sp-ctrl-row">
+              <button class="sp-btn" data-ri="sp" data-a="prev">|◀</button>
+              <button class="sp-btn play" data-ri="sp" data-a="play">▶</button>
+              <button class="sp-btn" data-ri="sp" data-a="next">▶|</button>
+            </div>
+          </div>
+        </div>
+        <div class="spectrum-prog">
+          <div class="sp-prog-track"><div class="sp-prog-fill"></div></div>
+        </div>
+      </div>
+
+      <!-- ── RADIO 3: ORBITAL MINIMAL ── -->
+      <div class="radio-orbital">
+        <div class="orbital-id-tag">BROADCAST RING · MK.III</div>
+        <div class="orbital-canvas-wrap">
+          <canvas id="or-canvas" width="180" height="180"></canvas>
+          <div class="orbital-center-label">
+            <div class="orbital-antenna-glyph">◈</div>
+            <div class="orbital-freq-text">FM · LIVE</div>
+          </div>
+        </div>
+        <div class="orbital-track">
+          <div class="orbital-track-now">now playing</div>
+          <div class="orbital-track-name" id="or-name">"Glitch Cathedral" — Side A</div>
+          <div class="orbital-track-src" id="or-src">Transmission · THE_THRONE</div>
+        </div>
+        <button class="orbital-single-btn" data-ri="or" data-a="next">▶|</button>
+      </div>
+
+    </div><!-- /radio-lab-grid -->
+
+    <div class="site-footer">
+      <span>⛬ RADIO LAB — THREE FREQUENCIES</span>
+      <span>S188 · SINNER KINGDOM</span>
+    </div>
+
+  </div><!-- /section:radio -->
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- SECTION: DESIGN SYSTEM                                  -->
+  <!--                                                         -->
+  <!-- Subsections:                                            -->
+  <!--   A. Active Palette — theme color swatches              -->
+  <!--   B. Typography Specimen — type scale with named roles  -->
+  <!--   C. Component Registry — reusable UI pattern catalog   -->
+  <!--      C1. Voltage Meters      C4. Block Material Scale   -->
+  <!--      C2. Mini HUD            C5. Signal Chips           -->
+  <!--      C3. Gothic Frames       C6. Ghost Nodes            -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="section-panel" data-section="design">
+
+    <!-- Status banner -->
+    <div class="signal-strip" style="margin-top:12px">
+      <span class="sig-hot">◈ DESIGN SYSTEM ACTIVE</span>
+      <span>·</span>
+      <span class="sig-live">5 THEMES LOADED</span>
+      <span>·</span>
+      <span class="sig-cyan">OKLCH CALIBRATED</span>
+    </div>
+
+    <!-- A. Active Palette ------------------------------------ -->
+    <div class="section-header">
+      <span class="sh-glyph">◈</span>
+      <h2>ACTIVE PALETTE — <span id="theme-name-display">VOID</span></h2>
+      <span class="sh-tag">[ OKLCH CALIBRATED ]</span>
+    </div>
+
+    <div class="palette-grid">
+      <div class="swatch bg">--bg<br>oklch(0.07 0.01 281)</div>
+      <div class="swatch bg2">--bg2<br>oklch(0.11 0.015 281)</div>
+      <div class="swatch pri">--primary<br>#ff3366</div>
+      <div class="swatch sec">--secondary<br>#00eeff</div>
+      <div class="swatch acc">--accent<br>#9933ff</div>
+      <div class="swatch txt">--text<br>#e8e0f0</div>
+    </div>
+
+    <!-- B. Typography Specimen ------------------------------- -->
+    <div class="section-header">
+      <span class="sh-glyph">Ψ</span>
+      <h2>TYPOGRAPHY SPECIMEN</h2>
+      <span class="sh-tag">[ VT323 · PRESS START 2P · JETBRAINS MONO ]</span>
+    </div>
+
+    <div class="type-specimen">
+      <div class="type-row">
+        <span class="type-label">LOGO</span>
+        <span class="type-logo">KINGDOM STRANGE</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">HERO</span>
+        <span class="type-hero">Tales From The Void</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">SUBHEAD</span>
+        <span class="type-subhead">DRONE ACTIVATED — ARC 07</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">BODY</span>
+        <span class="type-body">The specimen has located its quarry. The stack trace is twelve lines long, and somewhere in the middle of it, something is deeply, personally wrong.</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">META</span>
+        <span class="type-meta">ARC 01 · MARCH 11, 2026 · FIELD NOTES / NATURE DOCUMENTARY</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">CODE</span>
+        <span class="type-code">--font-mono · getTokenPulse() → RawTokenPulse | null</span>
+      </div>
+    </div>
+
+    <!-- C. Component Registry -------------------------------- -->
+    <div class="section-header">
+      <span class="sh-glyph">▣</span>
+      <h2>COMPONENT REGISTRY</h2>
+      <span class="sh-tag">[ SULPHUR GOTHIC v3.0 ]</span>
+    </div>
+
+    <div class="demo-grid">
+
+      <!-- C1. Voltage Meters -->
+      <div class="demo-block">
+        <div class="demo-block-title">VOLTAGE METERS</div>
+        <div class="volt-meter">
+          <div class="volt-label"><span>CLAUDE ACTIVITY</span><span>94%</span></div>
+          <div class="volt-bar"><div class="volt-fill" style="width:94%"></div></div>
+        </div>
+        <div class="volt-meter">
+          <div class="volt-label"><span>TOKEN DENSITY</span><span>71%</span></div>
+          <div class="volt-bar"><div class="volt-fill" style="width:71%"></div></div>
+        </div>
+        <div class="volt-meter">
+          <div class="volt-label"><span>RAVEN UPTIME</span><span>99.9%</span></div>
+          <div class="volt-bar"><div class="volt-fill" style="width:99.9%"></div></div>
+        </div>
+      </div>
+
+      <!-- C2. Mini HUD -->
+      <div class="demo-block">
+        <div class="demo-block-title">MINI HUD SPECIMEN</div>
+        <div class="mini-hud">
+          <div class="mini-hud-row"><span class="mhr-key">STATUS</span><span class="mhr-val ok">NOMINAL</span></div>
+          <div class="mini-hud-row"><span class="mhr-key">MISSIONS</span><span class="mhr-val">16 ACTIVE</span></div>
+          <div class="mini-hud-row"><span class="mhr-key">CLAUDE</span><span class="mhr-val hot" id="comp-state">WORKING</span></div>
+          <div class="mini-hud-row"><span class="mhr-key">SCRYER</span><span class="mhr-val ok">LIVE · 60s</span></div>
+          <div class="mini-hud-row"><span class="mhr-key">RAVEN</span><span class="mhr-val ok">774 msgs</span></div>
+        </div>
+      </div>
+
+      <!-- C3. Sulphur Gothic Frames -->
+      <div class="demo-block">
+        <div class="demo-block-title">SULPHUR GOTHIC FRAMES</div>
+        <pre class="gothic-frame-pre">╔══ SOVEREIGN ══╗
+║  ⛬ THE DECREE ║
+║  LAW STANDS   ║
+╚═══════════════╝
+
+▛▀▀▀ INDUSTRIAL ▀▀▀▜
+▌  ⚡ FORGE LIVE  ▐
+▙▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▟
+
+┌──── RADAR ─────┐
+│  🜂 SIGNAL HOT │
+└────────────────┘</pre>
+      </div>
+
+      <!-- C4. Block Material Scale -->
+      <div class="demo-block">
+        <div class="demo-block-title">BLOCK MATERIAL SCALE</div>
+        <pre class="block-scale-pre">████ HEAVY — FULL
+▓▓▓▓ DARK  — 75%
+▒▒▒▒ MED   — 50%
+░░░░ LIGHT — 25%
+▀▀▀▀ HALF  — TOP
+▄▄▄▄ HALF  — BTM
+▌▌▌▌ HALF  — LFT
+▐▐▐▐ HALF  — RGT</pre>
+      </div>
+
+      <!-- C5. Signal Chips -->
+      <div class="demo-block">
+        <div class="demo-block-title">SIGNAL CHIPS</div>
+        <div class="chip-grid">
+          <span class="sig-chip sig-chip-live">♥ LIVE</span>
+          <span class="sig-chip sig-chip-active">⚡ ACTIVE</span>
+          <span class="sig-chip sig-chip-signal">◈ SIGNAL</span>
+          <span class="sig-chip sig-chip-dormant">☾ DORMANT</span>
+          <span class="sig-chip sig-chip-sparked">✦ SPARKED</span>
+          <span class="sig-chip sig-chip-failure">⊗ FAILURE</span>
+        </div>
+      </div>
+
+      <!-- C6. Ghost Nodes -->
+      <div class="demo-block">
+        <div class="demo-block-title">GHOST NODE DEMO</div>
+        <pre class="ghost-node-pre">[GHOST: LOW : sidebar silently
+ empty on schema change.
+ Mitigation: audit Base.astro
+ on any content.config edit.]
+
+[GHOST: MED : radio progress
+ bar resets on track switch.
+ CSS animation restart via
+ offsetWidth reflow trick.]</pre>
+      </div>
+
+    </div><!-- /demo-grid -->
+
+    <div class="kawaii-banner" style="margin-top:48px">
+      ✧･ﾟ:* THE KINGDOM KEEPS RECORDS *:･ﾟ✧
+    </div>
+
+    <div class="site-footer">
+      <span>⛬ DESIGN SYSTEM — SINNER KINGDOM</span>
+      <span>S188 · 2026 · THE LAW STANDS</span>
+    </div>
+
+  </div><!-- /section:design -->
+
+<!-- ══════════════════════════════════════ ASCII LAB ══════════════════════════════════════ -->
+<div class="section-panel" data-section="ascii">
+<div class="ascii-panel">
+
+
+<div class="ascii-nav">
+  <a href="/lab" class="ascii-nav-back">← LAB</a>
+  <span class="nav-brand">⛬ ASCII LAB</span>
+  <a href="#glow-lab">§A GLOW</a>
+  <a href="#sigil-forge">§B SIGIL</a>
+  <a href="#portrait">§C PORTRAIT</a>
+  <a href="#architecture">§D ARCH</a>
+  <a href="#motion">§E MOTION</a>
+  <a href="#data">§F DATA</a>
+  <a href="#vault">§G VAULT</a>
+</div><!-- /ascii-nav -->
+
+<div class="ascii-main">
+
+<!-- ═══════════════════════════════════════
+     §A — GLOW LAB
+════════════════════════════════════════ -->
+<div class="ascii-section" id="glow-lab">
+  <h2 class="sec-title">§A — GLOW LAB</h2>
+  <p class="sec-sub">Eight mechanically distinct personalities. Color alone is not distinction.</p>
+
+  <div class="glow-lab">
+
+    <div class="specimen">
+      <div class="spec-label">
+        <strong>G1 HARD NEON</strong>
+        3 white core + 5 hue halos
+      </div>
+      <span class="spec-display g1">SIGNAL</span>
+    </div>
+
+    <div class="specimen">
+      <div class="spec-label">
+        <strong>G2 SOFT BLOOM</strong>
+        4 rgba halos, no white core
+      </div>
+      <span class="spec-display g2">SIGNAL</span>
+    </div>
+
+    <div class="specimen">
+      <div class="spec-label">
+        <strong>G3 CRISPY EDGE</strong>
+        contrast(10) + blur gooey threshold
+      </div>
+      <span class="g3-wrap"><span class="spec-display g3">SIGNAL</span></span>
+    </div>
+
+    <div class="specimen">
+      <div class="spec-label">
+        <strong>G4 PULSE BREATH</strong>
+        3s ease-in-out · biological rhythm
+      </div>
+      <span class="spec-display g4">SIGNAL</span>
+    </div>
+
+    <div class="specimen">
+      <div class="spec-label">
+        <strong>G5 FLICKER</strong>
+        0.45s linear · opacity near-zero
+      </div>
+      <span class="spec-display g5">SIGNAL</span>
+    </div>
+
+    <div class="specimen">
+      <div class="spec-label">
+        <strong>G6 GLITCH SPLIT</strong>
+        ::before cyan / ::after pink
+      </div>
+      <span class="spec-display g6" data-text="SIGNAL">SIGNAL</span>
+    </div>
+
+    <div class="specimen">
+      <div class="spec-label">
+        <strong>G7 HUE CYCLE</strong>
+        hue-rotate 0→360° · 4s linear
+      </div>
+      <span class="spec-display g7">SIGNAL</span>
+    </div>
+
+    <div class="specimen">
+      <div class="spec-label">
+        <strong>G8 NO GLOW</strong>
+        the void — the silence between signals
+      </div>
+      <span class="spec-display g8">SIGNAL</span>
+    </div>
+
+  </div>
+</div><!-- /ascii-section -->
+
+
+<!-- ═══════════════════════════════════════
+     §B — SIGIL FORGE
+════════════════════════════════════════ -->
+<div class="ascii-section" id="sigil-forge">
+  <h2 class="sec-title">§B — SIGIL FORGE</h2>
+  <p class="sec-sub">The Kingdom's rune set. Each mark carries weight.</p>
+
+  <div class="sigil-forge">
+    <div class="sigil-row">
+      <span class="sig-flank">⚚</span>
+      <span class="sig-primary">⛬</span>
+      <span class="sig-flank">⚚</span>
+    </div>
+    <div class="sigil-runes">
+      <span class="rune" title="The Forge">🜚</span>
+      <span class="rune" title="Tower Seal">🜛</span>
+      <span class="rune" title="Scryer Seal">🜞</span>
+      <span class="rune" title="Kingdom Mark">🝓</span>
+      <span class="rune" title="Claude's House">⌂</span>
+      <span class="rune" title="The Tower">△</span>
+      <span class="rune" title="The Scryer">◎</span>
+      <span class="rune" title="Core Lore">❖</span>
+    </div>
+  </div>
+</div><!-- /ascii-section -->
+
+
+<!-- ═══════════════════════════════════════
+     §C — PORTRAIT CHAMBER
+════════════════════════════════════════ -->
+<div class="ascii-section" id="portrait">
+  <h2 class="sec-title">§C — PORTRAIT CHAMBER</h2>
+  <p class="sec-sub">Luminance → character density. The canvas speaks in shade.</p>
+
+  <div class="portrait-wrap">
+    <div class="portrait-left">
+      <pre id="portrait-pre"></pre>
+    </div>
+    <div class="portrait-right">
+      <button class="pbtn active" onclick="setPortrait('skull',this)">[ SKULL ]</button>
+      <button class="pbtn" onclick="setPortrait('eye',this)">[ DRAGON EYE ]</button>
+      <button class="pbtn" onclick="setPortrait('sigil',this)">[ KINGDOM SIGIL ]</button>
+      <button class="pbtn" onclick="setPortrait('noise',this)">[ NOISE FIELD ]</button>
+      <button class="pbtn" onclick="setPortrait('canvas',this)">[ CANVAS PIPELINE ]</button>
+      <div class="portrait-note">
+        Shade-block mapping:<br>
+        [space] . : - = + * # % @<br><br>
+        Luminance formula:<br>
+        0.299R + 0.587G + 0.114B<br><br>
+        VT323 aspect correction: 0.55
+      </div>
+    </div>
+  </div>
+</div><!-- /ascii-section -->
+
+
+<!-- ═══════════════════════════════════════
+     §D — ARCHITECTURE STUDY
+════════════════════════════════════════ -->
+<div class="ascii-section" id="architecture">
+  <h2 class="sec-title">§D — ARCHITECTURE STUDY</h2>
+  <p class="sec-sub">Three-layer construction: silhouette → structure → shadow depth.</p>
+
+  <pre id="arch-pre"></pre>
+  <button class="btn" onclick="startArch()">[ REBUILD ]</button>
+</div><!-- /ascii-section -->
+
+
+<!-- ═══════════════════════════════════════
+     §E — MOTION GRAMMAR
+════════════════════════════════════════ -->
+<div class="ascii-section" id="motion">
+  <h2 class="sec-title">§E — MOTION GRAMMAR</h2>
+  <p class="sec-sub">CSS personality vs. JS character logic. Two distinct animation modes.</p>
+
+  <div class="motion-grid">
+
+    <div class="motion-box">
+      <div class="motion-caption">CSS · GLOW PULSE</div>
+      <span class="m-text g4">BREATHE</span>
+      <div class="motion-hint">G4 · ease-in-out · 3s · biological</div>
+    </div>
+
+    <div class="motion-box">
+      <div class="motion-caption">CSS · GLITCH SPLIT</div>
+      <span class="m-text g6" data-text="FRACTURE">FRACTURE</span>
+      <div class="motion-hint">G6 · steps(1) · 2s · violent snap at 80%</div>
+    </div>
+
+    <div class="motion-box">
+      <div class="motion-caption">JS · CHARACTER DECAY</div>
+      <span id="decay-text">SINNER</span>
+      <div class="motion-hint">click to dissolve / rematerialize</div>
+    </div>
+
+  </div>
+</div><!-- /ascii-section -->
+
+
+<!-- ═══════════════════════════════════════
+     §F — DATA THEATER
+════════════════════════════════════════ -->
+<div class="ascii-section" id="data">
+  <h2 class="sec-title">§F — DATA THEATER</h2>
+  <p class="sec-sub">Block-char waveforms. ▁▂▃▄▅▆▇█ — pure ASCII, no canvas.</p>
+
+  <div class="data-theater">
+    <div class="wave-row">
+      <span class="wave-label">SIG-A</span>
+      <pre id="wave-a" class="wave-pre"></pre>
+    </div>
+    <div class="wave-row">
+      <span class="wave-label">SIG-B</span>
+      <pre id="wave-b" class="wave-pre wave-pink"></pre>
+    </div>
+    <div class="wave-row">
+      <span class="wave-label">SIG-C</span>
+      <pre id="wave-c" class="wave-pre wave-amber"></pre>
+    </div>
+  </div>
+</div><!-- /ascii-section -->
+
+
+<!-- ═══════════════════════════════════════
+     §G — CREATURE VAULT
+════════════════════════════════════════ -->
+<div class="ascii-section" id="vault">
+  <h2 class="sec-title">§G — CREATURE VAULT</h2>
+  <p class="sec-sub">Shade-block anatomy. Each creature owns its glow personality.</p>
+
+  <div class="vault-grid">
+
+    <div class="creature">
+      <pre id="skull-pre" class="g1"></pre>
+      <span class="creature-name">THE SKULL</span>
+      <span class="creature-glow-tag">G1 HARD NEON · #7000ff</span>
+    </div>
+
+    <div class="creature">
+      <pre id="eye-pre" class="creature-eye"></pre>
+      <span class="creature-name">DRAGON EYE</span>
+      <span class="creature-glow-tag">G4 PULSE BREATH · #00d4ff</span>
+    </div>
+
+    <div class="creature">
+      <pre id="wing-pre" class="g8"></pre>
+      <span class="creature-name">INSECT WING</span>
+      <span class="creature-glow-tag">G8 NO GLOW · raw</span>
+    </div>
+
+  </div>
+</div><!-- /ascii-section -->
+
+</div><!-- /ascii-main -->
+
+
+<div class="ascii-footer">
+  ⛬⚚⛬ &nbsp; ASCII PLAYGROUND &nbsp; ⛬⚚⛬<br>
+  <span class="ascii-footer-sub">Sinner Kingdom Design Lab · Session 192</span>
+</div><!-- /ascii-footer -->
+
+</div>
+</div><!-- /section:ascii -->
+
+<div class="section-panel" data-section="components">
+<div class="components-panel">
+
+
+<!-- NAV (C8) -->
+<div class="comp-nav">
+  <a href="/lab" class="nav-back">← LAB</a>
+  <span class="nav-brand">⛬ COMPONENT PALACE</span>
+  <div class="nav-links">
+    <a href="#buttons">§A</a>
+    <a href="#sliders">§B</a>
+    <a href="#toggles">§C</a>
+    <a href="#animations">§D</a>
+    <a href="#inputs">§E</a>
+    <a href="#cards">§F</a>
+  </div>
+</div><!-- /comp-nav -->
+
+<!-- ══════════════════════════════════════════════════════
+     §A  B U T T O N S
+     ══════════════════════════════════════════════════════ -->
+<div class="comp-section" id="buttons">
+  <div class="section-label">§A · BUTTONS</div>
+  <h2>Buttons</h2>
+  <p class="subtitle">Four named personalities. Choose one. That name becomes law.</p>
+
+  <div class="component-row">
+    <div class="component-cell">
+      <div class="component-name">GHOST</div>
+      <button class="btn-ghost">EXECUTE</button>
+    </div>
+    <div class="component-cell">
+      <div class="component-name">SIGNAL</div>
+      <button class="btn-signal">TRANSMIT</button>
+    </div>
+    <div class="component-cell">
+      <div class="component-name">SOVEREIGN</div>
+      <button class="btn-sovereign">DECREE</button>
+    </div>
+    <div class="component-cell">
+      <div class="component-name">GLITCH</div>
+      <button class="btn-glitch">SHATTER</button>
+    </div>
+  </div>
+
+  <div class="comp-divider" style="margin-top:16px">
+    — NEW OPTIONS —
+  </div>
+
+  <div class="component-row">
+    <div class="component-cell">
+      <div class="component-name">BRACKET</div>
+      <button class="btn-bracket">EXECUTE</button>
+    </div>
+    <div class="component-cell">
+      <div class="component-name">FACTION</div>
+      <button class="btn-faction"><span>DEPLOY</span></button>
+    </div>
+    <div class="component-cell">
+      <div class="component-name">RUNE</div>
+      <button class="btn-rune"><span class="rune-sigil">⛬</span>INVOKE</button>
+    </div>
+    <div class="component-cell">
+      <div class="component-name">VOLT</div>
+      <button class="btn-volt"><span>CHARGE</span></button>
+    </div>
+  </div>
+</div><!-- /comp-section -->
+
+<!-- ══════════════════════════════════════════════════════
+     §B  S L I D E R S
+     ══════════════════════════════════════════════════════ -->
+<div class="comp-section" id="sliders">
+  <div class="section-label">§B · SLIDERS</div>
+  <h2>Sliders</h2>
+  <p class="subtitle">Three drag personalities. Different geometry, different resistance.</p>
+
+  <div class="component-row">
+
+    <div class="component-cell">
+      <div class="component-name">SURGICAL</div>
+      <div class="slider-wrap">
+        <div class="slider-label-row">
+          <span class="slider-label-text">PRECISION</span>
+          <span class="slider-readout" id="surgical-val">50</span>
+        </div>
+        <input
+          type="range" min="0" max="100" value="50" step="1"
+          class="slider-surgical"
+          id="surgical"
+          oninput="updateSlider(this,'surgical-val')"
+        >
+      </div>
+    </div>
+
+    <div class="component-cell">
+      <div class="component-name">BROADCAST</div>
+      <div class="slider-wrap">
+        <div class="slider-label-row">
+          <span class="slider-label-text">SIGNAL POWER</span>
+          <span class="slider-readout" id="broadcast-val">50</span>
+        </div>
+        <input
+          type="range" min="0" max="100" value="50" step="1"
+          class="slider-broadcast"
+          id="broadcast"
+          oninput="updateSlider(this,'broadcast-val')"
+        >
+      </div>
+    </div>
+
+    <div class="component-cell">
+      <div class="component-name">NOTCHED</div>
+      <div class="slider-wrap">
+        <div class="slider-label-row">
+          <span class="slider-label-text">LEVEL</span>
+          <span class="slider-readout" id="notched-val">50</span>
+        </div>
+        <input
+          type="range" min="0" max="100" value="50" step="10"
+          class="slider-notched"
+          id="notched"
+          oninput="updateSlider(this,'notched-val')"
+        >
+        <div class="tick-row" id="notched-ticks"></div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /comp-section -->
+
+<!-- ══════════════════════════════════════════════════════
+     §C  T O G G L E S
+     ══════════════════════════════════════════════════════ -->
+<div class="comp-section" id="toggles">
+  <div class="section-label">§C · TOGGLES</div>
+  <h2>Toggles</h2>
+  <p class="subtitle">Three on/off metaphors. Pill, signal bar, terminal.</p>
+
+  <div class="component-row">
+
+    <div class="component-cell">
+      <div class="component-name">BINARY</div>
+      <div class="toggle-binary-wrap">
+        <input type="checkbox" id="toggle-bin" class="toggle-binary">
+        <label for="toggle-bin" class="toggle-binary-label"></label>
+        <span class="toggle-state-label" id="binary-state">OFF</span>
+      </div>
+    </div>
+
+    <div class="component-cell">
+      <div class="component-name">SIGNAL</div>
+      <div class="toggle-signal" id="signal-toggle" onclick="cycleSignal(this)" title="Click to cycle">
+        <span class="signal-seg" data-idx="0"></span>
+        <span class="signal-seg" data-idx="1"></span>
+        <span class="signal-seg" data-idx="2"></span>
+        <span class="signal-readout" id="signal-readout">0 / 3</span>
+      </div>
+    </div>
+
+    <div class="component-cell">
+      <div class="component-name">TERMINAL</div>
+      <span class="toggle-terminal" id="toggle-term" onclick="toggleTerminal(this)">[ ]</span>
+    </div>
+
+  </div>
+</div><!-- /comp-section -->
+
+<!-- ══════════════════════════════════════════════════════
+     §D  A N I M A T I O N S
+     ══════════════════════════════════════════════════════ -->
+<div class="comp-section" id="animations">
+  <div class="section-label">§D · ANIMATIONS</div>
+  <h2>Animations</h2>
+  <p class="subtitle">Four named personalities. SURGE activates on hover.</p>
+
+  <div class="anim-grid">
+
+    <div class="anim-box">
+      <span class="anim-tag">BREATHE</span>
+      <span class="anim-demo anim-breathe">⛬ BREATHE</span>
+    </div>
+
+    <div class="anim-box">
+      <span class="anim-tag">FLICKER</span>
+      <span class="anim-demo anim-flicker">⚡ FLICKER</span>
+    </div>
+
+    <div class="anim-box">
+      <span class="anim-tag">SURGE — hover me</span>
+      <span class="anim-demo anim-surge">↑ SURGE</span>
+    </div>
+
+    <div class="anim-box">
+      <span class="anim-tag">DRIFT</span>
+      <span class="anim-demo anim-drift">~ DRIFT</span>
+    </div>
+
+  </div>
+</div><!-- /comp-section -->
+
+<!-- ══════════════════════════════════════════════════════
+     §E  I N P U T S
+     ══════════════════════════════════════════════════════ -->
+<div class="comp-section" id="inputs">
+  <div class="section-label">§E · INPUTS</div>
+  <h2>Inputs</h2>
+  <p class="subtitle">Three structural philosophies. Try typing in each.</p>
+
+  <div class="component-row">
+
+    <div class="component-cell">
+      <div class="component-name">TERMINAL</div>
+      <input type="text" class="input-terminal" placeholder="ENTER COMMAND_">
+    </div>
+
+    <div class="component-cell">
+      <div class="component-name">PANEL</div>
+      <input type="text" class="input-panel" placeholder="Search the void...">
+    </div>
+
+    <div class="component-cell">
+      <div class="component-name">GHOST</div>
+      <input type="text" class="input-ghost" placeholder="I appear when needed">
+    </div>
+
+  </div>
+</div><!-- /comp-section -->
+
+<!-- ══════════════════════════════════════════════════════
+     §F  C A R D S
+     ══════════════════════════════════════════════════════ -->
+<div class="comp-section" id="cards">
+  <div class="section-label">§F · CARDS</div>
+  <h2>Cards</h2>
+  <p class="subtitle">Three authority signals. Different geometry, different weight. Hover each.</p>
+
+  <div class="cards-row">
+
+    <div class="card-data-surface">
+      <div class="card-section-label">DATA SURFACE</div>
+      <div class="card-body">
+        Flat. Quiet. Shows data without ego. Border speaks softly on hover. Default container for most content.
+      </div>
+    </div>
+
+    <div class="card-sovereign">
+      <div class="card-section-label">SOVEREIGN</div>
+      <div class="card-body card-body-bright">
+        Chamfered corner signals authority. Violet glow blooms on hover. Use for featured content, primary actions.
+      </div>
+    </div>
+
+    <div class="card-signal-panel">
+      <div class="card-section-label">SIGNAL PANEL</div>
+      <div class="card-body">
+        Cyan left edge — a live transmission marker. Scanning line activates on hover. Status, feeds, live data.
+      </div>
+    </div>
+
+  </div>
+
+  <div class="comp-divider" style="margin-top:32px">
+    — NEW OPTIONS —
+  </div>
+
+  <div class="cards-row">
+
+    <div class="card-drone">
+      <div class="drone-glyph">[ ◇ ∇ ◇ ]</div>
+      <div class="drone-name-row">
+        <div class="drone-name">GRID_GHOST.sys</div>
+        <div class="drone-domain-tag">[♥ space]</div>
+      </div>
+      <div class="drone-domain-label">&gt; Domain</div>
+      <div class="drone-domain-desc">Spatial partitioning, negative space weighting, layout forensics.</div>
+      <div class="drone-quote-block">Breathe the whitespace or I will crush your content into a singularity.</div>
+    </div>
+
+    <div class="card-law">
+      <div class="law-id-label">⛬ · THE FIRST LAW</div>
+      <div class="law-quote-text">"Store before you deliver. Every message gets a home before it has a destination."</div>
+      <div class="law-attribution">— Session 125 · Kingdom Record</div>
+    </div>
+
+    <div class="card-hud">
+      <div class="hud-header">
+        <span class="hud-callsign">TOWER HUD</span>
+        <div class="hud-dots">
+          <div class="hud-dot rx"></div>
+          <div class="hud-dot tx"></div>
+          <div class="hud-dot sync"></div>
+        </div>
+      </div>
+      <div class="hud-row">
+        <span class="hud-lbl">SESSION</span>
+        <span class="hud-val">S196</span>
+      </div>
+      <div class="hud-row">
+        <span class="hud-lbl">STATUS</span>
+        <span class="hud-val ok">LIVE</span>
+      </div>
+      <div class="hud-row">
+        <span class="hud-lbl">SIGNAL</span>
+        <span class="hud-val hot">HOT</span>
+      </div>
+      <div class="hud-row">
+        <span class="hud-lbl">DRONES</span>
+        <span class="hud-val amber">5 ONLINE</span>
+      </div>
+      <div class="hud-row">
+        <span class="hud-lbl">CLOCK</span>
+        <span class="hud-val" id="hud-clock">--:--:--</span>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /comp-section -->
+
+<!-- ── FOOTER ───────────────────────────────────────────── -->
+<div class="comp-footer">
+  <span class="footer-sig">⛬ COMPONENT PALACE · KINGDOM HOUSE STYLE · MCCORMICK_B // THE SINNER KING</span>
+</div><!-- /comp-footer -->
+
+
+</div>
+</div><!-- /section:components -->
+
+</div><!-- /content -->
+
+<!-- ═══════════ FREQUENCY BAR ═══════════ -->
+<div id="freq-bar">
+  <div class="freq-slot active" data-section="glitchswarm">
+    <div class="freq-glyph">⛬</div>
+    <div class="freq-label">GLITCHSWARM</div>
+    <div class="freq-status">LIVE</div>
+  </div>
+  <div class="freq-slot" data-section="radio">
+    <div class="freq-glyph">◈</div>
+    <div class="freq-label">RADIO LAB</div>
+    <div class="freq-status">LIVE</div>
+  </div>
+  <div class="freq-slot" data-section="design">
+    <div class="freq-glyph">▣</div>
+    <div class="freq-label">DESIGN SYS</div>
+    <div class="freq-status">LIVE</div>
+  </div>
+  <div class="freq-slot" data-section="ascii">
+    <div class="freq-glyph">⌘</div>
+    <div class="freq-label">ASCII LAB</div>
+    <div class="freq-status">LIVE</div>
+  </div>
+  <div class="freq-slot" data-section="components">
+    <div class="freq-glyph">◈</div>
+    <div class="freq-label">COMPONENTS</div>
+    <div class="freq-status">LIVE</div>
+  </div>
+  <div class="freq-slot offline">
+    <div class="freq-glyph">∿</div>
+    <div class="freq-label">ANIMATIONS</div>
+    <div class="freq-status">OFFLINE</div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════════════════════
+// THEME SYSTEM
+// ══════════════════════════════════════════════════════════════
+
+const THEME_NAMES = { void:'VOID', sulphur:'SULPHUR', kawaii:'KAWAII ✿', matrix:'MATRIX', bone:'BONE' };
+
+const THEME_COLORS = {
+  // sig: primary waveform color | sig_mid: mid-opacity for gradients (replaces rgba hack) | sig_lo: low-opacity glow
+  // peak: peak hold caps | primary: accent dots | canvasBg: clear fill on light themes | fade: true = clear vs phosphor
+  void:    { sig:'#00eeff', sig_mid:'rgba(0,238,255,0.55)',    sig_lo:'rgba(0,238,255,0.12)',    peak:'#e0e0ff', primary:'#ff3366', canvasBg:'#0a0a0f', fade:false },
+  sulphur: { sig:'#ffb300', sig_mid:'rgba(255,179,0,0.55)',    sig_lo:'rgba(255,179,0,0.12)',    peak:'#ffe8aa', primary:'#ffb300', canvasBg:'#0d0900', fade:false },
+  kawaii:  { sig:'#ff66bb', sig_mid:'rgba(255,102,187,0.50)', sig_lo:'rgba(255,102,187,0.10)',  peak:'#fff5fb', primary:'#00d4aa', canvasBg:'#0d0010', fade:false },
+  matrix:  { sig:'#00ff41', sig_mid:'rgba(0,255,65,0.55)',     sig_lo:'rgba(0,255,65,0.12)',     peak:'#ccffcc', primary:'#00ff41', canvasBg:'#000d00', fade:false },
+  bone:    { sig:'#1a1a8a', sig_mid:'rgba(26,26,138,0.45)',    sig_lo:'rgba(26,26,138,0.08)',    peak:'#1a1a1a', primary:'#cc0000', canvasBg:'#e4e0d4', fade:true  },
+};
+
+let currentTheme = 'void';
+
+document.querySelectorAll('.theme-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentTheme = btn.dataset.theme;
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const nd = document.getElementById('theme-name-display');
+    if (nd) nd.textContent = THEME_NAMES[currentTheme] || currentTheme.toUpperCase();
+  });
+});
+
+function tc() { return THEME_COLORS[currentTheme]; }
+
+// ══════════════════════════════════════════════════════════════
+// SECTION SWITCHING
+// ══════════════════════════════════════════════════════════════
+
+document.querySelectorAll('.freq-slot:not(.offline)').forEach(slot => {
+  slot.addEventListener('click', () => {
+    const target = slot.dataset.section;
+    // Switch panels
+    document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+    const panel = document.querySelector(`.section-panel[data-section="${target}"]`);
+    if (panel) panel.classList.add('active');
+    // Switch freq bar active
+    document.querySelectorAll('.freq-slot').forEach(s => s.classList.remove('active'));
+    slot.classList.add('active');
+    // Scroll to top of content
+    document.getElementById('content').scrollTop = 0;
+    window.scrollTo(0, 0);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════
+// HUD
+// ══════════════════════════════════════════════════════════════
+
+function tick() {
+  const n = new Date(), p = x => String(x).padStart(2,'0');
+  const el = document.getElementById('hud-clk');
+  if (el) el.textContent = `${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`;
+}
+tick(); setInterval(tick, 1000);
+
+let tok = 15371000000 + Math.floor(Math.random() * 100000);
+setInterval(() => {
+  tok += Math.floor(Math.random() * 7) + 1;
+  const el = document.getElementById('hud-tokens');
+  if (el) el.textContent = tok.toLocaleString();
+}, 900);
+
+const ACTS = ['WORKING','SWARMING','WRITING','THINKING','READING'];
+let ai = 0;
+setInterval(() => {
+  ai = (ai + 1) % ACTS.length;
+  ['hud-state','comp-state'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = ACTS[ai];
+  });
+}, 6000);
+
+// ══════════════════════════════════════════════════════════════
+// TRACK DATA
+// ══════════════════════════════════════════════════════════════
+
+const TRACKS = [
+  { t: '"Glitch Cathedral" — Side A',  s: 'Transmission · THE_THRONE', d: '3:57' },
+  { t: '"Kingdom Pulse" — Long Mix',    s: 'Transmission · THE_FORGE',  d: '6:12' },
+  { t: '"Sinner Hymnal" — Demo Cut',    s: 'Transmission · THE_SCRYER', d: '4:44' },
+  { t: '"Named Ghosts" — Ambient',      s: 'Transmission · CORE_LORE',  d: '8:03' },
+];
+
+const trackState = { ck: 0, sp: 0, or: 0 };
+
+function setTrack(ri, idx) {
+  trackState[ri] = idx;
+  const t = TRACKS[idx];
+  if (ri === 'ck') {
+    const n = document.getElementById('ck-name'), s = document.getElementById('ck-src'), d = document.getElementById('ck-dur'), ti = document.getElementById('ck-time');
+    if (n) n.innerHTML = `<span class="pfx">&gt; </span>${t.t}`;
+    if (s) s.textContent = t.s;
+    if (d) d.textContent = t.d;
+    if (ti) ti.textContent = `0:00 / ${t.d}`;
+    document.querySelectorAll('.ck-pl-item').forEach((el, i) => el.classList.toggle('active', i === idx));
+  } else if (ri === 'sp') {
+    const n = document.getElementById('sp-name'), s = document.getElementById('sp-src');
+    if (n) n.innerHTML = `<span class="pfx">&gt; </span>${t.t}`;
+    if (s) s.textContent = t.s;
+  } else if (ri === 'or') {
+    const n = document.getElementById('or-name'), s = document.getElementById('or-src');
+    if (n) n.textContent = t.t;
+    if (s) s.textContent = t.s;
+  }
+}
+
+// Button listeners (cockpit + spectrum + orbital)
+document.querySelectorAll('[data-ri][data-a]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const ri = btn.dataset.ri, a = btn.dataset.a;
+    if (a === 'next') setTrack(ri, (trackState[ri] + 1) % TRACKS.length);
+    if (a === 'prev') setTrack(ri, (trackState[ri] - 1 + TRACKS.length) % TRACKS.length);
+    if (a === 'play') {
+      const isPlaying = btn.classList.toggle('playing');
+      btn.textContent = isPlaying ? (btn.dataset.ri === 'ck' ? '▐▐▶' : '▐▐') : (btn.dataset.ri === 'ck' ? '▶▐▐' : '▶');
+    }
+  });
+});
+
+// Cockpit playlist clicks
+document.querySelectorAll('.ck-pl-item').forEach(el => {
+  el.addEventListener('click', () => setTrack('ck', parseInt(el.dataset.idx)));
+});
+
+// ══════════════════════════════════════════════════════════════
+// CANVAS SETUP
+// ══════════════════════════════════════════════════════════════
+
+const ckC = document.getElementById('ck-canvas');  // cockpit oscilloscope
+const spC = document.getElementById('sp-canvas');  // spectrum EQ bars
+const orC = document.getElementById('or-canvas');  // orbital ring (fixed 180×180)
+
+function resizeFull(canvas) {
+  const w = canvas.parentElement.clientWidth;
+  if (w > 0 && canvas.width !== w) { canvas.width = w; }
+}
+
+// Resize observer for full-width canvases
+if (window.ResizeObserver) {
+  new ResizeObserver(() => { resizeFull(ckC); resizeFull(spC); }).observe(document.getElementById('content'));
+}
+setTimeout(() => { resizeFull(ckC); resizeFull(spC); }, 60);
+
+// ══════════════════════════════════════════════════════════════
+// CANVAS A — COCKPIT OSCILLOSCOPE (dual-sine 7:12 interference + phosphor)
+// 7:12 freq ratio chosen: LCM = 84, giving ~77s before waveform repeats — long enough
+// to feel alive without detectable loop. Phosphor: rgba(0,0,0,0.12)/frame decay.
+// ══════════════════════════════════════════════════════════════
+
+let timeA = 0;
+
+function drawCockpit() {
+  const ctx = ckC.getContext('2d');
+  const W = ckC.width, H = ckC.height;
+  if (W <= 0) { requestAnimationFrame(drawCockpit); return; }
+
+  const C = tc();
+
+  // Phosphor trail (or hard clear for BONE)
+  if (C.fade) {
+    ctx.fillStyle = C.canvasBg;
+    ctx.fillRect(0, 0, W, H);
+  } else {
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // Center baseline
+  ctx.beginPath();
+  ctx.strokeStyle = C.sig_lo;
+  ctx.lineWidth = 1;
+  ctx.moveTo(0, H / 2);
+  ctx.lineTo(W, H / 2);
+  ctx.stroke();
+
+  // Outer glow pass
+  ctx.beginPath();
+  ctx.strokeStyle = C.sig_lo;
+  ctx.lineWidth = 5;
+  for (let x = 0; x < W; x++) {
+    const nx = x / W;
+    const y1 = Math.sin(nx * 7 * Math.PI + timeA * 2.1) * 0.38;
+    const y2 = Math.sin(nx * 12 * Math.PI + timeA * 1.35) * 0.18;
+    const y = H / 2 + (y1 + y2) * (H / 2 - 6);
+    x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Bright core trace
+  ctx.beginPath();
+  ctx.strokeStyle = C.sig;
+  ctx.lineWidth = 1.5;
+  ctx.shadowColor = C.sig;
+  ctx.shadowBlur = 8;
+  for (let x = 0; x < W; x++) {
+    const nx = x / W;
+    const y1 = Math.sin(nx * 7 * Math.PI + timeA * 2.1) * 0.38;
+    const y2 = Math.sin(nx * 12 * Math.PI + timeA * 1.35) * 0.18;
+    const noise = (Math.random() - 0.5) * 0.04;
+    const y = H / 2 + (y1 + y2 + noise) * (H / 2 - 6);
+    x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  timeA += 0.018;
+  requestAnimationFrame(drawCockpit);
+}
+drawCockpit();
+
+// ══════════════════════════════════════════════════════════════
+// CANVAS B — SPECTRUM EQ BARS (24 bars, lerp 0.18, peak hold 18 frames, decay 0.014/frame)
+// 18-frame hold ≈ 300ms at 60fps — standard hardware VU meter convention
+// 0.014/frame decay ≈ ~1.18s full fall — matches broadcast meter spec
+// sig_mid/sig_lo replace brittle rgba string hack from radio-variants.html
+// ══════════════════════════════════════════════════════════════
+
+const BAR_COUNT   = 24;
+const bTargets    = new Float32Array(BAR_COUNT).fill(0.15);
+const bCurrent    = new Float32Array(BAR_COUNT).fill(0.15);
+const bPeaks      = new Float32Array(BAR_COUNT).fill(0.15);
+const bPeakTimer  = new Uint8Array(BAR_COUNT);
+let frameB = 0;
+
+function drawSpectrum() {
+  const ctx = spC.getContext('2d');
+  const W = spC.width, H = spC.height;
+  if (W <= 0) { requestAnimationFrame(drawSpectrum); return; }
+
+  const C = tc();
+
+  ctx.clearRect(0, 0, W, H);
+  if (C.fade) {
+    ctx.fillStyle = C.canvasBg;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  frameB++;
+  if (frameB % 9 === 0) {
+    for (let i = 0; i < BAR_COUNT; i++) {
+      const bass = 1 - (i / BAR_COUNT) * 0.55;
+      bTargets[i] = (Math.random() * 0.82 + 0.15) * bass;
+    }
+  }
+
+  const barW = W / BAR_COUNT;
+  const gap  = 1.5;
+
+  for (let i = 0; i < BAR_COUNT; i++) {
+    bCurrent[i] += (bTargets[i] - bCurrent[i]) * 0.18;
+
+    if (bCurrent[i] >= bPeaks[i]) {
+      bPeaks[i]     = bCurrent[i];
+      bPeakTimer[i] = 18;
+    } else {
+      if (bPeakTimer[i] > 0) {
+        bPeakTimer[i]--;
+      } else {
+        bPeaks[i] = Math.max(bCurrent[i], bPeaks[i] - 0.014);
+      }
+    }
+
+    const barH = bCurrent[i] * (H - 6);
+    const peakH = bPeaks[i]  * (H - 6);
+    const x = i * barW;
+    const y = H - barH;
+
+    // Gradient bar — using pre-computed sig_mid/sig_lo (no rgba string hacking)
+    const grad = ctx.createLinearGradient(0, y, 0, H);
+    grad.addColorStop(0,   C.sig);
+    grad.addColorStop(0.5, C.sig_mid);
+    grad.addColorStop(1,   C.sig_lo);
+
+    ctx.fillStyle = grad;
+    ctx.shadowColor = C.sig;
+    ctx.shadowBlur  = bCurrent[i] > 0.65 ? 10 : 3;
+    ctx.fillRect(x + gap / 2, y, barW - gap, barH);
+    ctx.shadowBlur = 0;
+
+    // Peak hold cap (2px bright stripe)
+    if (bPeaks[i] > bCurrent[i] + 0.03) {
+      ctx.fillStyle = C.peak;
+      ctx.shadowColor = C.sig;
+      ctx.shadowBlur  = 4;
+      ctx.fillRect(x + gap / 2, H - peakH - 2, barW - gap, 2);
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  requestAnimationFrame(drawSpectrum);
+}
+drawSpectrum();
+
+// ══════════════════════════════════════════════════════════════
+// CANVAS C — ORBITAL RING (polar 96-pt closed path, sinusoidal morph)
+// BASE_R=72 (half of 180px canvas, minus margins) for full container fill
+// 3×7 interference (freqs 3 and 7 avoid simple integer ratio — complex morph)
+// Canvas is fixed 180×180 — no resize needed (aspect-ratio container)
+// ══════════════════════════════════════════════════════════════
+
+let ringTime = 0;
+const RING_PTS = 96;
+const BASE_R   = 72;  // sized for 180px canvas (vs 27 for 88px — scales to container)
+
+function drawOrbital() {
+  const ctx = orC.getContext('2d');
+  const W = 180, H = 180;
+  const CX = W / 2, CY = H / 2;
+
+  const C = tc();
+
+  if (C.fade) {
+    ctx.fillStyle = C.canvasBg;
+    ctx.fillRect(0, 0, W, H);
+  } else {
+    ctx.fillStyle = 'rgba(0,0,0,0.13)';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // Radar grid circles
+  for (let r = 1; r <= 4; r++) {
+    ctx.beginPath();
+    ctx.strokeStyle = C.sig_lo;
+    ctx.lineWidth = 0.5;
+    ctx.arc(CX, CY, (BASE_R * 1.1 / 4) * r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // Compute ring points
+  const pts = [];
+  for (let i = 0; i <= RING_PTS; i++) {
+    const a  = (i / RING_PTS) * Math.PI * 2;
+    const a1 = Math.sin(a * 3 + ringTime * 1.8) * 0.22;
+    const a2 = Math.sin(a * 7 + ringTime * 2.65) * 0.09;
+    const r  = BASE_R * (1 + a1 + a2);
+    pts.push({ x: CX + Math.cos(a) * r, y: CY + Math.sin(a) * r });
+  }
+
+  // Outer glow
+  ctx.beginPath();
+  ctx.strokeStyle = C.sig_lo;
+  ctx.lineWidth = 10;
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.closePath();
+  ctx.stroke();
+
+  // Core bright ring
+  ctx.beginPath();
+  ctx.strokeStyle = C.sig;
+  ctx.lineWidth   = 1.5;
+  ctx.shadowColor = C.sig;
+  ctx.shadowBlur  = 12;
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.closePath();
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Center pulse dot
+  ctx.beginPath();
+  ctx.fillStyle   = C.primary;
+  ctx.shadowColor = C.primary;
+  ctx.shadowBlur  = 8;
+  ctx.arc(CX, CY, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ringTime += 0.012;
+  requestAnimationFrame(drawOrbital);
+}
+drawOrbital();
+
+
+// ══════════════════════════════════════════════════════════════
+// ASCII LAB
+// ══════════════════════════════════════════════════════════════
+
+// 2-frame mascot animation
+const MASCOT_FRAMES = [
+  `  .------.\n  | ◉  ◉ |\n  |  ──  |\n  '------'\n   ║    ║\n  [▓▓▓▓▓▓]`,
+  `  .------.\n  | ─  ─ |\n  |  ∿∿  |\n  '------'\n   ║    ║\n  [▓▓▓▓▓▓]`
+];
+const MASCOT_STATUSES = ['[ ONLINE ]', '[ PROCESSING ]'];
+
+(function initMascot() {
+  const artEl    = document.getElementById('mascot-art');
+  const statusEl = document.getElementById('mascot-status');
+  if (!artEl || !statusEl) return;
+
+  let frame = 0;
+  function renderFrame() {
+    // innerHTML because the pre has line breaks as <br> in HTML, but we use \n in JS
+    // We'll render as text directly — the element is a div with white-space:pre
+    artEl.textContent = MASCOT_FRAMES[frame];
+    statusEl.textContent = MASCOT_STATUSES[frame];
+    frame = 1 - frame;
+  }
+  renderFrame();
+  setInterval(renderFrame, 900);
+})();
+
+// Glyph Forge
+(function initForge() {
+  const input   = document.getElementById('forge-input');
+  const display = document.getElementById('forge-display');
+  const clearBtn = document.getElementById('forge-clear-btn');
+  if (!input || !display) return;
+
+  input.addEventListener('input', () => {
+    const val = input.value.trim();
+    display.textContent = val.length > 0 ? val.toUpperCase() : 'KINGDOM';
+  });
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      input.value = '';
+      display.textContent = 'KINGDOM';
+      input.focus();
+    });
+  }
+})();
+
+
+
+// ══════════════════════════════════════════════════════════════
+// ASCII PLAYGROUND JS
+// ══════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════
+// §C PORTRAIT CHAMBER
+// ══════════════════════════════════════════════════════
+
+const PORTRAITS = {
+
+skull: `    ░░▒▒▓▓████████▓▓▒▒░░
+  ░▒▓▓███████████████████▓▒
+ ░▒▓███▓▒▒░░░░░░░░░▒▒▓███▓▒
+ ▒▓███▓░              ░▓███▒
+ ▓████░  ▓▓░    ░▓▓   ░████▓
+ ▓████░ ▓███░  ░███▓  ░████▓
+ ▓████░  ▓▓░    ░▓▓   ░████▓
+ ▒▓████▒▒░░░░░░░░░▒▒▓████▓▒
+  ░▒▓████████████████████▓▒
+  ░▒▓██▒▒▒█████████▒▒▒██▓▒
+   ░▒▓█▒  ▒███████▒  ▒█▓▒
+     ░░▒▒▒▒▒░░░░▒▒▒▒▒░░`,
+
+eye: `      ░░▒▒▓▓▓▓▓▓▒▒░░
+   ░▒▒▓▓▓████████▓▓▓▒▒░
+  ▒▓▓████▓▓▓▓▓▓▓▓████▓▒
+ ░▓███▓▒░          ░▒▓███░
+ ▒████░  ▒▒░  ░▒▒  ░████▒
+ ▓████░ ▒████████▒ ░████▓
+ ▓████░ ▒████████▒ ░████▓
+ ▒████░  ▒▒░  ░▒▒  ░████▒
+ ░▓███▓▒░          ░▒▓███░
+  ▒▓▓████▓▓▓▓▓▓▓▓████▓▒
+   ░▒▒▓▓▓████████▓▓▓▒▒░
+      ░░▒▒▓▓▓▓▓▓▒▒░░`,
+
+sigil: `    ░░▒▒▓▓███████▓▓▒▒░░
+  ░▒▓▓████░▓▓▓▓▓░████▓▒░
+ ░▒▓███▒  ░░░░░░░  ▒███▓▒
+ ▒▓███░  ▒▓▓▓▓▓▒  ░███▓▒
+ ▓███▒  ▒▓███████▒  ▒███▓
+ ████░ ▒▓▓░     ░▓▒ ░████
+ ████░ ▒▓▓░  ⛬  ░▓▒ ░████
+ ▓███▒  ▒▓███████▒  ▒███▓
+ ▒▓███░  ▒▓▓▓▓▓▒  ░███▓▒
+ ░▒▓███▒  ░░░░░░  ▒███▓▒
+  ░▒▓▓████░▓▓▓░████▓▒░
+    ░░▒▒▓▓███████▓▓▒▒░░`,
+
+noise: (function() {
+  const C = '░░░▒▒▒▓▓▓▓██▀▄▌▐ ';
+  return Array.from({length:12}, () =>
+    Array.from({length:40}, () => C[Math.floor(Math.random()*C.length)]).join('')
+  ).join('\n');
+})()
+
+};
+
+const CHAR_PAL = ' .:-=+*#%@';
+console.assert(CHAR_PAL.length === 10, 'CHAR_PAL invariant: must be exactly 10 chars');
+
+// C15 byte-order probe — run once at startup, result cached
+// Draws pure red (#ff0000) to a 1×1 canvas and reads back pixel[0].
+// W3C RGBA spec: pixel[0] must equal 255 (red channel).
+// If probe fails (BGRA or other order), C7 luminance formula would be wrong.
+// Fallback: treat as canvas unavailable, use static skull portrait (same as C16).
+let _rgbaProbeOk = null;
+function checkByteOrder() {
+  if (_rgbaProbeOk !== null) return _rgbaProbeOk;
+  try {
+    const pc = document.createElement('canvas');
+    pc.width = pc.height = 1;
+    const pctx = pc.getContext('2d');
+    if (!pctx) { _rgbaProbeOk = false; return false; }
+    pctx.fillStyle = '#ff0000';
+    pctx.fillRect(0, 0, 1, 1);
+    const d = pctx.getImageData(0, 0, 1, 1).data;
+    // RGBA correct: red=255, green=0, blue=0
+    _rgbaProbeOk = (d[0] === 255 && d[1] === 0 && d[2] === 0);
+  } catch(e) { _rgbaProbeOk = false; }
+  return _rgbaProbeOk;
+}
+
+function canvasToAscii() {
+  const c = document.createElement('canvas');
+  const W = 60, H = 30;
+  c.width = W; c.height = H;
+  const ctx = c.getContext('2d');
+  // C16: canvas failure fallback — if context unavailable, return static skull
+  if (!ctx) return PORTRAITS.skull;
+  // C15: byte-order probe — if RGBA layout is wrong, luminance formula is incorrect
+  // Fallback to static skull (same degradation pattern as C16)
+  if (!checkByteOrder()) return PORTRAITS.skull;
+
+  // Animated radial gradient — pulsing Kingdom sigil
+  const t = Date.now() / 1000;
+  // Inner radius pulses: 2 → 8 on ~3s cycle
+  const innerR = 2 + 6 * (0.5 + 0.5 * Math.sin(t * 2.1));
+  // Center drifts slightly
+  const cx = W/2 + 4 * Math.sin(t * 0.7);
+  const cy = H/2 + 3 * Math.cos(t * 0.5);
+  const grd = ctx.createRadialGradient(cx, cy, innerR, cx, cy, W/2);
+  grd.addColorStop(0, '#7000ff');
+  grd.addColorStop(0.4, '#a833ff');
+  grd.addColorStop(0.7, '#ff3d7f');
+  grd.addColorStop(1, '#0d0a14');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, W, H);
+
+  // Cyan ring pulses at different phase
+  const ringR1 = H/2 * (0.3 + 0.15 * Math.sin(t * 1.4));
+  const ringR2 = H/2 * (0.6 + 0.1 * Math.sin(t * 1.4 + Math.PI));
+  const ringAlpha = 0.4 + 0.3 * Math.abs(Math.sin(t * 1.8));
+  const ring = ctx.createRadialGradient(cx, cy, ringR1, cx, cy, ringR2);
+  ring.addColorStop(0, 'rgba(0,212,255,0.0)');
+  ring.addColorStop(0.5, `rgba(0,212,255,${ringAlpha.toFixed(2)})`);
+  ring.addColorStop(1, 'rgba(0,212,255,0.0)');
+  ctx.fillStyle = ring;
+  ctx.fillRect(0, 0, W, H);
+
+  const data = ctx.getImageData(0, 0, W, H).data;
+  let out = '';
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4;
+      const lum = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+      out += CHAR_PAL[Math.floor(lum / 255 * (CHAR_PAL.length - 1))];
+    }
+    out += '\n';
+  }
+  return out.trimEnd();
+}
+
+let activePortrait = 'skull';
+
+function setPortrait(key, btn) {
+  activePortrait = key;
+  document.querySelectorAll('.pbtn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  if (key === 'canvas') {
+    const firstFrame = canvasToAscii();
+    document.getElementById('portrait-pre').textContent = firstFrame;
+    // C16: only start loop if canvas context is available (canvasToAscii returns skull on failure)
+    const ctxAvailable = firstFrame !== PORTRAITS.skull;
+    if (ctxAvailable && !window._canvasLoop) {
+      window._canvasLoop = setInterval(() => {
+        if (activePortrait === 'canvas') {
+          document.getElementById('portrait-pre').textContent = canvasToAscii();
+        } else {
+          clearInterval(window._canvasLoop);
+          window._canvasLoop = null;
+        }
+      }, 120);
+    }
+  } else {
+    if (window._canvasLoop) { clearInterval(window._canvasLoop); window._canvasLoop = null; }
+    document.getElementById('portrait-pre').textContent = PORTRAITS[key] || PORTRAITS.skull;
+  }
+}
+
+// Init
+document.getElementById('portrait-pre').textContent = PORTRAITS.skull;
+
+
+// ══════════════════════════════════════════════════════
+// §D ARCHITECTURE STUDY
+// ══════════════════════════════════════════════════════
+
+const ARCH_FINAL =
+`  /\\╔══════════════╗/\\
+ /░░\\║ ░░░░░░░░░░░░ ║/░░\\
+/░▒▒░╠══╦══════╦══╣░▒▒░\\
+▓░▒▒░║  ║ ████ ║  ║░▒▒░▓
+▓░▒▒░║  ║ ████ ║  ║░▒▒░▓
+▓░▒░░╠══╩══════╩══╣░░▒░▓
+▓░▒▒░║░░▓▓▓▓▓▓▓▓░░║░▒▒░▓
+▓▒▒▒░╠══════════════╣░▒▒▒▓
+▓▓▒▒░║▓▓▓▓▓▓▓▓▓▓▓▓║░▒▒▓▓
+▓▓▓▒░╚══════════════╝░▒▓▓▓
+▓▓▓▓▒░░░░░░░░░░░░░░░▒▓▓▓▓`;
+
+let archTimer = null;
+
+function startArch() {
+  if (archTimer) clearInterval(archTimer);
+  const pre = document.getElementById('arch-pre');
+  const chars = ARCH_FINAL.split('');
+  const current = chars.map(c => c === '\n' ? '\n' : ' ');
+  pre.textContent = current.join('');
+  let i = 0;
+  archTimer = setInterval(() => {
+    // Skip newlines
+    while (i < chars.length && chars[i] === '\n') {
+      current[i] = '\n';
+      i++;
+    }
+    if (i < chars.length) {
+      current[i] = chars[i];
+      pre.textContent = current.join('');
+      i++;
+    } else {
+      clearInterval(archTimer);
+      archTimer = null;
+    }
+  }, 6);
+}
+
+startArch();
+
+
+// ══════════════════════════════════════════════════════
+// §E MOTION GRAMMAR — Character Decay
+// ══════════════════════════════════════════════════════
+
+const NOISE = '░▒▓█▀▄▌▐@#$%&*+=-~^';
+const WORD = 'SINNER';
+let decayBusy = false;
+
+function shuffleIndices(n) {
+  const arr = Array.from({length: n}, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function dissolveEl(el, text, onDone) {
+  const current = text.split('');
+  const order = shuffleIndices(current.length);
+  let step = 0;
+  const iv = setInterval(() => {
+    if (step < order.length) {
+      current[order[step]] = NOISE[Math.floor(Math.random() * NOISE.length)];
+      el.textContent = current.join('');
+      step++;
+    } else {
+      clearInterval(iv);
+      onDone && onDone();
+    }
+  }, 28);
+}
+
+function materializeEl(el, text, onDone) {
+  const current = Array.from({length: text.length}, () => NOISE[Math.floor(Math.random() * NOISE.length)]);
+  const order = shuffleIndices(text.length);
+  let step = 0;
+  el.textContent = current.join('');
+  const iv = setInterval(() => {
+    if (step < order.length) {
+      current[order[step]] = text[order[step]];
+      el.textContent = current.join('');
+      step++;
+    } else {
+      clearInterval(iv);
+      el.textContent = text;
+      onDone && onDone();
+    }
+  }, 28);
+}
+
+document.getElementById('decay-text').addEventListener('click', function() {
+  if (decayBusy) return;
+  decayBusy = true;
+  const el = this;
+  dissolveEl(el, WORD, () => {
+    setTimeout(() => {
+      materializeEl(el, WORD, () => { decayBusy = false; });
+    }, 350);
+  });
+});
+
+
+// ══════════════════════════════════════════════════════
+// §F DATA THEATER — Block-Char Waveforms
+// ══════════════════════════════════════════════════════
+
+const BLOCKS = ' ▁▂▃▄▅▆▇█';
+const WAVE_W = 72;
+let waveT = 0;
+
+function waveVal(t, freq, phase) {
+  return 0.5
+    + 0.32 * Math.sin(t * freq + phase)
+    + 0.12 * Math.sin(t * freq * 2.414 + phase * 1.618)
+    + 0.04 * (Math.random() - 0.5);
+}
+
+function renderWave(id, freq, phase) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  let s = '';
+  for (let i = 0; i < WAVE_W; i++) {
+    const x = (i / WAVE_W) * Math.PI * 2;
+    const v = Math.max(0, Math.min(0.9999, waveVal(waveT + x, freq, phase)));
+    s += BLOCKS[Math.floor(v * (BLOCKS.length - 1))];
+  }
+  el.textContent = s;
+}
+
+function waveLoop() {
+  waveT += 0.035;
+  renderWave('wave-a', 1.0,   0);
+  renderWave('wave-b', 1.618, Math.PI * 0.42);
+  renderWave('wave-c', 2.718, Math.PI * 0.91);
+  requestAnimationFrame(waveLoop);
+}
+requestAnimationFrame(waveLoop);
+
+
+// ══════════════════════════════════════════════════════
+// §G CREATURE VAULT
+// ══════════════════════════════════════════════════════
+
+document.getElementById('skull-pre').textContent =
+`   ░▒▒▓▓████████▓▓▒▒░
+ ░▒▓████████████████▓▒░
+ ▒▓███▓▒░          ░▒▓███▒
+ ▓████░  ░▓▒  ▒▓░  ░████▓
+ ████▒  ░████████░  ▒████
+ ████░  ░████████░  ░████
+ ▓████▒▒▒░░░░░░▒▒▒████▓
+ ░▒▓████████████████▓▒░
+  ░▒▓██▒████████▒██▓▒░
+    ░▒▒▒░░░░░░▒▒▒░░`;
+
+const eyeEl = document.getElementById('eye-pre');
+eyeEl.textContent =
+`   ░░▒▒▓▓▓▓▓▓▓▓▒▒░░
+  ▒▓▓▓████████████▓▒
+ ░▓████▓▓▓░    ░▓████░
+ ▒████░  ▒░    ░▒  ████▒
+ ▓████▒        ▒████▓
+ ██████████████████
+ ██████▓▓████▓▓██████
+ ▓████▒        ▒████▓
+ ▒████░  ▒░    ░▒  ████▒
+ ░▓████▓▓▓░    ░▓████░
+  ▒▓▓▓████████████▓▒
+   ░░▒▒▓▓▓▓▓▓▓▓▒▒░░`;
+eyeEl.style.animation = 'pulse-breath 2s ease-in-out infinite';
+eyeEl.style.textShadow = '0 0 8px rgba(0,212,255,0.6), 0 0 20px rgba(0,212,255,0.3)';
+
+document.getElementById('wing-pre').textContent =
+` ░░░░░▒▒▒░░░░░░░░░░░░░░░░░
+ ░▒▒▓▓▓▓▒▒░░░░░░░░░░░░░░░
+ ▒▒▓▓▓▓▓▒▒░░▒▒▒░░░░░░░░░
+ ░▒▓▓▓▒▒▒▒▒▒▓▓▒▒░░░░░░░
+ ░░▒▓▓▒▒▒▒▒▒▒▒▒▒▒░░░░░
+  ░░▒▒▓▒▒▒▒▒▒▒▒▒▒▒░░░
+  ░░░▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
+   ░░░▒▒▒▒▒▒▒▒▒▒▒▒
+    ░░░░▒▒▒▒▒▒▒▒▒
+     ░░░░░▒▒▒▒▒░`;
+
+// ══════════════════════════════════════════════════════
+// §H TEXTURE — ░ char tiling via canvas (fires after fonts load)
+// ══════════════════════════════════════════════════════
+window.addEventListener('load', function() {
+  const tc = document.createElement('canvas');
+  tc.width = 12; tc.height = 16;
+  const tctx = tc.getContext('2d');
+  tctx.font = '14px "Courier New", monospace';
+  tctx.fillStyle = 'rgba(112, 0, 255, 0.07)';
+  tctx.fillText('░', 1, 13);
+  const url = tc.toDataURL();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'tex-overlay';
+  overlay.style.cssText =
+    'position:fixed;inset:0;z-index:0;pointer-events:none;' +
+    `background-image:url('${url}');background-repeat:repeat;` +
+    'animation:tex-breath 8s ease-in-out infinite;';
+  document.body.insertBefore(overlay, document.body.firstChild);
+});
+
+
+
+// ══════════════════════════════════════════════════════════════
+// COMPONENT PALACE JS
+// ══════════════════════════════════════════════════════════════
+
+// ── SLIDERS (C15, C36) ─────────────────────────────────
+function updateSlider(el, readoutId) {
+  el.style.setProperty('--pct', el.value);
+  document.getElementById(readoutId).textContent = el.value;
+}
+
+// Initialize slider --pct on load
+document.querySelectorAll('input[type="range"]').forEach(function(el) {
+  el.style.setProperty('--pct', el.value);
+});
+
+// Render NOTCHED tick marks (C18)
+(function buildTicks() {
+  var row = document.getElementById('notched-ticks');
+  for (var i = 0; i <= 10; i++) {
+    var tick = document.createElement('div');
+    tick.className = 'tick-mark';
+    row.appendChild(tick);
+  }
+})();
+
+// ── BINARY TOGGLE state label (C20) ───────────────────
+document.getElementById('toggle-bin').addEventListener('change', function() {
+  document.getElementById('binary-state').textContent = this.checked ? 'ON' : 'OFF';
+});
+
+// ── SIGNAL TOGGLE (C21) ───────────────────────────────
+function cycleSignal(container) {
+  var segs = container.querySelectorAll('.signal-seg');
+  var current = parseInt(container.dataset.active || '0');
+  var next = (current + 1) % 4;
+  container.dataset.active = next;
+  segs.forEach(function(seg, i) {
+    if (i < next) {
+      seg.classList.add('active');
+    } else {
+      seg.classList.remove('active');
+    }
+  });
+  document.getElementById('signal-readout').textContent = next + ' / 3';
+}
+
+// ── TERMINAL TOGGLE (C22) ─────────────────────────────
+function toggleTerminal(el) {
+  if (el.classList.contains('on')) {
+    el.classList.remove('on');
+    el.textContent = '[ ]';
+  } else {
+    el.classList.add('on');
+    el.textContent = '[X]';
+  }
+}
+
+// ── HUD CLOCK ─────────────────────────────────────────
+(function hudClock() {
+  var el = document.getElementById('hud-clock');
+  if (!el) return;
+  function tick() {
+    var d = new Date();
+    el.textContent =
+      String(d.getHours()).padStart(2,'0') + ':' +
+      String(d.getMinutes()).padStart(2,'0') + ':' +
+      String(d.getSeconds()).padStart(2,'0');
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+
+// ══════════════════════════════════════════════════════════════
+// COPY CSS SYSTEM
+// Extracts CSS rules from stylesheets, injects copy buttons,
+// copies to clipboard on click with toast feedback.
+// ══════════════════════════════════════════════════════════════
+
+(function initCopyCSS() {
+  'use strict';
+
+  // ── Toast element ──────────────────────────────────────
+  var toast = document.createElement('div');
+  toast.className = 'copy-toast';
+  document.body.appendChild(toast);
+  var toastTimer = null;
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() {
+      toast.classList.remove('show');
+    }, 1800);
+  }
+
+  // ── CSS extraction engine ──────────────────────────────
+  // Walks all <style> sheets, finds rules matching a class name.
+  // Includes pseudo-classes (:hover, :active, :focus, etc.)
+  // and pseudo-elements (::before, ::after).
+  // Also captures @keyframes referenced by matched rules.
+
+  function extractCSS(className) {
+    var selector = '.' + className;
+    var rules = [];
+    var keyframeNames = [];
+
+    for (var s = 0; s < document.styleSheets.length; s++) {
+      var sheet;
+      try { sheet = document.styleSheets[s].cssRules; }
+      catch(e) { continue; }
+      if (!sheet) continue;
+
+      for (var r = 0; r < sheet.length; r++) {
+        var rule = sheet[r];
+
+        // Regular style rules
+        if (rule.type === CSSRule.STYLE_RULE) {
+          var sel = rule.selectorText || '';
+          // Match rules that contain our target class
+          // Use word-boundary-like check to avoid .g1 matching .g10
+          if (selectorContainsClass(sel, className)) {
+            // Strip the panel scope prefix for cleaner output
+            var cleanSel = sel
+              .replace(/\.components-panel\s+/g, '')
+              .replace(/\.ascii-panel\s+/g, '');
+            rules.push(cleanSel + ' ' + formatBlock(rule.cssText, sel));
+
+            // Collect referenced animation names
+            var animMatch = rule.cssText.match(/animation(?:-name)?:\s*([a-zA-Z][\w-]*)/);
+            if (animMatch && keyframeNames.indexOf(animMatch[1]) === -1) {
+              keyframeNames.push(animMatch[1]);
+            }
+          }
+        }
+
+        // @keyframes — collect for later if referenced
+        if (rule.type === CSSRule.KEYFRAMES_RULE) {
+          if (keyframeNames.indexOf(rule.name) !== -1) {
+            rules.push(rule.cssText);
+          }
+        }
+      }
+    }
+
+    // Second pass: pick up @keyframes that were found after the referencing rules
+    if (keyframeNames.length > 0) {
+      for (var s2 = 0; s2 < document.styleSheets.length; s2++) {
+        var sheet2;
+        try { sheet2 = document.styleSheets[s2].cssRules; }
+        catch(e) { continue; }
+        if (!sheet2) continue;
+
+        for (var r2 = 0; r2 < sheet2.length; r2++) {
+          var rule2 = sheet2[r2];
+          if (rule2.type === CSSRule.KEYFRAMES_RULE) {
+            if (keyframeNames.indexOf(rule2.name) !== -1) {
+              var kfText = rule2.cssText;
+              // Avoid duplicates
+              var alreadyHave = false;
+              for (var k = 0; k < rules.length; k++) {
+                if (rules[k].indexOf('@keyframes ' + rule2.name) !== -1) {
+                  alreadyHave = true;
+                  break;
+                }
+              }
+              if (!alreadyHave) rules.push(kfText);
+            }
+          }
+        }
+      }
+    }
+
+    return rules.join('\n\n');
+  }
+
+  // Check if a selector string contains .className as a discrete token
+  // Also matches sub-component classes like .toggle-binary-label when
+  // searching for toggle-binary (dash-prefixed children).
+  function selectorContainsClass(selectorText, className) {
+    var parts = selectorText.split(',');
+    // Exact match: .className NOT followed by alphanumeric/underscore
+    // (allows dash for sub-components like .toggle-binary-label)
+    var exactRe = new RegExp('\\.' + escapeRegex(className) + '(?![a-zA-Z0-9_])');
+    for (var i = 0; i < parts.length; i++) {
+      if (exactRe.test(parts[i].trim())) return true;
+    }
+    return false;
+  }
+
+  function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  // Extract just the { ... } block from cssText, clean up
+  function formatBlock(cssText, originalSelector) {
+    var braceStart = cssText.indexOf('{');
+    if (braceStart === -1) return '{ }';
+    return cssText.substring(braceStart);
+  }
+
+  // ── Copy to clipboard ──────────────────────────────────
+  function copyToClipboard(text, label) {
+    navigator.clipboard.writeText(text).then(function() {
+      showToast('⛬ COPIED — ' + label);
+    }).catch(function() {
+      // Fallback for older browsers
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('⛬ COPIED — ' + label);
+    });
+  }
+
+  // ── Button injection ──────────────────────────────────
+  function injectButton(container, cssClass, label) {
+    var btn = document.createElement('button');
+    btn.className = 'copy-css-btn';
+    btn.textContent = 'COPY CSS';
+    btn.title = 'Copy .' + cssClass + ' CSS to clipboard';
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var css = extractCSS(cssClass);
+      if (!css) {
+        showToast('⊗ NO RULES FOUND — .' + cssClass);
+        return;
+      }
+      var header = '/* ── ' + label + ' ── */\n/* Source: sinner-kingdom-playground.html */\n\n';
+      copyToClipboard(header + css, label);
+      btn.classList.add('copied');
+      btn.textContent = 'COPIED';
+      setTimeout(function() {
+        btn.classList.remove('copied');
+        btn.textContent = 'COPY CSS';
+      }, 1800);
+    });
+    container.appendChild(btn);
+  }
+
+  // ── Component Palace: Buttons (§A) ────────────────────
+  document.querySelectorAll('.components-panel .component-cell').forEach(function(cell) {
+    // Find the interactive element (button, input[range], toggle, text input)
+    var target =
+      cell.querySelector('button[class^="btn-"]') ||
+      cell.querySelector('input[type="range"]') ||
+      cell.querySelector('.toggle-binary-wrap') ||
+      cell.querySelector('.toggle-signal') ||
+      cell.querySelector('.toggle-terminal') ||
+      cell.querySelector('input[type="text"]');
+
+    if (!target) return;
+
+    var cssClass, label;
+
+    if (target.tagName === 'BUTTON') {
+      // Buttons: btn-ghost, btn-signal, etc.
+      var classes = target.className.split(/\s+/);
+      for (var i = 0; i < classes.length; i++) {
+        if (classes[i].indexOf('btn-') === 0) { cssClass = classes[i]; break; }
+      }
+      label = cssClass ? cssClass.replace('btn-', '').toUpperCase() + ' BUTTON' : 'BUTTON';
+    } else if (target.type === 'range') {
+      // Sliders: slider-surgical, etc.
+      var classes2 = target.className.split(/\s+/);
+      for (var j = 0; j < classes2.length; j++) {
+        if (classes2[j].indexOf('slider-') === 0) { cssClass = classes2[j]; break; }
+      }
+      label = cssClass ? cssClass.replace('slider-', '').toUpperCase() + ' SLIDER' : 'SLIDER';
+    } else if (target.classList.contains('toggle-binary-wrap')) {
+      cssClass = 'toggle-binary';
+      label = 'BINARY TOGGLE';
+    } else if (target.classList.contains('toggle-signal')) {
+      cssClass = 'toggle-signal';
+      label = 'SIGNAL TOGGLE';
+    } else if (target.classList.contains('toggle-terminal')) {
+      cssClass = 'toggle-terminal';
+      label = 'TERMINAL TOGGLE';
+    } else if (target.type === 'text') {
+      // Inputs: input-terminal, input-panel, input-ghost
+      var classes3 = target.className.split(/\s+/);
+      for (var k = 0; k < classes3.length; k++) {
+        if (classes3[k].indexOf('input-') === 0) { cssClass = classes3[k]; break; }
+      }
+      label = cssClass ? cssClass.replace('input-', '').toUpperCase() + ' INPUT' : 'INPUT';
+    }
+
+    if (cssClass) injectButton(cell, cssClass, label);
+  });
+
+  // ── Component Palace: Animations (§D) ─────────────────
+  document.querySelectorAll('.components-panel .anim-box').forEach(function(box) {
+    var demo = box.querySelector('.anim-demo');
+    if (!demo) return;
+    var classes = demo.className.split(/\s+/);
+    var cssClass = null;
+    for (var i = 0; i < classes.length; i++) {
+      if (classes[i].indexOf('anim-') === 0 && classes[i] !== 'anim-demo') {
+        cssClass = classes[i]; break;
+      }
+    }
+    if (cssClass) {
+      var label = cssClass.replace('anim-', '').toUpperCase() + ' ANIMATION';
+      injectButton(box, cssClass, label);
+    }
+  });
+
+  // ── Component Palace: Cards (§F) ──────────────────────
+  var cardSelectors = [
+    'card-data-surface', 'card-sovereign', 'card-signal-panel',
+    'card-drone', 'card-law', 'card-hud'
+  ];
+  cardSelectors.forEach(function(cls) {
+    document.querySelectorAll('.components-panel .' + cls).forEach(function(card) {
+      var label = cls.replace('card-', '').replace(/-/g, ' ').toUpperCase() + ' CARD';
+      injectButton(card, cls, label);
+    });
+  });
+
+  // ── ASCII Lab: Glow Specimens (§A) ────────────────────
+  document.querySelectorAll('.ascii-panel .specimen').forEach(function(spec) {
+    var display = spec.querySelector('.spec-display');
+    if (!display) return;
+    var classes = display.className.split(/\s+/);
+    var cssClass = null;
+    for (var i = 0; i < classes.length; i++) {
+      if (classes[i] !== 'spec-display' && /^g\d+$/.test(classes[i])) {
+        cssClass = classes[i]; break;
+      }
+    }
+    if (!cssClass) return;
+    // Read the glow name from the label
+    var nameEl = spec.querySelector('.spec-label strong');
+    var label = nameEl ? nameEl.textContent : cssClass.toUpperCase() + ' GLOW';
+    injectButton(spec, cssClass, label);
+  });
+
+})();
+
+
+</script>

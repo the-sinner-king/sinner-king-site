@@ -24,17 +24,20 @@ import { getClientIP } from '@/lib/request-utils'
 // sustained unique-IP traffic.
 // =============================================================================
 
-const _glyphRateMap = new Map<string, { count: number; resetAt: number }>()
-const GLYPH_LIMIT      = 20
-const GLYPH_WINDOW_MS  = 60 * 60 * 1000  // 1 hour
-let   _glyphReqCount   = 0
-const GLYPH_SWEEP_AT   = 200
+const _glyphRateMap   = new Map<string, { count: number; resetAt: number }>()
+const GLYPH_LIMIT     = 20
+const GLYPH_WINDOW_MS = 60 * 60 * 1000  // 1 hour
+const GLYPH_SWEEP_MS  = 5 * 60 * 1000   // sweep expired entries every 5 minutes
+let   _glyphLastSweep = 0
 
 function _glyphCheckRate(ip: string): boolean {
   const now = Date.now()
 
-  _glyphReqCount++
-  if (_glyphReqCount % GLYPH_SWEEP_AT === 0) {
+  // Time-based sweep: runs at most once per GLYPH_SWEEP_MS regardless of traffic
+  // volume. Count-based sweep grows unbounded on unique-IP traffic until the Nth
+  // request; time-based sweep fires predictably even under low-volume attack.
+  if (now - _glyphLastSweep > GLYPH_SWEEP_MS) {
+    _glyphLastSweep = now
     for (const [key, entry] of _glyphRateMap) {
       if (now > entry.resetAt) _glyphRateMap.delete(key)
     }

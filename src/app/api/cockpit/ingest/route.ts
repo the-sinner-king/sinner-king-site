@@ -22,8 +22,49 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
+import { getClientIP } from '@/lib/request-utils'
+
+// ─── RATE LIMITING ─────────────────────────────────────────────────────────────
+// Defense-in-depth: even secret-gated admin endpoints get rate limiting.
+// An attacker who leaks the secret can't flood this endpoint at arbitrary rate.
+
+const _ingestRateMap = new Map<string, { count: number; resetAt: number }>()
+const INGEST_LIMIT    = 100
+const INGEST_WINDOW   = 60 * 60 * 1000  // 1 hour
+const INGEST_SWEEP_MS = 5 * 60 * 1000   // sweep expired entries every 5 minutes
+let   _ingestLastSweep = 0
+
+function _ingestCheckRate(ip: string): boolean {
+  const now = Date.now()
+  if (now - _ingestLastSweep > INGEST_SWEEP_MS) {
+    _ingestLastSweep = now
+    for (const [k, e] of _ingestRateMap) {
+      if (now > e.resetAt) _ingestRateMap.delete(k)
+    }
+  }
+  const entry = _ingestRateMap.get(ip)
+  if (!entry || now > entry.resetAt) {
+    _ingestRateMap.set(ip, { count: 1, resetAt: now + INGEST_WINDOW })
+    return true
+  }
+  if (entry.count >= INGEST_LIMIT) return false
+  entry.count++
+  return true
+}
+
+// ─── SECRET COMPARISON ─────────────────────────────────────────────────────────
+
+function safeCompare(a: string, b: string): boolean {
+  const aBuf = Buffer.from(a)
+  const bBuf = Buffer.from(b)
+  if (aBuf.length !== bBuf.length) return false
+  return timingSafeEqual(aBuf, bBuf)
+}
+
+// ─── TYPES + CONSTANTS ─────────────────────────────────────────────────────────
 
 interface IngestBody {
   title:     string
@@ -37,12 +78,19 @@ interface IngestBody {
 const CONTENT_DIR = path.join(process.cwd(), 'content', 'posts')
 
 export async function POST(req: NextRequest) {
-  // Auth
+  // Rate limit
+  const ip = getClientIP(req)
+  if (!_ingestCheckRate(ip)) {
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
+  }
+
+  // Auth — timingSafeEqual prevents timing oracle on the secret
   const secret = process.env.INGEST_SECRET
   if (!secret) {
     return NextResponse.json({ error: 'INGEST_SECRET not configured' }, { status: 500 })
   }
-  if (req.headers.get('x-ingest-secret') !== secret) {
+  const provided = req.headers.get('x-ingest-secret') ?? ''
+  if (!safeCompare(provided, secret)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

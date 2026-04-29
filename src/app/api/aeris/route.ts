@@ -5,10 +5,6 @@
  * The Portal is open-ended: visitors can have extended conversations with Æris,
  * subject to per-IP hourly rate limiting.
  *
- * Contrast with /api/throne: the Throne Room is one question, forever, per IP,
- * using claude-opus-4-6. The Portal is ongoing, rate-limited, using claude-haiku
- * (fast, cheap — Æris's "casual" voice). Same identity; different gravity.
- *
  * ─── ENDPOINT ─────────────────────────────────────────────────────────────────
  *
  * POST /api/aeris
@@ -76,9 +72,7 @@ export const maxDuration = 60
  *  Prevents excessively large conversation contexts (token cost + injection surface). */
 const MAX_MESSAGES = 20
 
-/** Maximum characters per individual message.
- *  Silently truncated (not rejected) — the Archivist sees the start of very long
- *  messages, which is usually the meaningful part anyway. */
+/** Maximum characters per individual message. Requests exceeding this get a 400. */
 const MAX_MESSAGE_LENGTH = 4000
 
 /** Timeout (ms) for the Anthropic streaming request inside the ReadableStream.
@@ -207,10 +201,11 @@ export async function POST(request: NextRequest): Promise<Response> {
         { status: 400, headers: corsHeaders(origin) }
       )
     }
-    // Silently truncate long messages rather than rejecting — the start of a very
-    // long message is usually the coherent part; the tail is often noise or padding
     if (msg.content.length > MAX_MESSAGE_LENGTH) {
-      msg.content = msg.content.slice(0, MAX_MESSAGE_LENGTH)
+      return NextResponse.json(
+        { error: `Message too long. Maximum ${MAX_MESSAGE_LENGTH} characters per message.` },
+        { status: 400, headers: corsHeaders(origin) }
+      )
     }
   }
 
@@ -283,7 +278,6 @@ export async function POST(request: NextRequest): Promise<Response> {
           })),
           temporal: temporalState,
           kingdom: kingdomState,
-          mode: 'portal',   // Portal = Haiku model (fast/cheap) vs throne = Opus
           signal: abortController.signal,
         })
 

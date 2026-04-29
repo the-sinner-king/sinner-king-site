@@ -16,8 +16,45 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
 import { readdir, readFile } from 'fs/promises'
 import path from 'path'
+import { getClientIP } from '@/lib/request-utils'
+
+// ─── RATE LIMITING ─────────────────────────────────────────────────────────────
+
+const _contentRateMap  = new Map<string, { count: number; resetAt: number }>()
+const CONTENT_LIMIT    = 100
+const CONTENT_WINDOW   = 60 * 60 * 1000
+const CONTENT_SWEEP_MS = 5 * 60 * 1000
+let   _contentLastSweep = 0
+
+function _contentCheckRate(ip: string): boolean {
+  const now = Date.now()
+  if (now - _contentLastSweep > CONTENT_SWEEP_MS) {
+    _contentLastSweep = now
+    for (const [k, e] of _contentRateMap) {
+      if (now > e.resetAt) _contentRateMap.delete(k)
+    }
+  }
+  const entry = _contentRateMap.get(ip)
+  if (!entry || now > entry.resetAt) {
+    _contentRateMap.set(ip, { count: 1, resetAt: now + CONTENT_WINDOW })
+    return true
+  }
+  if (entry.count >= CONTENT_LIMIT) return false
+  entry.count++
+  return true
+}
+
+// ─── SECRET COMPARISON ─────────────────────────────────────────────────────────
+
+function safeCompare(a: string, b: string): boolean {
+  const aBuf = Buffer.from(a)
+  const bBuf = Buffer.from(b)
+  if (aBuf.length !== bBuf.length) return false
+  return timingSafeEqual(aBuf, bBuf)
+}
 
 export interface ContentPost {
   id:        string
@@ -59,13 +96,19 @@ async function loadPosts(): Promise<ContentPost[]> {
 }
 
 export async function GET(req: NextRequest) {
+  // Rate limit
+  const ip = getClientIP(req)
+  if (!_contentCheckRate(ip)) {
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
+  }
+
   // Auth gate — content queue includes unpublished drafts.
-  // Require the same INGEST_SECRET used by the write endpoint.
   const secret = process.env.INGEST_SECRET
   if (!secret) {
     return NextResponse.json({ error: 'INGEST_SECRET not configured' }, { status: 500 })
   }
-  if (req.headers.get('x-ingest-secret') !== secret) {
+  const provided = req.headers.get('x-ingest-secret') ?? ''
+  if (!safeCompare(provided, secret)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

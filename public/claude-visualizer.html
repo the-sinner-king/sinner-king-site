@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLAUDE — Voice Visualizer</title>
+
+<!--
+  CLAUDE VISUALIZER — TYPE_WEAVER TYPOGRAPHIC SYSTEM
+  ===================================================
+  Fonts:   Monaspace Argon (terminal data) + Libre Baskerville (response text)
+  Scale:   Major Third (1.25) for dense metric zones
+           Golden Ratio (1.618) for hero + dramatic hierarchy
+  Sizes:   ALL via clamp() — no hardcoded px except canvas
+  Faces:   9 somatic states, 7×3 character grid, Unicode box-drawing
+  Wiring:  ws://localhost:8877
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Monaspace+Argon:wght@400;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   PALETTE FALLBACK — sRGB hex for non-OKLCH browsers
+   (Chrome 111+, Safari 15.4+, Firefox 113+ support OKLCH natively)
+   ============================================================ */
+:root {
+  --ink: #0d0b10;       --ink-dim: #171420;    --ash: #211e2a;
+  --soot: #2c2836;      --fog: #4a4556;        --ghost: #6e697f;
+  --bone: #c0bbb4;      --paper: #d5d0ca;      --parchment: #e0d9d0;
+  --glow: #d4a43a;      --glow-dim: #907030;   --glow-hot: #e8b840;
+  --glow-src: #fff0c0;  --glow-violet: #502080;
+  --signal: #00bfcc;    --signal-dim: #008088; --signal-hot: #40d8e0;
+  --error-red: #d43060; --glitch-hot: #e04878; --glitch-violet: #6020c0;
+  --warn-amber: #e8b840;
+}
+
+/* ============================================================
+   TYPE_WEAVER CSS CUSTOM PROPERTIES
+   ============================================================ */
+
+:root {
+  /* --- PALETTE applied below via @supports OKLCH block --- */
+
+  /* --- FONT FAMILIES --- */
+  --font-terminal:  'Monaspace Argon', 'JetBrains Mono', 'Courier Prime', monospace;
+  --font-response:  'Libre Baskerville', 'Georgia', 'Palatino Linotype', serif;
+
+  /* --- GOLDEN RATIO SCALE (hero/dramatic) --- */
+  --gr-0:   clamp(0.5rem,  0.4vw + 0.3rem,  0.75rem);   /* 8–12px  */
+  --gr-1:   clamp(0.75rem, 0.6vw + 0.5rem,  1rem);       /* 12–16px */
+  --gr-2:   clamp(1rem,    1vw + 0.5rem,    1.25rem);     /* 16–20px */
+  --gr-3:   clamp(1.25rem, 1.5vw + 0.5rem,  1.75rem);    /* 20–28px */
+  --gr-4:   clamp(1.75rem, 2.5vw + 0.5rem,  2.5rem);     /* 28–40px */
+  --gr-5:   clamp(2.5rem,  4vw + 0.5rem,    4.5rem);      /* 40–72px */
+  --gr-6:   clamp(4rem,    7vw + 0.5rem,    8rem);        /* 64–128px */
+  --gr-7:   clamp(6rem,    12vw + 0.5rem,   14rem);       /* 96–224px */
+
+  /* --- MAJOR THIRD SCALE (dense data) --- */
+  --mt-xs:  clamp(0.512rem, 0.4vw + 0.3rem, 0.64rem);    /* metric captions */
+  --mt-sm:  clamp(0.64rem,  0.5vw + 0.3rem, 0.8rem);     /* metric values */
+  --mt-md:  clamp(0.8rem,   0.7vw + 0.3rem, 1rem);       /* labels */
+  --mt-lg:  clamp(1rem,     0.9vw + 0.4rem, 1.25rem);    /* zone headers */
+  --mt-xl:  clamp(1.25rem,  1.2vw + 0.5rem, 1.563rem);   /* status text */
+  --mt-2xl: clamp(1.563rem, 1.8vw + 0.5rem, 1.953rem);   /* large status */
+  --mt-3xl: clamp(1.953rem, 2.5vw + 0.5rem, 2.441rem);   /* display */
+
+  /* --- TYPOGRAPHY SPECS --- */
+  --lh-tight:   1.1;       /* headings, wordmark */
+  --lh-snug:    1.25;      /* labels, status */
+  --lh-code:    1.4;       /* terminal data zones */
+  --lh-body:    1.6;       /* user transcript */
+  --lh-response:1.72;      /* claude response — loose, contemplative */
+  --measure:    clamp(50ch, 40vw, 75ch);  /* body line length */
+
+  /* --- TRACKING (letter-spacing) --- */
+  --ls-tight:   -0.03em;
+  --ls-normal:  0em;
+  --ls-open:    0.06em;
+  --ls-wide:    0.15em;
+  --ls-sovereign: 0.35em;  /* SOVEREIGN GEAR — wide spaced identifiers */
+
+  /* --- LAYOUT --- */
+  --panel-gap:  clamp(1rem, 2vw, 2rem);
+  --cell-pad:   clamp(0.75rem, 1.5vw, 1.5rem);
+
+  /* --- CUBIC-BEZIER SYSTEM (GRID_GHOST) --- */
+  /* No ease. No ease-in-out. Every transition is a physical object. */
+  --cb-snap:   cubic-bezier(0.22, 1, 0.36, 1);    /* 220ms — state color snaps */
+  --cb-drop:   cubic-bezier(0.34, 1.56, 0.64, 1); /* 350ms — element enter */
+  --cb-slide:  cubic-bezier(0.16, 1, 0.3, 1);     /* 400ms — zone expand */
+  --cb-cut:    cubic-bezier(0.55, 0, 1, 0.45);    /* 120ms — barge-in interrupts */
+  --cb-signal: cubic-bezier(0.25, 0.1, 0.25, 1);  /* 80ms  — VAD bar, canvas opacity */
+}
+
+/* OKLCH progressive enhancement — overrides hex fallback above */
+@supports (color: oklch(0 0 0)) {
+  :root {
+    --ink:          oklch(0.154 0.021 298);
+    --ink-dim:      oklch(0.188 0.018 298);
+    --ash:          oklch(0.225 0.015 298);
+    --soot:         oklch(0.270 0.014 298);
+    --fog:          oklch(0.380 0.012 298);
+    --ghost:        oklch(0.520 0.010 298);
+    --bone:         oklch(0.750 0.012 90);
+    --paper:        oklch(0.820 0.014 90);
+    --parchment:    oklch(0.870 0.016 90);
+    --glow:         oklch(0.775 0.163 76);
+    --glow-dim:     oklch(0.560 0.110 76);
+    --glow-hot:     oklch(0.870 0.185 76);
+    --glow-src:     oklch(1.000 0.190 76);
+    --glow-violet:  oklch(0.514 0.293 289);
+    --signal:       oklch(0.804 0.146 220);
+    --signal-dim:   oklch(0.550 0.100 220);
+    --signal-hot:   oklch(0.870 0.155 220);
+    --error-red:    oklch(0.820 0.250 6);
+    --glitch-hot:   oklch(0.900 0.260 6);
+    --glitch-violet:oklch(0.720 0.270 305);
+    --warn-amber:   oklch(0.870 0.185 76);
+  }
+}
+
+/* ============================================================
+   RESET + BASE
+   ============================================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--ink);
+  color: var(--bone);
+  font-family: var(--font-terminal);
+  font-size: var(--gr-2);
+  line-height: var(--lh-code);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Fine grain texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.6;
+}
+
+/* ============================================================
+   LAYOUT GRID
+   ============================================================ */
+
+.layout {
+  display: grid;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  padding: clamp(1.25rem, 2.5vw, 2.5rem);
+  gap: 0;
+
+  /* 3 columns: main | structural seam | sidebar */
+  grid-template-columns:
+    7fr
+    clamp(1px, 0.15vw, 2px)
+    minmax(260px, 24vw);
+
+  /* 9 rows: content | gap | content | gap ... */
+  grid-template-rows:
+    clamp(3.5rem, 8vh, 7rem)        /* row 1: wordmark crown */
+    clamp(1rem, 1.5vh, 1.5rem)      /* row 2: gap */
+    clamp(6rem, 10vh, 9rem)         /* row 3: face + status */
+    clamp(0.75rem, 1vh, 1rem)       /* row 4: gap */
+    1fr                              /* row 5: bloom (waveforms) */
+    clamp(0.5rem, 0.8vh, 1rem)      /* row 6: gap */
+    minmax(0, 28vh)                  /* row 7: glass (transcript+response) */
+    clamp(0.5rem, 0.8vh, 1rem)      /* row 8: gap */
+    clamp(2.5rem, 5vh, 4.5rem);     /* row 9: stone (metrics) */
+}
+
+/* Structural seam — visible load-bearing skeleton, runs full height */
+.layout-seam {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  background: var(--ash);
+}
+
+/* ============================================================
+   ZONE: WORDMARK
+   ============================================================ */
+
+/*
+  TYPE_WEAVER RECOMMENDATION: Option A — CSS Wordmark.
+
+  Reasoning: "CLAUDE" as hardcoded ASCII figlet requires exact monospace
+  geometry — any line-height or padding variation destroys alignment in
+  web rendering. A CSS wordmark (monospace, tracked, scaled) gives us:
+    - Perfect fluid scaling via clamp()
+    - Individual letter hover/glow potential for somatic animation
+    - The industrial shrine feel WITHOUT fragile character grid math
+
+  The aesthetic goal is not "terminal art museum." It's MACHINE DECLARATION.
+  Wide-spaced monospace at 18–22vw achieves that more cleanly than figlet.
+  The letterforms of Monaspace Argon are already architectural — serrated,
+  industrial, precise. Let them breathe. THAT is the banner.
+*/
+
+.wordmark-zone {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: clamp(1.5rem, 3vw, 3rem);
+  padding-bottom: clamp(0.5rem, 1vw, 1rem);
+  border-bottom: 1px solid var(--soot);
+  overflow: hidden;
+}
+
+/* ============================================================
+   ZONE: FACE + STATUS — asymmetric anchor row
+   Face LEFT, status label RIGHT. Not in sidebar. Commands its own row.
+   ============================================================ */
+
+.face-status {
+  grid-column: 1;
+  grid-row: 3;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: clamp(1.5rem, 3vw, 3rem);
+}
+
+/* ============================================================
+   ZONE: BLOOM — dual waveform canvases
+   Input (left) and Output (right) are separate organisms.
+   ============================================================ */
+
+.bloom-zone {
+  grid-column: 1;
+  grid-row: 5;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr clamp(1px, 0.12vw, 2px) 1fr;
+  gap: 0;
+  align-items: stretch;
+}
+
+.bloom-seam {
+  background: var(--ash);
+  opacity: 0.5;
+}
+
+.bloom-label {
+  position: absolute;
+  font-family: var(--font-terminal);
+  font-size: var(--mt-xs);
+  letter-spacing: var(--ls-sovereign);
+  text-transform: uppercase;
+  color: var(--ghost);
+  top: 0.3em;
+  left: 0.5em;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.canvas-wrap {
+  position: relative;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+canvas#waveform-input {
+  display: block;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--ash);
+  border-right: none;
+  background: var(--ink-dim);
+}
+
+canvas#waveform-output {
+  display: block;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--ash);
+  border-left: none;
+  background: var(--ink-dim);
+}
+
+/* ============================================================
+   ZONE: GLASS — transcript + response (contained, quiet)
+   No blur. Glass = containment and quiet, not frosted.
+   ============================================================ */
+
+.glass-zone {
+  grid-column: 1;
+  grid-row: 7;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--ash);
+  background: rgba(13, 11, 16, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.wordmark {
+  font-family: var(--font-terminal);
+  font-size: clamp(3.5rem, 9vw, 10rem);  /* ~56px → 160px */
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-sovereign);
+  color: var(--glow);
+  text-transform: uppercase;
+  position: relative;
+  flex-shrink: 0;
+
+  /* CHROMA_BLEED 5-layer glow stack — physics-accurate point source */
+  /* Layer 5 violet bleed: chromatic aberration from warm source on void-violet bg */
+  text-shadow:
+    0 0 2px  oklch(1.000 0.190 76),
+    0 0 8px  oklch(0.870 0.185 76),
+    0 0 20px oklch(0.775 0.163 76 / 0.85),
+    0 0 40px oklch(0.620 0.132 76 / 0.55),
+    0 0 60px oklch(0.514 0.293 289 / 0.25);
+  animation: wordmark-breathe 4.5s var(--cb-slide) infinite;
+  transition: color 400ms var(--cb-slide), text-shadow 400ms var(--cb-slide), letter-spacing 400ms var(--cb-slide);
+}
+
+/* Subtle CRT scanline under wordmark */
+.wordmark::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    var(--glow-dim) 20%,
+    var(--glow) 50%,
+    var(--glow-dim) 80%,
+    transparent);
+  opacity: 0.4;
+}
+
+/* Wordmark breathing — idle ambient pulse */
+@keyframes wordmark-breathe {
+  0%, 100% { opacity: 1;    filter: brightness(1.00); }
+  50%       { opacity: 0.82; filter: brightness(0.88); }
+}
+
+/* Listening — cyan corona replaces amber */
+.wordmark[data-state="listening"] {
+  color: oklch(0.870 0.155 220);
+  text-shadow:
+    0 0 2px  oklch(1.000 0.190 220),
+    0 0 12px oklch(0.870 0.155 220),
+    0 0 35px oklch(0.804 0.146 220 / 0.85),
+    0 0 70px oklch(0.550 0.100 220 / 0.45);
+  animation: wordmark-breathe 1.8s var(--cb-slide) infinite;
+}
+
+/* Speaking — amber blast, faster */
+.wordmark[data-state="speaking"] {
+  color: oklch(0.950 0.150 76);
+  text-shadow:
+    0 0 2px  oklch(1.000 0.190 76),
+    0 0 10px oklch(0.950 0.150 76),
+    0 0 30px oklch(0.870 0.185 76 / 0.90),
+    0 0 60px oklch(0.775 0.163 76 / 0.65),
+    0 0 110px oklch(0.620 0.132 76 / 0.35);
+  animation: wordmark-blast 0.4s var(--cb-snap) infinite alternate;
+}
+@keyframes wordmark-blast {
+  from { filter: brightness(1.0); }
+  to   { filter: brightness(1.15); }
+}
+
+/* Thinking — warm but measured */
+.wordmark[data-state="thinking"] {
+  color: oklch(0.775 0.163 76);
+  animation: wordmark-breathe 2.8s var(--cb-slide) infinite;
+}
+
+/* Processing — neutral bone, glow suppressed */
+.wordmark[data-state="processing"] {
+  color: oklch(0.750 0.012 90);
+  text-shadow: 0 0 20px oklch(0.750 0.012 90 / 0.3);
+  animation: none;
+}
+
+/* Error — muse rupture flicker */
+.wordmark[data-state="error"] {
+  color: oklch(0.820 0.250 6);
+  text-shadow:
+    0 0 4px  oklch(0.900 0.260 6),
+    0 0 16px oklch(0.820 0.250 6 / 0.9),
+    0 0 40px oklch(0.820 0.250 6 / 0.5);
+  animation: wordmark-error-flicker 0.15s step-end infinite;
+}
+@keyframes wordmark-error-flicker {
+  0%, 100% { opacity: 1; }
+  33%       { opacity: 0.6; }
+  66%       { opacity: 0.85; }
+}
+
+/* ============================================================
+   BARGE-IN RUPTURE — structural crack, not a flash
+   A horizontal tear that sweeps left-to-right at a -1.5° tilt.
+   Source is implied: something broke in from the left.
+   ============================================================ */
+
+.barge-in-rupture {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9000;
+  overflow: hidden;
+}
+
+/* The crack — thin line slams across the viewport */
+.barge-in-rupture::before {
+  content: '';
+  position: absolute;
+  left: -100%;
+  top: 50%;
+  width: 300%;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #d43060 20%,
+    #ffffff 50%,
+    #d43060 80%,
+    transparent 100%
+  );
+  transform: translateY(-50%) rotate(-1.5deg);
+  opacity: 0;
+}
+
+/* Bloom flash — brief full-page muse tint */
+.barge-in-rupture::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(212, 48, 96, 0.07);
+  opacity: 0;
+}
+
+/* Armed — class toggled by JS to fire the animation */
+.barge-in-rupture.active::before {
+  animation: rupture-crack 0.55s var(--cb-snap) forwards;
+}
+.barge-in-rupture.active::after {
+  animation: rupture-flash 0.55s var(--cb-snap) forwards;
+}
+
+@keyframes rupture-crack {
+  0%   { left: -300%; opacity: 1; }
+  60%  { left: 0%;    opacity: 1; }
+  100% { left: 100%;  opacity: 0; }
+}
+@keyframes rupture-flash {
+  0%   { opacity: 0; }
+  15%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.wordmark-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  align-self: center;
+  padding-left: clamp(0.5rem, 1vw, 1.5rem);
+  border-left: 1px solid var(--ash);
+}
+
+.wordmark-subtitle {
+  font-family: var(--font-terminal);
+  font-size: var(--mt-sm);
+  font-weight: 400;
+  letter-spacing: var(--ls-open);
+  color: var(--ghost);
+  text-transform: uppercase;
+  line-height: var(--lh-snug);
+}
+
+.wordmark-version {
+  font-family: var(--font-terminal);
+  font-size: var(--gr-0);
+  font-weight: 400;
+  letter-spacing: var(--ls-normal);
+  color: var(--soot);
+  line-height: var(--lh-snug);
+}
+
+/* ============================================================
+   ZONE: STATUS BAR (inside main, at top)
+   ============================================================ */
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: clamp(1rem, 2vw, 2.5rem);
+  flex-shrink: 0;
+}
+
+/*
+  STATUS LABEL — SOVEREIGN GEAR
+  Large, tracked, terminal feel. Changes color by state.
+*/
+.status-label {
+  font-family: var(--font-terminal);
+  font-size: var(--mt-3xl);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-sovereign);
+  text-transform: uppercase;
+  transition: color 220ms var(--cb-snap), text-shadow 220ms var(--cb-snap);
+}
+
+.status-label[data-state="idle"] {
+  color: var(--fog);
+  text-shadow: none;
+}
+
+.status-label[data-state="listening"] {
+  color: var(--signal);
+  text-shadow:
+    0 0 12px rgba(78, 205, 196, 0.5),
+    0 0 30px rgba(78, 205, 196, 0.2);
+}
+
+.status-label[data-state="processing"] {
+  color: var(--bone);
+  text-shadow:
+    0 0 8px rgba(196, 189, 181, 0.4);
+}
+
+.status-label[data-state="thinking"] {
+  color: var(--glow);
+  text-shadow:
+    0 0 12px rgba(232, 201, 126, 0.5),
+    0 0 30px rgba(232, 201, 126, 0.2);
+}
+
+.status-label[data-state="speaking"] {
+  color: var(--glow-hot);
+  text-shadow:
+    0 0 12px rgba(245, 217, 138, 0.6),
+    0 0 35px rgba(245, 217, 138, 0.25),
+    0 0 60px rgba(245, 217, 138, 0.10);
+}
+
+.status-label[data-state="error"] {
+  color: var(--error-red);
+  text-shadow:
+    0 0 10px rgba(192, 57, 43, 0.6);
+}
+
+/* Pulse dot next to status */
+.status-dot {
+  width: clamp(6px, 0.8vw, 10px);
+  height: clamp(6px, 0.8vw, 10px);
+  border-radius: 50%;
+  background: var(--fog);
+  flex-shrink: 0;
+  transition: background 220ms var(--cb-snap), box-shadow 220ms var(--cb-snap);
+}
+
+.status-dot[data-state="idle"]       { background: var(--ash); }
+.status-dot[data-state="listening"]  { background: var(--signal); box-shadow: 0 0 8px var(--signal); animation: pulse-ring 1.8s var(--cb-signal) infinite; }
+.status-dot[data-state="processing"] { background: var(--bone); animation: pulse-fast 0.6s var(--cb-signal) infinite; }
+.status-dot[data-state="thinking"]   { background: var(--glow); box-shadow: 0 0 8px var(--glow); animation: pulse-ring 1.2s var(--cb-signal) infinite; }
+.status-dot[data-state="speaking"]   { background: var(--glow-hot); box-shadow: 0 0 12px var(--glow-hot); animation: pulse-fast 0.4s var(--cb-signal) infinite; }
+.status-dot[data-state="error"]      { background: var(--error-red); box-shadow: 0 0 10px var(--error-red); }
+
+@keyframes pulse-ring {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.7); }
+}
+
+@keyframes pulse-fast {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* Section identifier label — small all-caps */
+.zone-label {
+  font-family: var(--font-terminal);
+  font-size: var(--mt-xs);
+  font-weight: 400;
+  letter-spacing: var(--ls-sovereign);
+  text-transform: uppercase;
+  color: var(--ghost);
+  line-height: var(--lh-snug);
+}
+
+/* Control button — START/STOP */
+.btn-control {
+  font-family: var(--font-terminal);
+  font-size: var(--mt-md);
+  font-weight: 700;
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  padding: 0.4em 1.2em;
+  border: 1px solid var(--soot);
+  background: transparent;
+  color: var(--bone);
+  cursor: pointer;
+  transition: border-color 120ms var(--cb-cut), color 120ms var(--cb-cut), background 120ms var(--cb-cut);
+  line-height: var(--lh-snug);
+  flex-shrink: 0;
+}
+
+.btn-control:hover {
+  border-color: var(--glow);
+  color: var(--glow);
+  background: rgba(232, 201, 126, 0.05);
+}
+
+.btn-control.running {
+  border-color: var(--signal-dim);
+  color: var(--signal);
+}
+
+.btn-control.running:hover {
+  border-color: var(--error-red);
+  color: var(--error-red);
+  background: rgba(192, 57, 43, 0.05);
+}
+
+/* ============================================================
+   ZONE: FACE AVATAR
+   ============================================================ */
+
+/*
+  ASCII FACE SYSTEM — TYPE_WEAVER SOMATIC PUPPETING
+  ==================================================
+  All faces in 7×3 Unicode character grid.
+  Pre block, monospace, size-locked.
+  Swaps via data-state attribute. JS assigns text content.
+  Color bleeds with state. Glow inherited from state palette.
+
+  Design philosophy: These aren't cute. They're machine-legible
+  somatic readouts. Box-drawing chars create structural weight.
+  Each face has a distinct SILHOUETTE — glanceable at speed.
+
+  THE FACES:
+  ─────────────────────────────────────────────────
+  neutral:    ┌─────┐   composed, waiting, resting
+              │ ◉ ◉ │
+              │  ⌣  │
+
+  thinking:   ┌─────┐   tilted, one raised char "eyebrow"
+              │ ⊙ ─ │
+              │  ╌╌ │
+
+  speaking:   ┌─────┐   open mouth, mid-transmission
+              │ ◉ ◉ │
+              │  ▽  │
+
+  listening:  ┌─────┐   wide eyes, leaning in
+              │ ● ● │
+              │  ⁔  │
+
+  angry:      ┌─────┐   descending inner brows, tightened mouth
+              │ ╲◉╱ │   ← brow angles in the eye chars
+              │  ▬  │
+
+  happy:      ┌─────┐   raised eyes + soft wide smile
+              │ ◕ ◕ │
+              │  ╰─╯ │
+
+  startled:   ╔═════╗   hard box, wide-open circles
+              ║ ○ ○ ║
+              ║  ◌  ║
+
+  mischievous:┌─────┐   one eye squint, asymmetric smirk
+              │ ─ ◉ │
+              │  ╮  │
+
+  sad:        ┌─────┐   drooping eyes, downward arc
+              │ ◔ ◔ │
+              │  ╮  │   (inverted arc = sad mouth)
+  ─────────────────────────────────────────────────
+*/
+
+.face-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5em;
+  flex-shrink: 0;
+}
+
+.face-label {
+  font-family: var(--font-terminal);
+  font-size: var(--mt-xs);
+  font-weight: 400;
+  letter-spacing: var(--ls-sovereign);
+  text-transform: uppercase;
+  color: var(--ghost);
+}
+
+.face {
+  font-family: var(--font-terminal);
+  font-size: clamp(1.1rem, 2.5vw, 2.2rem);
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: 0.08em;
+  white-space: pre;
+  text-align: center;
+  color: var(--glow);
+  transition: color 220ms var(--cb-snap), text-shadow 220ms var(--cb-snap), opacity 120ms var(--cb-cut);
+  user-select: none;
+}
+
+/* State-driven face colors */
+.face[data-state="idle"]        { color: var(--fog);    text-shadow: none; opacity: 0.7; }
+.face[data-state="listening"]   { color: var(--signal); text-shadow: 0 0 10px rgba(78,205,196,0.4); }
+.face[data-state="processing"]  { color: var(--bone);   text-shadow: none; opacity: 0.85; }
+.face[data-state="thinking"]    { color: var(--glow);   text-shadow: 0 0 12px rgba(232,201,126,0.5); }
+.face[data-state="speaking"]    { color: var(--glow-hot); text-shadow: 0 0 14px rgba(245,217,138,0.55), 0 0 30px rgba(245,217,138,0.2); }
+.face[data-state="error"]       { color: var(--error-red); text-shadow: 0 0 10px rgba(192,57,43,0.5); }
+
+/* Thinking state: slow oscillation for the "tilted head" feel */
+.face[data-state="thinking"] { animation: think-sway 3s var(--cb-slide) infinite; }
+@keyframes think-sway {
+  0%, 100% { transform: translateX(0); }
+  33%       { transform: translateX(-2px); }
+  66%       { transform: translateX(2px); }
+}
+
+/* Speaking state: slight vertical pulse */
+.face[data-state="speaking"] { animation: speak-bob 0.5s var(--cb-signal) infinite alternate; }
+@keyframes speak-bob {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-1px); }
+}
+
+/* Startled: brief scale-up jerk */
+@keyframes startled-jerk {
+  0%   { transform: scale(1); }
+  20%  { transform: scale(1.12) translateY(-3px); }
+  40%  { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+.face.startled-anim { animation: startled-jerk 0.4s ease-out forwards; }
+
+/* .waveform-zone replaced by .bloom-zone — see above */
+
+/* ============================================================
+   ZONE: TRANSCRIPT — User speech input
+   ============================================================ */
+
+.transcript-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+  min-height: 0;
+  overflow: hidden;
+  flex: 0 0 auto;
+  max-height: 30%;
+  border-top: 1px solid var(--ash);
+  padding: clamp(0.5rem, 1vw, 1rem);
+}
+
+.transcript-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ash) transparent;
+}
+
+/*
+  USER TRANSCRIPT TYPOGRAPHY
+  "Incoming, raw, typed" — terminal mono, tight, dense
+  Feels like something that was spoken and machine-captured
+*/
+.transcript-text {
+  font-family: var(--font-terminal);
+  font-size: var(--gr-2);
+  font-weight: 400;
+  line-height: var(--lh-body);
+  letter-spacing: var(--ls-normal);
+  color: var(--bone);
+  max-width: var(--measure);
+
+  /* Type-in effect via opacity */
+  opacity: 0;
+  animation: type-in 0.3s ease forwards;
+}
+
+.transcript-text:not(:last-child) {
+  opacity: 0.45;
+}
+
+.transcript-text::before {
+  content: '▸ ';
+  color: var(--signal-dim);
+  font-weight: 700;
+}
+
+@keyframes type-in {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ============================================================
+   ZONE: RESPONSE — Claude streaming text
+   ============================================================ */
+
+/*
+  RESPONSE TEXT TYPOGRAPHY
+  Different register from transcript: slower, richer, contemplative.
+  Serif (Libre Baskerville) = embodied voice, not machine capture.
+  Looser line-height. Wider measure. Italic weight for ongoing stream.
+*/
+
+.response-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: clamp(0.5rem, 1vw, 1rem);
+}
+
+.response-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ash) transparent;
+}
+
+.response-text {
+  font-family: var(--font-response);
+  font-size: var(--gr-3);
+  font-weight: 400;
+  line-height: var(--lh-response);
+  letter-spacing: -0.01em;
+  color: var(--parchment);
+  max-width: var(--measure);
+}
+
+.response-text .streaming-cursor {
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  background: var(--glow);
+  vertical-align: text-bottom;
+  animation: cursor-blink 0.9s step-end infinite;
+  margin-left: 0.1em;
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* Barge-in — dims current response */
+.response-text.interrupted {
+  opacity: 0.35;
+  text-decoration: line-through;
+  text-decoration-color: var(--fog);
+  font-style: italic;
+}
+
+.response-text:not(:last-child):not(.interrupted) {
+  opacity: 0.5;
+}
+
+/* Character tag before response */
+.response-character {
+  font-family: var(--font-terminal);
+  font-size: var(--mt-xs);
+  font-weight: 700;
+  letter-spacing: var(--ls-sovereign);
+  text-transform: uppercase;
+  color: var(--glow-dim);
+  display: block;
+  margin-bottom: 0.3em;
+}
+
+/* ============================================================
+   ZONE: METRICS — Turn latency + performance
+   ============================================================ */
+
+/* ============================================================
+   ZONE: STONE — metrics strip (immutable floor)
+   ============================================================ */
+
+.metrics-zone {
+  grid-column: 1;
+  grid-row: 9;
+  border-top: 2px solid var(--soot);
+  background: var(--ink-dim);
+  padding-top: clamp(0.5rem, 1vw, 1rem);
+  align-self: stretch;
+}
+
+/*
+  METRICS TYPOGRAPHY — TERMINAL GEAR
+  Dense, monospace, tight. High-speed data ingestion.
+  Numbers feel like instrument readouts.
+*/
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.5em clamp(1rem, 2vw, 2rem);
+}
+
+.metric-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+}
+
+.metric-label {
+  font-family: var(--font-terminal);
+  font-size: var(--mt-xs);
+  font-weight: 400;
+  letter-spacing: var(--ls-sovereign);
+  text-transform: uppercase;
+  color: var(--ghost);
+  line-height: var(--lh-snug);
+}
+
+.metric-value {
+  font-family: var(--font-terminal);
+  font-size: var(--mt-2xl);
+  font-weight: 700;
+  letter-spacing: var(--ls-tight);
+  color: var(--bone);
+  line-height: var(--lh-tight);
+  tabular-nums: tabular;
+  font-variant-numeric: tabular-nums;
+  transition: color 220ms var(--cb-snap);
+}
+
+.metric-unit {
+  font-family: var(--font-terminal);
+  font-size: var(--mt-sm);
+  font-weight: 400;
+  letter-spacing: var(--ls-open);
+  color: var(--ghost);
+  margin-left: 0.2em;
+}
+
+.metric-cell.met   .metric-value { color: var(--signal); }
+.metric-cell.missed .metric-value { color: var(--error-red); }
+
+.metric-target-badge {
+  font-family: var(--font-terminal);
+  font-size: var(--mt-xs);
+  font-weight: 700;
+  letter-spacing: var(--ls-open);
+  text-transform: uppercase;
+  padding: 0.1em 0.4em;
+  line-height: var(--lh-snug);
+}
+
+.metric-target-badge.met    { color: var(--signal);    border: 1px solid var(--signal-dim); }
+.metric-target-badge.missed { color: var(--error-red); border: 1px solid var(--error-red); }
+
+.turn-number {
+  font-family: var(--font-terminal);
+  font-size: var(--mt-xs);
+  color: var(--soot);
+  letter-spacing: var(--ls-normal);
+}
+
+/* ============================================================
+   ZONE: SIDEBAR — Face + connection status + VAD meter
+   ============================================================ */
+
+.sidebar {
+  grid-column: 3;
+  grid-row: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--panel-gap);
+  overflow: hidden;
+  padding-left: clamp(1rem, 2vw, 2rem);
+}
+
+/* Connection indicator */
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+}
+
+.conn-dot {
+  width: clamp(4px, 0.5vw, 7px);
+  height: clamp(4px, 0.5vw, 7px);
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 220ms var(--cb-snap), box-shadow 220ms var(--cb-snap);
+}
+.conn-dot.connected    { background: var(--signal); box-shadow: 0 0 6px var(--signal); }
+.conn-dot.disconnected { background: var(--error-red); }
+.conn-dot.reconnecting { background: var(--warn-amber); animation: pulse-fast 0.8s var(--cb-signal) infinite; }
+
+.conn-label {
+  font-family: var(--font-terminal);
+  font-size: var(--mt-xs);
+  font-weight: 400;
+  letter-spacing: var(--ls-open);
+  text-transform: uppercase;
+  color: var(--ghost);
+  line-height: var(--lh-snug);
+}
+
+/* VAD level bar */
+.vad-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+
+.vad-bar-track {
+  height: clamp(3px, 0.4vw, 5px);
+  background: var(--ash);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.vad-bar-fill {
+  height: 100%;
+  background: var(--signal);
+  width: 0%;
+  transition: width 80ms var(--cb-signal);
+  box-shadow: 0 0 6px rgba(78, 205, 196, 0.4);
+}
+
+/* Turn history log — compact */
+.turn-log {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ash) transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+}
+
+.turn-log-entry {
+  font-family: var(--font-terminal);
+  font-size: var(--mt-xs);
+  font-weight: 400;
+  letter-spacing: var(--ls-normal);
+  color: var(--fog);
+  line-height: var(--lh-code);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 220ms var(--cb-snap);
+}
+
+.turn-log-entry.met    { color: var(--signal-dim); }
+.turn-log-entry.missed { color: var(--error-red); opacity: 0.7; }
+.turn-log-entry:last-child { color: var(--bone); }
+
+/* ============================================================
+   SECTION DIVIDERS + DECORATORS
+   ============================================================ */
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  flex-shrink: 0;
+}
+
+.section-rule {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--ash), transparent);
+}
+
+/* ============================================================
+   SCROLLBAR STYLES
+   ============================================================ */
+
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--ash); border-radius: 1px; }
+::-webkit-scrollbar-thumb:hover { background: var(--soot); }
+
+</style>
+</head>
+<body>
+
+<!-- Barge-in rupture — crack sweeps left-to-right on interrupt -->
+<div class="barge-in-rupture" id="bargeRupture"></div>
+
+<div class="layout">
+
+  <!-- STRUCTURAL SEAM — visible load-bearing skeleton, full height -->
+  <div class="layout-seam"></div>
+
+  <!-- ═══════════════════════════════════════════
+       WORDMARK — row 1, col 1
+       ═══════════════════════════════════════════ -->
+  <div class="wordmark-zone">
+    <div class="wordmark" id="wordmark">CLAUDE</div>
+    <div class="wordmark-meta">
+      <span class="wordmark-subtitle">Voice Interface</span>
+      <span class="wordmark-subtitle">ws://localhost:8877</span>
+      <span class="wordmark-version">SINNER VOICE v0.1 · PROTOTYPE</span>
+    </div>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 0.8em;">
+      <button class="btn-control" id="btnControl">START</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       FACE + STATUS — row 3, col 1
+       Face LEFT-ANCHORED. Status as large peer, not label.
+       ═══════════════════════════════════════════ -->
+  <div class="face-status">
+    <pre class="face" id="faceAvatar" data-state="idle">┌─────┐
+│ ◎ ◎ │
+│  ⌣  │</pre>
+    <div class="status-bar">
+      <div class="status-dot" id="statusDot" data-state="idle"></div>
+      <div class="status-label" id="statusLabel" data-state="idle">IDLE</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       BLOOM — row 5, col 1 (dual waveforms)
+       INPUT left (mic/VAD), OUTPUT right (TTS energy).
+       ═══════════════════════════════════════════ -->
+  <div class="bloom-zone">
+    <div class="canvas-wrap">
+      <span class="bloom-label">input</span>
+      <canvas id="waveform-input"></canvas>
+    </div>
+    <div class="bloom-seam"></div>
+    <div class="canvas-wrap">
+      <span class="bloom-label">output</span>
+      <canvas id="waveform-output"></canvas>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       GLASS — row 7, col 1 (response + transcript)
+       Quiet containment. No blur. Just stillness.
+       ═══════════════════════════════════════════ -->
+  <div class="glass-zone">
+
+    <!-- Response Zone — top, flex:1 -->
+    <div class="response-zone">
+      <div class="section-header">
+        <span class="zone-label">response</span>
+        <div class="section-rule"></div>
+      </div>
+      <div class="response-scroll" id="responseScroll">
+        <!-- response-text elements appended here by JS -->
+      </div>
+    </div>
+
+    <!-- Transcript Zone — bottom, max-height 30% -->
+    <div class="transcript-zone">
+      <div class="section-header">
+        <span class="zone-label">transcript</span>
+        <div class="section-rule"></div>
+      </div>
+      <div class="transcript-scroll" id="transcriptScroll">
+        <!-- transcript-text elements appended here by JS -->
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       STONE — row 9, col 1 (metrics, immutable)
+       ═══════════════════════════════════════════ -->
+  <div class="metrics-zone">
+    <div class="metrics-grid">
+      <div class="metric-cell" id="metricStt">
+        <span class="metric-label">stt latency</span>
+        <span class="metric-value">—<span class="metric-unit">ms</span></span>
+      </div>
+      <div class="metric-cell" id="metricLlm">
+        <span class="metric-label">llm→tts</span>
+        <span class="metric-value">—<span class="metric-unit">ms</span></span>
+      </div>
+      <div class="metric-cell" id="metricTotal">
+        <span class="metric-label">total</span>
+        <span class="metric-value">—<span class="metric-unit">ms</span></span>
+      </div>
+      <div class="metric-cell" id="metricTarget">
+        <span class="metric-label">target</span>
+        <span class="metric-value" style="font-size: var(--mt-xl);">700<span class="metric-unit">ms</span></span>
+        <span class="metric-target-badge" id="targetBadge" style="display:none;"></span>
+      </div>
+      <div class="metric-cell" id="metricTurn">
+        <span class="metric-label">turn</span>
+        <span class="metric-value" id="turnNumber">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SIDEBAR — col 3, full height
+       Connection + VAD + Turn log. Face is NOT here.
+       ═══════════════════════════════════════════ -->
+  <div class="sidebar">
+
+    <!-- Connection status -->
+    <div class="connection-status">
+      <div class="conn-dot disconnected" id="connDot"></div>
+      <span class="conn-label" id="connLabel">disconnected</span>
+    </div>
+
+    <!-- VAD Level -->
+    <div class="vad-zone">
+      <div class="section-header">
+        <span class="zone-label">vad</span>
+        <div class="section-rule"></div>
+      </div>
+      <div class="vad-bar-track">
+        <div class="vad-bar-fill" id="vadBar"></div>
+      </div>
+    </div>
+
+    <!-- Turn log -->
+    <div class="section-header">
+      <span class="zone-label">turn log</span>
+      <div class="section-rule"></div>
+    </div>
+    <div class="turn-log" id="turnLog">
+      <!-- turn-log-entry elements appended here -->
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ============================================================
+     JAVASCRIPT — WebSocket + State Machine + Canvas + Face
+     ============================================================ -->
+<script>
+'use strict';
+
+// ─── ASCII FACE LIBRARY ───────────────────────────────────────────────────────
+//
+// TYPE_WEAVER'S 9 SOMATIC STATES
+// 7 chars wide × 3 lines. Unicode box-drawing + geometric shapes.
+// Each face has a distinct SILHOUETTE — glanceable at 60fps.
+//
+//  Design notes per face:
+//  neutral     — composed waiting. Soft eyes (◎), gentle curve mouth.
+//  thinking    — asymmetric. Left eye squinted to line, right open (⊙).
+//                Mouth: three dots (deliberating). HEAD TILTS via sway anim.
+//  speaking    — open-mouth transmit (▽ = open triangle down = mid-word).
+//                Raised brows via ╭ bar above eyes.
+//  listening   — MAXIMUM eyes (●●), leaning. Mouth: small opening (⁔).
+//  angry       — brow diagonals embedded in line (╲◉ ◉╱). Mouth: flat ▬.
+//  happy       — large eyes (◕◕), full wide smile (╰──╯).
+//  startled    — HARD BOX corners (╔╗╚╝). Circle eyes (○○). Open mouth (◌).
+//  mischievous — asymmetric: one closed eye (─), one open (◉). Smirk (╮).
+//  sad         — drooping eyes (◔◔ — bottom-left highlight = downcast).
+//                Mouth: inverted curve (╮ = frown shape).
+
+const FACES = {
+  idle: `┌─────┐\n│ ◎ ◎ │\n│  ⌣  │`,
+
+  listening: `┌─────┐\n│ ● ● │\n│  ⁔  │`,
+
+  processing: `┌─────┐\n│ ◌ ◌ │\n│ ╌╌╌ │`,
+
+  thinking: `┌─────┐\n│ ─ ⊙ │\n│ ·̣·̣· │`,
+
+  speaking: `┌─────┐\n│ ◉ ◉ │\n│  ▽  │`,
+
+  happy: `┌─────┐\n│ ◕ ◕ │\n│╰───╯│`,
+
+  sad: `┌─────┐\n│ ◔ ◔ │\n│  ╮  │`,
+
+  angry: `┌─────┐\n│╲◉ ◉╱│\n│  ▬  │`,
+
+  startled: `╔═════╗\n║ ○ ○ ║\n║  ◌  ║`,
+
+  mischievous: `┌─────┐\n│ ─ ◉ │\n│  ╮  │`,
+
+  // 'surprised' alias — same as startled (shock expression)
+  surprised: `╔═════╗\n║ ○ ○ ║\n║  ◌  ║`,
+
+  error: `╔═════╗\n║ × × ║\n║  ─  ║`,
+};
+
+// State → face mapping
+const STATE_TO_FACE = {
+  idle:       'idle',
+  listening:  'listening',
+  processing: 'processing',
+  thinking:   'thinking',
+  speaking:   'speaking',
+  error:      'error',
+};
+
+// ─── ELEMENTS ─────────────────────────────────────────────────────────────────
+
+const statusDot    = document.getElementById('statusDot');
+const statusLabel  = document.getElementById('statusLabel');
+const wordmark     = document.getElementById('wordmark');
+const faceAvatar   = document.getElementById('faceAvatar');
+const connDot      = document.getElementById('connDot');
+const bargeFlash   = document.getElementById('bargeRupture');
+const connLabel    = document.getElementById('connLabel');
+const vadBar       = document.getElementById('vadBar');
+const transcriptEl = document.getElementById('transcriptScroll');
+const responseEl   = document.getElementById('responseScroll');
+const turnLog      = document.getElementById('turnLog');
+const btnControl   = document.getElementById('btnControl');
+const canvasIn     = document.getElementById('waveform-input');
+const canvasOut    = document.getElementById('waveform-output');
+const ctxIn        = canvasIn.getContext('2d');
+const ctxOut       = canvasOut.getContext('2d');
+
+// Metric cells
+const metricStt    = document.getElementById('metricStt');
+const metricLlm    = document.getElementById('metricLlm');
+const metricTotal  = document.getElementById('metricTotal');
+const targetBadge  = document.getElementById('targetBadge');
+const turnNumber   = document.getElementById('turnNumber');
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+
+let currentState   = 'idle';
+let isRunning      = false;
+let ws             = null;
+let reconnectTimer = null;
+let vadLevel       = 0;
+let activeResponse = null;   // current streaming response element
+
+// Waveform — dual canvas (input=VAD/mic, output=TTS/speaking)
+let canvasInW = 0, canvasInH = 0;
+let canvasOutW = 0, canvasOutH = 0;
+let wavePhase = 0;
+const waveHistIn  = new Float32Array(512).fill(0);  // input (VAD)
+const waveHistOut = new Float32Array(512).fill(0);  // output (TTS)
+let histIdxIn  = 0;
+let histIdxOut = 0;
+
+// ─── STATE MACHINE ────────────────────────────────────────────────────────────
+
+const STATE_LABELS = {
+  idle:       'IDLE',
+  listening:  'LISTENING',
+  processing: 'PROCESSING',
+  thinking:   'THINKING',
+  speaking:   'SPEAKING',
+  error:      'ERROR',
+};
+
+// ─── SOMATIC TAG PARSER ───────────────────────────────────────────────────────
+//
+// Strips <emotion_tag> from response text before display + TTS.
+// Triggers avatar face puppet on match. Tags are emitted by Claude's
+// system prompt — "signal your emotional state with <angry>, <happy>, etc."
+//
+const SOMATIC_TAGS = new Set([
+  'neutral','thinking','speaking','listening',
+  'angry','happy','startled','surprised','mischievous','sad'
+]);
+
+function parseAndStrip(text) {
+  let firstTag = null;  // capture FIRST occurrence — multi-tag chunks lose nothing
+  const stripped = text.replace(/<\/?(\w+)>/g, (match, tag) => {
+    if (SOMATIC_TAGS.has(tag)) {
+      if (firstTag === null) firstTag = tag;  // only the first tag puppets the face
+      return '';
+    }
+    return match;
+  });
+  return { text: stripped, somaticTag: firstTag };
+}
+
+function setState(newState) {
+  if (newState === currentState) return;
+  currentState = newState;
+
+  // Status label + dot
+  statusDot.setAttribute('data-state', newState);
+  statusLabel.setAttribute('data-state', newState);
+  statusLabel.textContent = STATE_LABELS[newState] || newState.toUpperCase();
+
+  // Wordmark glow state
+  if (wordmark) wordmark.setAttribute('data-state', newState);
+
+  // Reset VAD on non-listening states
+  if (newState !== 'listening') {
+    vadLevel = 0;
+    vadBar.style.width = '0%';
+  }
+
+  // Face update
+  const faceName = STATE_TO_FACE[newState] || 'idle';
+  const prev      = faceAvatar.getAttribute('data-state');
+  faceAvatar.textContent = FACES[faceName];
+  faceAvatar.setAttribute('data-state', newState);
+
+  // Startled special anim — only on transition from something else
+  if (newState === 'error' && prev !== 'error') {
+    faceAvatar.classList.remove('startled-anim');
+    // Force reflow
+    void faceAvatar.offsetWidth;
+    faceAvatar.classList.add('startled-anim');
+    setTimeout(() => faceAvatar.classList.remove('startled-anim'), 500);
+  }
+}
+
+// Manually trigger a somatic face — called on special events
+function setSomaticFace(name) {
+  if (!FACES[name]) return;
+  faceAvatar.textContent = FACES[name];
+  // Don't change data-state — preserve color binding
+  faceAvatar.classList.remove('startled-anim');
+  void faceAvatar.offsetWidth;
+  if (name === 'startled') {
+    faceAvatar.classList.add('startled-anim');
+    setTimeout(() => faceAvatar.classList.remove('startled-anim'), 500);
+  }
+}
+
+// ─── TRANSCRIPT ───────────────────────────────────────────────────────────────
+
+function addTranscript(text) {
+  // Dim all previous entries
+  transcriptEl.querySelectorAll('.transcript-text').forEach(el => {
+    el.style.opacity = '0.35';
+    el.style.animation = 'none';
+  });
+
+  const el = document.createElement('p');
+  el.className = 'transcript-text';
+  el.textContent = text;
+  transcriptEl.appendChild(el);
+  transcriptEl.scrollTop = transcriptEl.scrollHeight;
+}
+
+// ─── RESPONSE ─────────────────────────────────────────────────────────────────
+
+function startResponse(character) {
+  // Dim previous responses
+  responseEl.querySelectorAll('.response-text').forEach(el => {
+    if (!el.classList.contains('interrupted')) {
+      el.style.opacity = '0.45';
+    }
+    // Remove streaming cursor from previous
+    const cur = el.querySelector('.streaming-cursor');
+    if (cur) cur.remove();
+  });
+
+  const wrapper = document.createElement('div');
+
+  const charTag = document.createElement('span');
+  charTag.className = 'response-character';
+  charTag.textContent = character || 'CLAUDE';
+  wrapper.appendChild(charTag);
+
+  const para = document.createElement('p');
+  para.className = 'response-text';
+
+  const cursor = document.createElement('span');
+  cursor.className = 'streaming-cursor';
+  para.appendChild(cursor);
+
+  wrapper.appendChild(para);
+  responseEl.appendChild(wrapper);
+  responseEl.scrollTop = responseEl.scrollHeight;
+
+  activeResponse = { wrapper, para, cursor };
+}
+
+function appendResponse(rawText) {
+  if (!activeResponse) startResponse('CLAUDE');
+  const { para, cursor } = activeResponse;
+
+  // Parse and strip somatic tags before display
+  const { text, somaticTag } = parseAndStrip(rawText);
+  if (somaticTag) setSomaticFace(somaticTag);
+  if (!text) return;  // tag-only chunk — don't write empty text
+
+  // Insert text node before cursor
+  const textNode = document.createTextNode(text);
+  para.insertBefore(textNode, cursor);
+  responseEl.scrollTop = responseEl.scrollHeight;
+}
+
+function finalizeResponse() {
+  if (!activeResponse) return;
+  const { cursor } = activeResponse;
+  if (cursor.parentNode) cursor.remove();
+  activeResponse = null;
+}
+
+function interruptResponse() {
+  if (!activeResponse) return;
+  finalizeResponse();
+  // Mark last complete response as interrupted visually
+  const allResponses = responseEl.querySelectorAll('.response-text');
+  if (allResponses.length > 0) {
+    const last = allResponses[allResponses.length - 1];
+    last.classList.add('interrupted');
+    setTimeout(() => last.classList.remove('interrupted'), 2000);
+  }
+
+  // BLOOM EVENT — rupture crack animation
+  if (bargeFlash) {
+    bargeFlash.classList.remove('active');
+    void bargeFlash.offsetWidth; // force reflow to restart animation
+    bargeFlash.classList.add('active');
+    setTimeout(() => bargeFlash.classList.remove('active'), 700);
+  }
+
+  setSomaticFace('startled');
+  setTimeout(() => {
+    // Return to state-driven face after jerk
+    const faceName = STATE_TO_FACE[currentState] || 'idle';
+    faceAvatar.textContent = FACES[faceName];
+  }, 900);
+}
+
+// ─── METRICS ──────────────────────────────────────────────────────────────────
+
+function updateMetrics(data) {
+  const { turn, stt_ms, llm_to_tts_ms, total_ms, target_met } = data;
+
+  // Sanitize: coerce all values before use
+  const sttMs  = parseInt(stt_ms, 10)       || 0;
+  const llmMs  = parseInt(llm_to_tts_ms, 10)|| 0;
+  const totMs  = parseInt(total_ms, 10)      || 0;
+  const turnN  = parseInt(turn, 10)          || 0;
+  const met    = !!target_met;   // explicit boolean — prevents className pollution
+
+  // STT
+  const sttCell = metricStt;
+  sttCell.querySelector('.metric-value').innerHTML =
+    `${sttMs}<span class="metric-unit">ms</span>`;
+
+  // LLM→TTS
+  const llmCell = metricLlm;
+  llmCell.querySelector('.metric-value').innerHTML =
+    `${llmMs}<span class="metric-unit">ms</span>`;
+
+  // Total
+  const totalCell = metricTotal;
+  totalCell.querySelector('.metric-value').innerHTML =
+    `${totMs}<span class="metric-unit">ms</span>`;
+  totalCell.className = 'metric-cell ' + (met ? 'met' : 'missed');
+
+  // Target badge
+  targetBadge.style.display = 'inline';
+  targetBadge.className     = 'metric-target-badge ' + (met ? 'met' : 'missed');
+  targetBadge.textContent   = target_met ? 'MET' : 'MISSED';
+
+  // Turn
+  turnNumber.textContent = turnN;
+
+  // Turn log entry
+  const entry = document.createElement('div');
+  entry.className = 'turn-log-entry ' + (met ? 'met' : 'missed');
+  entry.textContent = `T${String(turnN).padStart(3,'0')}  ${String(totMs).padStart(4)}ms  ${target_met ? '◉' : '✗'}`;
+  turnLog.appendChild(entry);
+  turnLog.scrollTop = turnLog.scrollHeight;
+
+  // Keep log bounded
+  while (turnLog.children.length > 50) {
+    turnLog.removeChild(turnLog.firstChild);
+  }
+}
+
+// ─── WEBSOCKET ────────────────────────────────────────────────────────────────
+
+function connect() {
+  if (ws) {
+    ws.onclose = null;
+    ws.onerror = null;
+    try { ws.close(); } catch(e) {}
+    ws = null;
+  }
+
+  connDot.className   = 'conn-dot reconnecting';
+  connLabel.textContent = 'connecting…';
+
+  ws = new WebSocket('ws://localhost:8877');
+
+  ws.onopen = () => {
+    connDot.className   = 'conn-dot connected';
+    connLabel.textContent = 'connected';
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    // Don't auto-set isRunning — wait for Python state push
+  };
+
+  ws.onmessage = (ev) => {
+    let msg;
+    try { msg = JSON.parse(ev.data); } catch(e) { return; }
+    handleMessage(msg);
+  };
+
+  ws.onerror = () => {};
+
+  ws.onclose = () => {
+    connDot.className     = 'conn-dot disconnected';
+    connLabel.textContent = 'disconnected';
+    setState('idle');
+    isRunning = false;
+    btnControl.textContent = 'START';
+    btnControl.classList.remove('running');
+    reconnectTimer = setTimeout(connect, 3000);
+  };
+}
+
+function handleMessage(msg) {
+  switch (msg.type) {
+
+    case 'state':
+      setState(msg.state);
+      // Sync button state from Python
+      if (msg.state === 'idle') {
+        isRunning = false;
+        btnControl.textContent = 'START';
+        btnControl.classList.remove('running');
+      } else {
+        isRunning = true;
+        btnControl.textContent = 'STOP';
+        btnControl.classList.add('running');
+      }
+      break;
+
+    case 'vad_level':
+      vadLevel = msg.prob || 0;
+      vadBar.style.width = (vadLevel * 100).toFixed(1) + '%';
+      break;
+
+    case 'transcript_final':
+      addTranscript(msg.text);
+      finalizeResponse();
+      break;
+
+    case 'response_chunk':
+      // First chunk of a new response: start new block
+      if (!activeResponse) {
+        startResponse(msg.character || 'CLAUDE');
+      }
+      appendResponse(msg.text);
+      break;
+
+    case 'turn_complete':
+      finalizeResponse();
+      updateMetrics(msg);
+      break;
+
+    case 'barge_in':
+      interruptResponse();
+      break;
+
+    case 'error':
+      setState('error');
+      console.error('[VOICE BRIDGE]', msg.message);
+      break;
+  }
+}
+
+// ─── CONTROL BUTTON ───────────────────────────────────────────────────────────
+
+btnControl.addEventListener('click', () => {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+  if (!isRunning) {
+    ws.send(JSON.stringify({ type: 'start', character: 'claude' }));
+    // State update comes back from Python via 'state' message
+  } else {
+    ws.send(JSON.stringify({ type: 'stop' }));
+  }
+});
+
+// ─── CANVAS WAVEFORM — DUAL ────────────────────────────────────────────────────
+//
+// INPUT  (left canvas):  shows mic / VAD activity — cyan when listening
+// OUTPUT (right canvas): shows TTS energy — amber when speaking
+// Both dim when idle. Both active during barge-in overlap moment.
+
+function resizeOneCanvas(c, cx) {
+  const rect = c.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return false;
+  const dpr = window.devicePixelRatio || 1;
+  c.width  = rect.width  * dpr;
+  c.height = rect.height * dpr;
+  cx.scale(dpr, dpr);
+  return true;
+}
+
+function resizeCanvases() {
+  const inOk  = resizeOneCanvas(canvasIn,  ctxIn);
+  const outOk = resizeOneCanvas(canvasOut, ctxOut);
+  if (inOk)  { canvasInW  = canvasIn.getBoundingClientRect().width;
+                canvasInH  = canvasIn.getBoundingClientRect().height; }
+  if (outOk) { canvasOutW = canvasOut.getBoundingClientRect().width;
+                canvasOutH = canvasOut.getBoundingClientRect().height; }
+  return inOk || outOk;
+}
+
+function pushSample(hist, idxRef, val) {
+  hist[idxRef.v] = val;
+  idxRef.v = (idxRef.v + 1) % hist.length;
+}
+
+// Shared drawing routine — renders one canvas's waveform
+function drawOneWaveform(cx, w, h, hist, idxRef, lineColor, glowColor, active) {
+  if (w === 0 || h === 0) return;
+
+  cx.clearRect(0, 0, w, h);
+  cx.fillStyle = '#0d0b10';
+  cx.fillRect(0, 0, w, h);
+
+  // Mid-line bone
+  cx.strokeStyle = '#1f1c24';
+  cx.lineWidth = 1;
+  const midY = h / 2;
+  cx.beginPath();
+  cx.moveTo(0, midY);
+  cx.lineTo(w, midY);
+  cx.stroke();
+
+  const n = hist.length;
+
+  if (glowColor && active) {
+    cx.shadowBlur  = 8;
+    cx.shadowColor = glowColor;
+  }
+
+  cx.strokeStyle = lineColor;
+  cx.lineWidth   = active ? 1.5 : 0.7;
+  cx.globalAlpha = active ? 1.0 : 0.25;
+  cx.lineJoin    = 'round';
+  cx.lineCap     = 'round';
+
+  cx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const si  = (idxRef.v + i) % n;
+    const x   = (i / (n - 1)) * w;
+    const raw = hist[si];
+    const jitter = active ? (Math.random() - 0.5) * raw * 12 : 0;
+    const y = midY - (raw * h * 0.38) + jitter;
+    if (i === 0) cx.moveTo(x, y);
+    else         cx.lineTo(x, y);
+  }
+  cx.stroke();
+
+  // Mirror (dimmed)
+  cx.lineWidth   = 0.5;
+  cx.globalAlpha = active ? 0.25 : 0.08;
+  cx.shadowBlur  = 0;
+  cx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const si  = (idxRef.v + i) % n;
+    const x   = (i / (n - 1)) * w;
+    const y   = midY + (hist[si] * h * 0.38);
+    if (i === 0) cx.moveTo(x, y);
+    else         cx.lineTo(x, y);
+  }
+  cx.stroke();
+
+  cx.globalAlpha = 1.0;
+  cx.shadowBlur  = 0;
+}
+
+const idxIn  = { v: 0 };
+const idxOut = { v: 0 };
+
+function drawWaveforms() {
+  // INPUT amplitude — VAD level when listening, thin pulse otherwise
+  const inAmp =
+    currentState === 'listening' ? vadLevel
+    : currentState === 'processing' || currentState === 'thinking'
+      ? 0.12 + Math.sin(wavePhase * 2) * 0.08
+    : currentState === 'speaking' ? 0.05
+    : 0.02;
+
+  // OUTPUT amplitude — TTS energy when speaking
+  const outAmp =
+    currentState === 'speaking' ? 0.5 + Math.sin(wavePhase * 3.1) * 0.28
+    : currentState === 'thinking' ? 0.08 + Math.sin(wavePhase * 1.5) * 0.05
+    : 0.02;
+
+  wavePhase += 0.07;
+
+  waveHistIn[idxIn.v]   = inAmp;  idxIn.v  = (idxIn.v  + 1) % waveHistIn.length;
+  waveHistOut[idxOut.v] = outAmp; idxOut.v = (idxOut.v + 1) % waveHistOut.length;
+
+  const inActive  = currentState === 'listening' || currentState === 'processing';
+  const outActive = currentState === 'speaking'  || currentState === 'thinking';
+
+  drawOneWaveform(
+    ctxIn,  canvasInW,  canvasInH,  waveHistIn,  idxIn,
+    '#00bfcc', 'rgba(0,191,204,0.22)', inActive
+  );
+  drawOneWaveform(
+    ctxOut, canvasOutW, canvasOutH, waveHistOut, idxOut,
+    '#f0c245', 'rgba(240,194,69,0.28)', outActive
+  );
+}
+
+// ─── ANIMATION LOOP ───────────────────────────────────────────────────────────
+
+function animLoop() {
+  if (canvasInW === 0 || canvasOutW === 0) resizeCanvases();
+  drawWaveforms();
+  requestAnimationFrame(animLoop);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+
+window.addEventListener('resize', () => {
+  canvasInW = 0; canvasOutW = 0; // force resize on next frame
+});
+
+resizeCanvases();
+animLoop();
+connect();
+
+</script>
+</body>
+</html>

@@ -4308,23 +4308,44 @@ async function pollHUD() {
   if (document.hidden) { setTimeout(pollHUD, 30_000); return; }
 
   try {
-    const [agentRes, pulseRes, activityRes, kingdomRes] = await Promise.allSettled([
+    const [agentRes, pulseRes, activityRes, kingdomRes, territoryRes] = await Promise.allSettled([
       fetch('/api/local/agents/status').then(r => r.ok ? r.json() : null),
       fetch('/api/kingdom-state?type=token-pulse').then(r => r.ok ? r.json() : null),
       fetch('/api/local/kingdom/activity').then(r => r.ok ? r.json() : null),
       fetch('/api/local/kingdom/live').then(r => r.ok ? r.json() : null),
+      // Vercel fallback: /api/kingdom-state (no local proxy) gives territory statuses
+      // Used when the local Flask proxy is unavailable (production / no dev server)
+      fetch('/api/kingdom-state').then(r => r.ok ? r.json() : null),
     ]);
 
-    const agents      = agentRes.status   === 'fulfilled' ? agentRes.value   : null;
-    const pulseData   = pulseRes.status   === 'fulfilled' ? pulseRes.value   : null;
-    const activity    = activityRes.status === 'fulfilled' ? activityRes.value : null;
-    const kingdomLive = kingdomRes.status  === 'fulfilled' ? kingdomRes.value  : null;
+    const agents      = agentRes.status      === 'fulfilled' ? agentRes.value      : null;
+    const pulseData   = pulseRes.status      === 'fulfilled' ? pulseRes.value      : null;
+    const activity    = activityRes.status   === 'fulfilled' ? activityRes.value   : null;
+    const kingdomLive = kingdomRes.status    === 'fulfilled' ? kingdomRes.value    : null;
+    const territories = territoryRes.status  === 'fulfilled' ? territoryRes.value?.territories : null;
 
     // ── Agent state: 15-state visual engine (S209-BRAINSTORM) ───────────────
+    // Territory → agent key map for the Vercel fallback path
+    const TERRITORY_AGENT_MAP = {
+      'the_forge':    'forge_claude',
+      'the_tower':    'tower_claude',
+      'claude_house': 'claude_house',
+      'the_throne':   'throne_claude',
+    };
     if (agents) {
+      // Primary path: local Flask proxy data (full 15-state granularity)
       const agentData = agents?.agents ?? agents;
       for (const key of Object.keys(AGENT_PARENT_MAP)) {
         updateAgentDisplay(key, agentData[key] ?? null);
+      }
+    } else if (territories && Array.isArray(territories)) {
+      // Fallback path: territory statuses from /api/kingdom-state (works on Vercel)
+      // Maps territory status → agent state so agents show working/idle/offline
+      // instead of freezing at boot "dreaming/hibernating" when local proxy is down
+      const statusToState = { active: 'working', idle: 'idle', offline: 'offline', unknown: 'offline' };
+      for (const territory of territories) {
+        const agentKey = TERRITORY_AGENT_MAP[territory.id];
+        if (agentKey) updateAgentDisplay(agentKey, { state: statusToState[territory.status] ?? 'offline' });
       }
     }
 

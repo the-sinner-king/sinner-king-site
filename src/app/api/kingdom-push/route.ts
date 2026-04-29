@@ -52,6 +52,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
 import { getKingdomPayload } from '@/lib/kingdom-state'
 
 // ─── RUNTIME CONFIG ───────────────────────────────────────────────────────────
@@ -83,31 +84,37 @@ const MAX_BODY_BYTES = 512 * 1024
  *  endpoint is to relay quickly — a slow PartyKit shouldn't hold up SCRYER. */
 const PARTYKIT_TIMEOUT_MS = 5_000
 
-// ─── STARTUP VALIDATION ───────────────────────────────────────────────────────
-
-// Assert required env vars at module load time in production.
-// This causes the Vercel function to fail at cold start rather than silently
-// accepting unauthenticated push requests or sending to the wrong PartyKit host.
-if (process.env.NODE_ENV === 'production') {
-  if (!PUSH_SECRET) {
-    throw new Error('[kingdom-push] KINGDOM_PUSH_SECRET must be set in production')
-  }
-  if (!process.env.PARTYKIT_HOST) {
-    throw new Error('[kingdom-push] PARTYKIT_HOST must be set in production')
-  }
-}
-
 // ─── ROUTE HANDLER ────────────────────────────────────────────────────────────
 
 /** POST /api/kingdom-push — accept a push trigger and relay to PartyKit. */
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  // ── Authentication ────────────────────────────────────────────────────────
-  const secret = request.headers.get('x-kingdom-secret')
+  // ── Production env var validation (moved from module load to request handler)
+  // Throwing at module load crashes the cold start lambda and takes down other
+  // routes bundled in the same function. A 500 here is scoped to this route only.
+  if (process.env.NODE_ENV === 'production') {
+    if (!PUSH_SECRET) {
+      console.error('[kingdom-push] KINGDOM_PUSH_SECRET must be set in production')
+      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
+    }
+    if (!process.env.PARTYKIT_HOST) {
+      console.error('[kingdom-push] PARTYKIT_HOST must be set in production')
+      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
+    }
+  }
 
-  // If PUSH_SECRET is set (always in prod, optionally in dev), every request must
-  // present the correct value. Mismatch → 401. The secret is not logged here.
-  if (PUSH_SECRET && secret !== PUSH_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // ── Authentication ────────────────────────────────────────────────────────
+  const secret = request.headers.get('x-kingdom-secret') ?? ''
+
+  // timingSafeEqual prevents timing oracle attacks — string comparison via !==
+  // leaks how many leading chars matched, enabling brute-force of the secret.
+  // Both buffers must be equal length for timingSafeEqual to work correctly.
+  if (PUSH_SECRET) {
+    const a = Buffer.from(PUSH_SECRET)
+    const b = Buffer.from(secret)
+    const match = a.length === b.length && timingSafeEqual(a, b)
+    if (!match) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
   }
 
   try {
