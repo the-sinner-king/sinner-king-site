@@ -1930,6 +1930,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--primary-ghost) var(--bg); }
    GIF cropped top+bottom 10% via abs-position trick.
    Scanlines via ::after, popup on click. ──────────────── */
 .lab-card {
+  display: block;          /* <a> is inline by default — override */
+  text-decoration: none;   /* suppress link underline */
+  color: inherit;          /* suppress link blue */
   position: relative;
   background: rgba(13, 10, 20, 0.95);
   border-top: 1px solid rgba(153, 51, 255, 0.25);
@@ -2781,8 +2784,8 @@ html { scrollbar-width: thin; scrollbar-color: var(--primary-ghost) var(--bg); }
       </div>
     </div>
 
-    <!-- ASCII Generator teaser card -->
-    <div class="lab-card" id="ascii-gen-card" role="button" tabindex="0" aria-label="Cyberpunk ASCII Generator — almost ready" style="opacity:0">
+    <!-- ASCII Generator card — links to GitHub -->
+    <a class="lab-card" id="ascii-gen-card" href="https://github.com/the-sinner-king/glyph" target="_blank" rel="noopener noreferrer" aria-label="Cyberpunk ASCII Generator — free on GitHub" style="opacity:0">
       <span class="lab-card__label">ascii_gen.exe</span>
       <div class="lab-card__img-crop">
         <video class="lab-card__gif" src="/glyphgif.mp4" autoplay muted loop playsinline></video>
@@ -2792,9 +2795,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--primary-ghost) var(--bg); }
         <span class="lab-card__sub">*free on github*</span>
       </div>
       <div class="lab-card__popup" id="ascii-popup" aria-live="polite" aria-hidden="true">
-        almost ready! ✨
+        github → ✦
       </div>
-    </div>
+    </a>
   </div>
   <div class="manifesto"><span id="manifesto-text"></span></div>
   <div class="poster-col" style="opacity:0">
