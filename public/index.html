@@ -4982,18 +4982,15 @@ document.querySelectorAll('.video-card').forEach(function(card) {
 </div><!-- /#void-scene -->
 
 <script>
-// ── VOID CAMERA — WASD navigation (Phase 2) ───────────────────────────────────
-// W = pull panel forward (fills viewport)    S = push back (floats in void)
-// A = tilt left (camera swings right)        D = tilt right
-// Panel content-scroll (mPanel.scrollTop) and 3D transform are fully independent.
-// Perspective lives on #void-scene; panel moves in Z + rotateY within it.
+// ── VOID CAMERA — scroll sway + volumetric void ──────────────────────────────
+// Scroll down → panel drifts back into the void. Scroll up → returns.
+// The sway is a lerp: panel has mass, not instant snap.
 (function() {
   'use strict';
 
-  var vScene  = document.getElementById('void-scene');
   var panel   = document.getElementById('page-panel');
   var starsEl = document.getElementById('void-stars');
-  if (!panel || !vScene) return;
+  if (!panel) return;
 
   // ── Stars (drawn once) ───────────────────────────────────────────────────────
   if (starsEl && starsEl.getContext) {
@@ -5017,84 +5014,7 @@ document.querySelectorAll('.video-card').forEach(function(card) {
     }
   }
 
-  // ── 3D context — perspective on the scene, panel moves within it ─────────────
-  // translateZ negative = panel drifts INTO the screen (void reveal)
-  // translateZ positive = panel comes TOWARD the viewer (slight zoom-in)
-  // rotateY tilts the panel left/right — feels like camera swinging around it
-  vScene.style.perspective       = '2600px';
-  vScene.style.perspectiveOrigin = '50% 50%';
-
-  // Camera state — start slightly pulled back so the void glows around the edges
-  var vZ  = { t: -300, c: -300 };  // translateZ in px
-  var vRY = { t: 0,    c: 0    };  // rotateY in degrees
-
-  var Z_SPEED  = 650;   // px/s
-  var RY_SPEED = 5;     // deg/s
-  var Z_MIN    = -2100; // maximum pull-back (panel tiny in void)
-  var Z_MAX    = 180;   // slight push-in past flat
-  var RY_MAX   = 7;     // ±7° tilt
-  var LERP     = 0.075; // frame smoothing factor (~60fps feel)
-
-  function applyTransform() {
-    panel.style.transform = 'translateZ(' + vZ.c.toFixed(1) + 'px) rotateY(' + vRY.c.toFixed(2) + 'deg)';
-
-    // Purple corona intensifies as the panel drifts deeper into the void
-    var depth = Math.min(1, Math.max(0, -vZ.c / 1400));
-    if (depth < 0.02) {
-      panel.style.boxShadow = '';
-    } else {
-      var r1 = Math.round(40  + depth * 220);
-      var r2 = Math.round(80  + depth * 440);
-      var a1 = (0.14 + depth * 0.56).toFixed(2);
-      var a2 = (0.07 + depth * 0.28).toFixed(2);
-      panel.style.boxShadow =
-        '0 0 ' + r1 + 'px rgba(120,40,220,' + a1 + '),' +
-        '0 0 ' + r2 + 'px rgba(70,15,150,'  + a2 + ')';
-    }
-  }
-
-  applyTransform(); // set initial state before first rAF
-
-  // ── Key tracking — ignore when typing in a form field ────────────────────────
-  var vKeys = {};
-  function isInput(e) {
-    var t = e.target;
-    return t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || !!t.isContentEditable;
-  }
-  document.addEventListener('keydown', function(e) { if (!isInput(e)) vKeys[e.key.toLowerCase()] = true;  });
-  document.addEventListener('keyup',   function(e) {                  vKeys[e.key.toLowerCase()] = false; });
-
-  // ── rAF loop — runs forever at display refresh rate ──────────────────────────
-  var vLast = performance.now();
-  function voidLoop(now) {
-    var dt = Math.min((now - vLast) / 1000, 0.1); // cap at 100ms for tab-switch recovery
-    vLast  = now;
-
-    var dz  = (vKeys['w'] ? 1 : 0) - (vKeys['s'] ? 1 : 0);
-    var dry = (vKeys['d'] ? 1 : 0) - (vKeys['a'] ? 1 : 0);
-
-    if (dz  !== 0) vZ.t  = Math.max(Z_MIN, Math.min(Z_MAX,   vZ.t  + dz  * Z_SPEED  * dt));
-    if (dry !== 0) vRY.t = Math.max(-RY_MAX, Math.min(RY_MAX, vRY.t + dry * RY_SPEED * dt));
-    if (dry === 0) vRY.t *= 0.88; // elastic return to center when A/D released
-
-    vZ.c  += (vZ.t  - vZ.c)  * LERP;
-    vRY.c += (vRY.t - vRY.c) * LERP;
-
-    applyTransform();
-    requestAnimationFrame(voidLoop);
-  }
-  requestAnimationFrame(voidLoop);
-
-  // ── Hint — appears briefly after entrance sequence, then fades ───────────────
-  var hint = document.createElement('div');
-  hint.textContent = '· W S  A D · void navigation ·';
-  hint.style.cssText = 'position:fixed;bottom:14px;left:50%;transform:translateX(-50%);' +
-    'font-family:var(--font-terminal),"VT323",monospace;font-size:11px;letter-spacing:0.18em;' +
-    'color:rgba(130,60,210,0.60);opacity:0;transition:opacity 1.4s ease;' +
-    'pointer-events:none;z-index:999;user-select:none;white-space:nowrap';
-  document.body.appendChild(hint);
-  setTimeout(function() { hint.style.opacity = '1'; }, 17500);
-  setTimeout(function() { hint.style.opacity = '0'; }, 23000);
+  // Scroll sway parked for Phase 2 — panel scrolls natively.
 
 })();
 </script>
