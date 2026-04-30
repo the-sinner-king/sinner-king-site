@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, Space_Mono } from 'next/font/google'
 import './globals.css'
 import { VisitorBeacon } from '@/components/VisitorBeacon'
+import { GlobalOverlays } from '@/components/GlobalOverlays'
 import { Analytics } from '@vercel/analytics/next'
 
 // --- Fonts ---
@@ -109,31 +110,8 @@ export default function RootLayout({
           selection:text-kingdom-bone
         "
       >
-        {/*
-          Scanline overlay — subtle CRT texture across the whole site.
-          pointer-events-none so it never blocks clicks.
-          opacity-[0.015] keeps it subliminal.
-        */}
-        <div
-          aria-hidden="true"
-          className="
-            fixed inset-0 z-[9999] pointer-events-none
-            bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(0,0,0,0.03)_2px,rgba(0,0,0,0.03)_4px)]
-          "
-        />
-
-        {/*
-          Grid background — Kingdom geometry.
-          Extremely subtle so it doesn't fight content.
-        */}
-        <div
-          aria-hidden="true"
-          className="
-            fixed inset-0 z-0 pointer-events-none
-            bg-grid-kingdom bg-grid
-            opacity-40
-          "
-        />
+        {/* Suppressed on /world — the world owns its own atmosphere */}
+        <GlobalOverlays />
 
         {/* Visitor presence beacon — passive, no UI */}
         <VisitorBeacon />

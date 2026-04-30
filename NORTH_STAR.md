@@ -1,4 +1,4 @@
-⛬ KID:TOWER:PROJECT:THE-SITE|2.1:⟳:2026-03-30:📶 ⛬
+⛬ KID:TOWER:PROJECT:THE-SITE|3.1:⟳:2026-04-30:📶 ⛬
 
 ┌── 📶 T H E _ S I T E   —   N O R T H   S T A R ──────────────────────────────┐
 │ sinner-king.com  ·  Next.js 15  ·  React 19  ·  Vercel                       │
@@ -78,6 +78,10 @@
 │  ◉ /lab — ASCII Playground (live). PlotBot 2.0 (building). Grimoire.        │
 │  ◉ /spirit, /spirit/throne — Scaffolded. Aeris owns design.                 │
 │  ◉ /archive, /cinema — Clean locked states. No visitor-hostile placeholders.│
+│  ◉ /world — Infinite RTS world. Orthographic. WASD+scroll. 60fps locked.   │
+│    CRT phosphor ground (world-space) + screen-glass scanlines (CSS).       │
+│    Bloom via EC. HELLO WORLD placeholder. 8-law Engineering Bible.         │
+│    Stable fallback S247. iCloud + debug crisis survived.                   │
 │  ◉ APIs — /api/kingdom-state · /api/throne · /api/aeris                     │
 │  ◉ SCRYER_BRIDGE — kingdom_state.json updated every 30s by launchd script   │
 │  ◉ ntfy — Soul Echo Detector live. First Contact Beacons live.              │
@@ -123,6 +127,8 @@
 │  ─── CLEARED ─────────────────────────────────────────────────────────────  │
 │  ✓   Pre-launch security hardening     ◉ DONE S210                          │
 │  ✓   HUD bug audit (45 flags)          ◉ DONE S210                          │
+│  ✓   /world CRT ground bright-blue    ◉ DONE S246 (Raptor Protocol)        │
+│  ✓   Turbopack HMR worker crash        ◉ DONE S247 (node_modules.nosync)   │
 │                                                                               │
 └───────────────────────────────────────────────────────────────────────────────┘
 
