@@ -7,7 +7,7 @@ const OVERLAY_SUPPRESS = ['/world']
 
 export function GlobalOverlays() {
   const pathname = usePathname()
-  if (OVERLAY_SUPPRESS.some(p => pathname === p || pathname.startsWith(p + '/'))) return null
+  if (!pathname || OVERLAY_SUPPRESS.some(p => pathname === p || pathname.startsWith(p + '/'))) return null
 
   return (
     <>
