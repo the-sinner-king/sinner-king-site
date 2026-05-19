@@ -1,11 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // React StrictMode double-mounts components in dev. R3F's Canvas uses
-  // useMeasure (react-use-measure) which resets to {width:0,height:0} on
-  // remount — creating a reconfigure gap that causes visible canvas flicker.
-  // Three.js/R3F benefits nothing from StrictMode; disable it site-wide.
-  reactStrictMode: false,
-
   // Transpile Three.js and related packages for App Router compatibility
   transpilePackages: ['three', '@react-three/fiber', '@react-three/drei'],
 
