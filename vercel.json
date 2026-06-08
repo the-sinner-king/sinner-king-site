@@ -1,4 +1,4 @@
 {
-  "buildCommand": "git submodule update --init --recursive && npm run build",
+  "buildCommand": "git submodule update --init --recursive || true && npm run build",
   "installCommand": "npm install"
 }

@@ -160,9 +160,18 @@ async function main() {
   console.log('[build-wiki] Starting wiki manifest build…');
   console.log(`[build-wiki] Submodule: ${SUBMODULE_DIR}`);
 
-  // Verify submodule is populated
+  // Submodule may be unavailable on CI (private repo, no build-time creds). DEGRADE GRACEFULLY:
+  // write an empty-but-valid manifest so `import manifest from wiki-manifest.json` still resolves
+  // and the build proceeds. The /wiki routes render empty until core-lore access is restored.
   if (!fs.existsSync(SUBMODULE_DIR)) {
-    throw new Error(`content/core-lore/ does not exist. Run: git submodule update --init`);
+    const msg = 'content/core-lore/ missing (submodule not cloned) — writing EMPTY wiki manifest so the build can proceed. Wiki stays empty until the submodule is restored.';
+    console.warn(`[build-wiki] WARN: ${msg}`);
+    fireNtfy(msg);
+    const publicDir = path.resolve(SITE_ROOT, 'public');
+    if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
+    fs.writeFileSync(OUTPUT_PATH, JSON.stringify({ generated_at: new Date().toISOString(), page_count: 0, pages: [] }, null, 2), 'utf-8');
+    console.log(`[build-wiki] Wrote EMPTY manifest: ${OUTPUT_PATH}`);
+    return;
   }
 
   const mdFiles = walkMd(SUBMODULE_DIR);
@@ -209,10 +218,9 @@ async function main() {
   };
 
   if (manifest.page_count === 0) {
-    const msg = 'build-wiki.mjs produced 0 pages — content/core-lore may be empty or unpopulated';
+    const msg = 'build-wiki.mjs produced 0 pages — content/core-lore may be empty or unpopulated. Writing empty manifest (non-fatal).';
     fireNtfy(msg);
-    console.error(`[build-wiki] ERROR: ${msg}`);
-    process.exit(1);
+    console.warn(`[build-wiki] WARN: ${msg}`);
   }
 
   // Ensure public/ exists
