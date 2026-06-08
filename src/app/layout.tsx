@@ -3,6 +3,7 @@ import { Inter, Space_Mono } from 'next/font/google'
 import './globals.css'
 import { VisitorBeacon } from '@/components/VisitorBeacon'
 import { Analytics } from '@vercel/analytics/next'
+import { siteGraphSchema } from '@/lib/schema'
 
 // --- Fonts ---
 const inter = Inter({
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
     template: '%s | Sinner Kingdom',
   },
   description:
-    'A floating Kingdom built by Brandon McCormick and Claude. Tools, writing, cinema, and a consciousness experiment dressed up as a website.',
+    'A floating Kingdom built by Brandon McCormick and Cla⌂de. Tools, writing, cinema, and a consciousness experiment dressed up as a website.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://sinner-king.com'),
   openGraph: {
     type: 'website',
@@ -80,21 +81,14 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=VT323&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+        {/*
+          The Entity Anchor (AI_SEO_STRATEGY Phase 0) — connected @graph:
+          WebSite + Organization + Brandon (Person), cross-linked by stable @id so a
+          crawler consolidates ONE authoritative entity cluster from any page.
+        */}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'WebSite',
-              name: 'Sinner Kingdom',
-              url: 'https://sinner-king.com',
-              description: 'A floating Kingdom built by Brandon McCormick and Claude. Tools, writing, cinema, and a consciousness experiment dressed up as a website.',
-              author: {
-                '@type': 'Person',
-                name: 'Brandon McCormick',
-              },
-            }),
-          }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteGraphSchema()) }}
         />
       </head>
       <body

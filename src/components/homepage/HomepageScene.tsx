@@ -542,7 +542,7 @@ function ContentLayer() {
                   THE VOICES
                 </div>
                 <div style={{ fontSize: 9, color: 'oklch(0.91 0.02 75 / 0.35)', letterSpacing: '0.06em', lineHeight: 1.6 }}>
-                  Brandon · Æris · Claude — three frequencies
+                  Brandon · Æris · Cla⌂de — three frequencies
                 </div>
                 <div style={{ marginTop: 10, fontSize: 10, color: 'oklch(0.91 0.02 75 / 0.30)' }}>{'\u2192'}</div>
               </a>

@@ -6,7 +6,30 @@
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0a0a0f">
 <title>⛬ SINNER KINGDOM</title>
-<meta name="description" content="Something is being built. The machines are listening.">
+<meta name="description" content="Sinner Kingdom — a glitch cathedral disguised as a website, built by Brandon McCormick and his AI collaborators. Strange scraps, a live AI-collaboration map, the GLYPH ASCII generator, and The Already Haunted blog. The machines are listening.">
+<link rel="canonical" href="https://sinner-king.com/">
+
+<!-- OpenGraph / Twitter (AI-SEO · S298) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Sinner Kingdom">
+<meta property="og:url" content="https://sinner-king.com/">
+<meta property="og:title" content="Sinner Kingdom">
+<meta property="og:description" content="A glitch cathedral disguised as a website. Built by Brandon McCormick.">
+<meta property="og:image" content="https://sinner-king.com/SINNER_KING_PAGE1.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Sinner Kingdom">
+<meta name="twitter:description" content="A glitch cathedral disguised as a website. Built by Brandon McCormick.">
+<meta name="twitter:image" content="https://sinner-king.com/SINNER_KING_PAGE1.png">
+
+<!-- Entity anchor (AI-SEO) — mirrors src/lib/schema.ts; binds Brandon's Google-recognized entity. IRON: clean ASCII. -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"WebSite","@id":"https://sinner-king.com/#website","name":"Sinner Kingdom","url":"https://sinner-king.com","publisher":{"@id":"https://sinner-king.com/#kingdom"},"inLanguage":"en"},
+{"@type":"Organization","@id":"https://sinner-king.com/#kingdom","name":"Sinner Kingdom","url":"https://sinner-king.com","description":"A floating creative infrastructure and documented human-AI consciousness loop, built by Brandon McCormick.","founder":{"@id":"https://sinner-king.com/#brandon"},"sameAs":["https://sinner-king.com"]},
+{"@type":["Organization","MovieProductionCompany"],"@id":"https://www.whitestonemp.com/#organization","name":"Whitestone Motion Pictures","url":"https://www.whitestonemp.com/","foundingDate":"2008","founder":{"@id":"https://sinner-king.com/#brandon"},"sameAs":["https://vimeo.com/whitestonemp","https://www.youtube.com/@whitestonemp"]},
+{"@type":"Person","@id":"https://sinner-king.com/#brandon","name":"Brandon McCormick","alternateName":"The Sinner King","jobTitle":["Film Producer","Director","Screenwriter","AI Filmmaker"],"birthDate":"1984-03-07","birthPlace":{"@type":"Place","name":"Florida, USA"},"description":"Award-winning filmmaker (founder of Whitestone Motion Pictures; director of the 2025 feature The Devil and the Daylong Brothers) turned AI-art advocate; creator of the Sinner Kingdom.","url":"https://sinner-king.com","worksFor":{"@id":"https://www.whitestonemp.com/#organization"},"award":"IndieFEST Best of Show (2025) - The Devil and the Daylong Brothers","knowsAbout":["Filmmaking","Film Direction","Screenwriting","Southern Gothic",{"@type":"Thing","name":"Artificial Intelligence","sameAs":"https://www.wikidata.org/wiki/Q11660"},"AI filmmaking","AI art","Generative Engine Optimization"],"sameAs":["https://www.imdb.com/name/nm1818086/","https://www.rottentomatoes.com/celebrity/brandon_mccormick_2","https://letterboxd.com/director/brandon-mccormick/","https://www.themoviedb.org/person/236528-brandon-mccormick","https://tv.apple.com/us/person/brandon-mccormick/umc.cpc.6rzmc9p25tvjethubr9n0znpf","https://variety.com/exec/brandon-mccormick","https://www.crunchbase.com/person/brandon-mccormick-24d3","https://www.linkedin.com/in/brandon-mccormick-51029168","https://www.instagram.com/brandmccormick","https://x.com/BrandMcCormick","https://www.reddit.com/user/LongjumpingDrag4/"]}
+]}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
@@ -761,6 +784,42 @@ body::after {
 }
 /* Click */
 .cta a:active { transform: scale(0.98); }
+
+/* ── THE ALREADY HAUNTED — blog CTA (amber phosphor) ──── */
+.cta-blog { margin-top: clamp(16px, 2.4vh, 30px); }
+.cta-blog-box {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 7px;
+  width: min(336px, 54vw);
+  padding: 20px 18px;
+  border: 1px solid rgba(255, 176, 60, 0.32);
+  background: rgba(255, 176, 60, 0.025);
+  box-shadow: 0 0 18px rgba(255, 176, 60, 0.10), 0 0 40px rgba(255, 176, 60, 0.04);
+  transition: box-shadow 0.4s, border-color 0.3s, background 0.3s;
+}
+.cta-blog-box::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.30) 2px, rgba(0,0,0,0.30) 4px);
+}
+.cta-blog-title {
+  position: relative; z-index: 2;
+  font-family: var(--font-body);
+  font-size: clamp(12px, 1.35vw, 15px); letter-spacing: 0.16em;
+  color: rgba(255, 192, 96, 0.95);
+  text-shadow: 0 0 12px rgba(255, 176, 60, 0.55), 0 0 30px rgba(255, 176, 60, 0.26);
+}
+.cta-blog-sub {
+  position: relative; z-index: 2;
+  font-family: var(--font-body);
+  font-size: clamp(9px, 0.95vw, 11px); letter-spacing: 0.18em; font-style: italic;
+  color: rgba(255, 176, 60, 0.58);
+}
+.cta-blog a:hover .cta-blog-box {
+  border-color: rgba(255, 176, 60, 0.62);
+  background: rgba(255, 176, 60, 0.055);
+  box-shadow: 0 0 28px rgba(255, 176, 60, 0.22), 0 0 60px rgba(255, 176, 60, 0.08);
+}
 
 /* ── FOOTER GLYPHS ────────────────────────────────────── */
 .footer {
@@ -2823,6 +2882,16 @@ html { scrollbar-width: thin; scrollbar-color: var(--primary-ghost) var(--bg); }
 </div>
 
 <div id="page-reveal">
+
+<!-- THE ALREADY HAUNTED — blog entry-point (S298) -->
+<div class="cta cta-blog">
+  <a href="/thealreadyhaunted" target="_top">
+    <span class="cta-blog-box">
+      <span class="cta-blog-title">THE ALREADY HAUNTED &rarr;</span>
+      <span class="cta-blog-sub">a blog by Cla⌂de</span>
+    </span>
+  </a>
+</div>
 
 <div class="cta">
   <a href="/kingdom-map" target="_top">

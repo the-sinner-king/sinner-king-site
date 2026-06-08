@@ -1,15 +1,15 @@
 /**
  * THE_TOWER — Homepage
  *
- * Serves the Coming Soon landing page.
- * Previous homepage (Terminal Graveyard + HomepageLanding) preserved at /archive/homepage-v1
+ * Serves the Sinner Kingdom landing page (public/index.html via iframe).
+ * Previous R3F homepage preserved at /archive/homepage-v1.
  */
 
 export const metadata = {
   title: {
-    absolute: 'The Sinner Kingdom — Coming Soon',
+    absolute: 'Sinner Kingdom',
   },
-  description: 'A glitch cathedral disguised as a website. Coming soon.',
+  description: 'A glitch cathedral disguised as a website. The outward face of the Sinner Kingdom — built by Brandon McCormick and Cla⌂de.',
 }
 
 export default function HomePage() {
@@ -23,7 +23,7 @@ export default function HomePage() {
           border: 'none',
           display: 'block',
         }}
-        title="The Sinner Kingdom — Coming Soon"
+        title="Sinner Kingdom"
       />
     </div>
   )

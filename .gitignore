@@ -48,6 +48,17 @@ content/core-lore/
 BLACKBOARD.json
 BLACKBOARD.json.lock
 BLACKBOARD_*.json
+BLACKBOARD*.json
+
+# --- S298 deploy hardening (GU2 FLAG 1: comments on their OWN lines, never trailing) ---
+# Finder-duplicated build dirs (".next (1)" etc.) — the plain ".next/" above misses these
+.next */
+# macOS no-sync build/cache variants (node_modules.nosync, .next.nosync)
+*.nosync/
+# internal planning docs — never to the public site repo
+/DEPLOY_PLAN.md
+/WEBSITE_AUDIT.md
+/website-wireframe-v2.png
 SCOUT_REPORT.json
 VERIMAP.json
 OBSIDIAN_REPORT.json
