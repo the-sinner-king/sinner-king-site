@@ -232,7 +232,9 @@ async function main() {
   fs.writeFileSync(OUTPUT_PATH, JSON.stringify(manifest, null, 2), 'utf-8');
   console.log(`[build-wiki] Written: ${OUTPUT_PATH}`);
   console.log(`[build-wiki] page_count: ${manifest.page_count}`);
-  console.log(`[build-wiki] Most recent page: "${pages[0].title}" — ${pages[0].updated_at}`);
+  if (pages.length > 0) {
+    console.log(`[build-wiki] Most recent page: "${pages[0].title}" — ${pages[0].updated_at}`);
+  }
 }
 
 main().catch((err) => {
