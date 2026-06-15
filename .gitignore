@@ -58,6 +58,7 @@ BLACKBOARD*.json
 # internal planning docs — never to the public site repo
 /DEPLOY_PLAN.md
 /WEBSITE_AUDIT.md
+/SITE_RESTRUCTURE_PLAN.md
 /website-wireframe-v2.png
 SCOUT_REPORT.json
 VERIMAP.json
