@@ -84,3 +84,6 @@ public/*.backup*
 
 # Root-level playground files (local dev copies, not the committed public/ versions)
 /sinner-kingdom-playground.html
+
+# internal SYSTEMS tracking home (North Stars/changelogs/bugs) — visible in Finder, NOT to the public repo
+/_PAGES/

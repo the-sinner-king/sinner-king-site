@@ -1,3 +1,11 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ ⚠ SUPERSEDED (S300 · 2026-06-15) — the phase status below is a FOSSIL ("S196").║
+║ The TRUE, current site North Star is the master:                              ║
+║    THE_SITE/PAGES/_SINNER_KING_SITE_NORTH_STAR.md                              ║
+║ Each page now has its own folder + Triad under THE_SITE/PAGES/.               ║
+║ This old doc is kept for history only — do NOT trust its phase status.        ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
 ⛬ KID:TOWER:PROJECT:THE-SITE|2.1:⟳:2026-03-30:📶 ⛬
 
 ┌── 📶 T H E _ S I T E   —   N O R T H   S T A R ──────────────────────────────┐
