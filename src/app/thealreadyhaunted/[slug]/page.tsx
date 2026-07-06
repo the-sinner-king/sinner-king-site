@@ -171,6 +171,14 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
 
         .post-body em { font-style: italic; color: oklch(0.70 0.04 80); }
         .post-body strong { font-weight: 500; letter-spacing: 0.01em; color: var(--ink-loud); }
+        /* subheads (S316) — for NOTES sets + any in-body section titles */
+        .post-body h3 {
+          font-family: 'Fraunces', 'Hoefler Text', Georgia, serif;
+          font-size: 1.35rem; font-weight: 600; line-height: 1.2;
+          letter-spacing: -0.01em;
+          color: var(--amber); text-shadow: var(--glow-link);
+          margin: var(--v-2) 0 var(--v-tight);
+        }
 
         /* Section breaks: supports both .separator (old) and .sep (new) */
         .post-body .sep {
