@@ -7,6 +7,7 @@
 //   M8 — async params: `params` is a Promise, awaited before use.
 //   + tag-safety: slug-only, no dots/slashes → no traversal into the store (8 encoded payloads verified → 404).
 import { get } from '@vercel/blob';
+import { resolveMissivePath } from '@/lib/broadcast.mjs';
 
 export const dynamic = 'force-dynamic'; // never statically cached — live-swap must be instant
 export const runtime = 'nodejs';        // private blob get() streaming needs Node, not Edge
@@ -24,12 +25,21 @@ export async function GET(
     return new Response('Not found', { status: 404, headers: { 'cache-control': NO_STORE } });
   }
 
+  // LIVE-UPDATE LAYER: resolve which blob is CURRENT — the Redis pointer's versioned `<tag>_v<rev>.html`
+  // if the missive has been updated through updateMissive(), else the legacy `<tag>.html`. This is what
+  // makes an update go live instantly (pointer flip) with the link unchanged. resolveMissivePath is
+  // resilient (a Redis blip degrades to legacy, never throws for a valid tag).
+  const pathname = await resolveMissivePath(tag);
+  if (!pathname) {
+    return new Response('Not found', { status: 404, headers: { 'cache-control': NO_STORE } });
+  }
+
   // Private delivery: the SDK authenticates via BLOB_READ_WRITE_TOKEN (or OIDC).
   // GU-lite FLAG-1 fix: a MISSING blob returns null (→ 404); an auth/origin failure THROWS.
   // We must NOT let the throw masquerade as "not found" — that blinds us to a broken pipe (the MIRAGE).
   let result: Awaited<ReturnType<typeof get>>;
   try {
-    result = await get(`${tag}.html`, { access: 'private', useCache: false });
+    result = await get(pathname, { access: 'private', useCache: false });
   } catch (err) {
     console.error('[broadcast-tower] blob read failed for tag=%s:', tag, err);
     return new Response('Upstream error', { status: 502, headers: { 'cache-control': NO_STORE } });
