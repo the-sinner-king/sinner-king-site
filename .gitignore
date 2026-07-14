@@ -87,3 +87,10 @@ public/*.backup*
 
 # internal SYSTEMS tracking home (North Stars/changelogs/bugs) — visible in Finder, NOT to the public repo
 /_PAGES/
+
+# RSVP campaign guest lists — real names, NEVER commit (chosen-family drawbridge)
+scripts/campaigns/*.local.json
+
+# Broadcast Tower — never commit env backups or missive payloads (may hold PII)
+.env.local.bak*
+scripts/missives/
