@@ -42,9 +42,16 @@ const nextConfig = {
         // Missive media (the Broadcast Tower's /s/<tag> pages can't inline images — 500 KB cap).
         // public/huff/media/* = canonical, content-stable filenames (EVIE naming canon), so a week
         // of browser cache is safe; a re-cut face lands within the week without a rename.
-        source: '/huff/:path*',
+        // ⚠ MECHANISM (GU2 S390 F7): headers() matches on the URL PATTERN, not the status — an
+        // unmatched path would carry this max-age on its 404 too, and a file added later would stay
+        // dead for a week wherever that 404 was seen. So the rule is scoped to real asset extensions;
+        // anything else under /huff falls back to Next's default (uncached) behaviour.
+        source: '/huff/:path*.(jpg|jpeg|png|webp|mp4|zip)',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=604800, stale-while-revalidate=86400' },
+          // The missive is noindex; its media must be too — a meta tag ends at the document, this
+          // header is the only thing that binds a crawler on an image/video/zip response (GU2 S390 F3).
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow, noimageindex, noarchive' },
         ],
       },
     ]

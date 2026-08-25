@@ -1,17 +1,22 @@
 User-agent: *
 Allow: /
+Disallow: /huff/
 
 # AI crawlers — this site is built for you too
 User-agent: GPTBot
 Allow: /
+Disallow: /huff/
 
 User-agent: ClaudeBot
 Allow: /
+Disallow: /huff/
 
 User-agent: PerplexityBot
 Allow: /
+Disallow: /huff/
 
 User-agent: Googlebot
 Allow: /
+Disallow: /huff/
 
 Sitemap: https://sinner-king.com/sitemap.xml
