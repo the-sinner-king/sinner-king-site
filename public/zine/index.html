@@ -1,0 +1,1263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SINNER KING — the zine</title>
+<link rel="icon" href="data:,">
+<!--
+  THE SINNER KING ZINE · index.html
+  Built off the Glitchswarm showcase/strange-scraps template (S348, Æris) — its black/blood/bone
+  ransom-note world, the inline-SVG torn filter, the film grain, the tape-deck mechanism.
+  What's NEW here: the seven DESKS, the RACK, SPIN THE BLACK CIRCLE, and the newsprint READING VIEW.
+
+  OFFLINE-PURE. No CDN, no modules, no fonts fetched — system display stack, inline SVG filters,
+  local images only. Opens straight off file://.
+  MOTION: compositor-only (transform/opacity), all fenced behind prefers-reduced-motion.
+-->
+<style>
+  :root{
+    /* ── ground ─────────────────────────────────────────────── */
+    --void:#08080a; --pit:#050506; --panel:#0e0e12; --panel-2:#121218;
+    /* ── ink ────────────────────────────────────────────────── */
+    --bone:#f4efe3; --dim:#b8b2a4; --ghost:#7d7a72;
+    /* ── the three signals. blood is the template's; EMBER + VIOLET are new,
+          pulled off the King's own art (the orange skulls, the CRT crowns). ── */
+    --blood:#e11524; --blood-hot:#ff2130; --blood-dim:#8f0f18;
+    /* ⚠ #e11524 is 4.13:1 on the void — GORGEOUS as a fill and fine for the giant wordmark
+       (large text only needs 3:1), but it FAILS WCAG AA for anything set small. So red text
+       never uses --blood directly: --blood-txt (6.14:1) carries it on dark grounds and
+       --blood-ink (5.49:1) carries it on newsprint. Fills keep --blood. */
+    --blood-txt:#ff4d55; --blood-ink:#b30d18;
+    --ember:#ff7a18; --ember-dim:#a34405;
+    --violet:#9b6bff; --violet-dim:#5b2fb8;
+    /* ── the reading room. The zine is black metal outside and NEWSPRINT inside;
+          that flip is the whole design idea, so it gets its own token set. ── */
+    --news:#e9e3d3; --news-2:#ded7c4; --news-ink:#16130e; --news-dim:#5c5747;
+
+    --disp:"Haettenschweiler","Arial Narrow Bold","Arial Narrow","Impact","Oswald",system-ui,sans-serif;
+    --mono:ui-monospace,"IBM Plex Mono",Menlo,Consolas,monospace;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua","Georgia",serif;
+    --ease:cubic-bezier(.22,.61,.36,1);
+  }
+  /* per-desk signal hue — set on any element via data-hue, read by children as var(--sig) */
+  [data-hue="blood"]{--sig:var(--blood); --sig-dim:var(--blood-dim); --sig-txt:var(--blood-txt)}
+  [data-hue="ember"]{--sig:var(--ember); --sig-dim:var(--ember-dim); --sig-txt:var(--ember)}
+  [data-hue="violet"]{--sig:var(--violet); --sig-dim:var(--violet-dim); --sig-txt:var(--violet)}
+  [data-hue="bone"]{--sig:var(--bone); --sig-dim:#8d887c; --sig-txt:var(--bone)}
+
+  /* ══ THE STAGE ══════════════════════════════════════════════════════════
+     THE SITE IS 1024 WIDE. One number, everywhere, forever.
+
+     The King is a film director and a graphic designer: he lays out against a FRAME.
+     A canvas that reflows at every window size makes size and spacing decisions
+     impossible to hold in the head. So the whole site is authored at exactly 1024px
+     and NEVER reflows — wider windows get void around it, narrower windows scale the
+     entire stage down uniformly, like a PDF or a projected film frame.
+
+     Consequences that are deliberate, not accidental:
+       · nothing inside the stage may use vw/vh — those track the WINDOW, not the frame.
+       · the masthead is STICKY, not fixed: `position:fixed` computes against the
+         viewport, but a transformed ancestor becomes the containing block, so a fixed
+         child inside a scaled stage lands in the wrong place. Sticky is correct here.
+       · the reading view stays OUTSIDE the stage — it is a viewport takeover, not part
+         of the layout canvas, and it keeps its own fluid type.
+     ══════════════════════════════════════════════════════════════════════ */
+  :root{
+    --stage-w:1024px;      /* THE FRAME. One number, everywhere, forever.      */
+    --stage-pad:40px;      /* outer margin — chosen because it DIVIDES:        */
+    --gutter:16px;         /*   (1024 - 2*40 - 11*16) / 12 = 64 EXACTLY.       */
+    --col:12;              /*   1024 · 64 · 40 · 16 — every number a power of  */
+    --colw:64px;           /*   two, so the grid is holdable in the head.      */
+    --content-w:944px;     /* 1024 - 2*40 */
+    --hero-h:512px;        /* THE LETTERBOX. 1024x512 = 2:1 (Univisium).       */
+    /* ── THE PLATE — the two dials for the hero background image/loop.
+          plate-fade  0 = invisible, 1 = full strength.
+          plate-scrim 0 = no darkening, 1 = the type is on near-solid black.
+          Type legibility is the constraint: the tagline is 12.5px on a busy
+          photograph, so the scrim is not decoration, it is what keeps it readable. */
+    --plate-fade:.55;
+    --plate-scrim:.86;
+    --king-h:576px;        /* 1024x576 = 16:9. A different beat to the hero.   */
+    /* the vertical ladder — every section padding and gap pulls from this */
+    --sp-3xs:4px; --sp-2xs:8px; --sp-s:16px; --sp-m:24px;
+    --sp-l:32px;  --sp-xl:48px;  --sp-3xl:96px;
+  }
+  /* 🩸 transform-origin MUST be the left edge, not the centre. `margin:0 auto` does NOT
+     centre a box wider than its container — the auto margins collapse to 0 and the stage sits
+     at left:0. Scaling that from `top center` pivots around x=720 and shoves the whole site
+     ~390px to the right, leaving a dead black column. Measured at a 745px window. From the
+     left corner it scales down into the corner, which is what a shrinking frame should do.
+     Above 1440 the stage FITS, so auto margins do centre it and scale is 1 — origin is moot. */
+  /* ⚡ ZOOM, NOT TRANSFORM. Measured both on this page: a position:fixed child inside a
+     TRANSFORMED ancestor is trapped (probe landed at top:10804px); inside a ZOOMED ancestor it
+     stays viewport-anchored (top:0). zoom also reflows the box model natively, so the stage
+     reports its real painted height and the JS height-correction hack disappears. */
+  .stage{width:var(--stage-w);margin:0 auto;position:relative}
+  /* ⛔ NO WINDOW-KEYED @media INSIDE THE STAGE. Four were left over from before the locked
+     canvas existed (nav at 900, stickers at 900, search at 720, spin deck at 880) and they were
+     silently REFLOWING underneath the scale — verified live: at 745 vs 1441 the nav vanished,
+     two stickers vanished and the spin deck collapsed 2-col to 1-col. A frame that rearranges
+     is not a frame. If a real phone floor is ever wanted it must be ONE stated threshold, not
+     breakpoints accreting one at a time. */
+  #stagewrap{overflow:hidden}
+
+  *{margin:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  /* the masthead is fixed, so every in-page anchor has to stop clear of it or the section
+     label lands underneath the nav. */
+  section[id]{scroll-margin-top:8px}   /* sticky mast no longer overlaps anchors */
+  /* GU-lite T3: the header comment claimed ALL motion was fenced behind reduced-motion, but
+     six hover transitions (.btn .desk .spinbtn .rnav .rclose nav.links a) were not. Rather than
+     soften a true-sounding claim into a weaker one, make the claim TRUE - a blanket kill. */
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    *,*::before,*::after{
+      transition-duration:.01ms!important;
+      animation-duration:.01ms!important;
+      animation-iteration-count:1!important}
+  }
+  body{background:var(--void);color:var(--bone);font-family:var(--mono);font-size:14px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overflow-x:hidden;min-height:100dvh}
+  body.reading{overflow:hidden}
+  a{color:inherit;text-decoration:none}
+  button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+  ::selection{background:var(--blood);color:#fff}
+  :focus-visible{outline:2px solid var(--ember);outline-offset:3px}
+
+  /* film grain + vignette (inline SVG turbulence — offline). z-index 60/59 keeps them
+     under the reading view (100) so the reader never gets grain over its own text. */
+  body::after{content:"";position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.055;mix-blend-mode:overlay;
+    background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")}
+  body::before{content:"";position:fixed;inset:0;z-index:59;pointer-events:none;
+    background:radial-gradient(130% 120% at 50% 26%,transparent 46%,rgba(0,0,0,.74) 100%)}
+
+  /* ══ MASTHEAD ═══════════════════════════════════════════════ */
+  header.mast{position:sticky;top:0;z-index:40;display:flex;align-items:center;
+    justify-content:space-between;gap:16px;padding:var(--sp-s) var(--stage-pad);
+    background:linear-gradient(180deg,rgba(8,8,10,.94),rgba(8,8,10,0));}
+  .brand{display:flex;align-items:center;gap:11px;font-family:var(--disp)}
+  .brand .mk{width:22px;height:22px;flex:none;display:grid;place-items:center;background:var(--blood);color:#fff;
+    font-size:12px;line-height:1;border-radius:2px;transform:rotate(-4deg);box-shadow:0 2px 0 var(--blood-dim)}
+  .brand b{font-size:14px;letter-spacing:.07em;text-transform:uppercase}
+  .brand i{font-style:normal;font-family:var(--mono);font-size:9.5px;letter-spacing:.26em;
+    color:var(--ghost);text-transform:uppercase;display:block;margin-top:1px}
+  nav.links{display:flex;gap:17px;font-family:var(--disp);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+  nav.links a{color:var(--dim);transition:color .16s var(--ease)}
+  nav.links a:hover{color:var(--bone)}
+  .spinbtn{font-family:var(--disp);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#fff;
+    background:var(--blood);border:1px solid var(--blood-hot);padding:7px 13px;border-radius:3px;
+    transform:rotate(-1.5deg);transition:transform .18s var(--ease),background .18s;box-shadow:0 3px 0 var(--blood-dim)}
+  .spinbtn:hover{background:var(--blood-hot);transform:rotate(-1.5deg) translateY(-2px)}
+
+  /* ══ HERO ═══════════════════════════════════════════════════ */
+  /* The hero has to fit a laptop viewport WHOLE — wordmark, tally, CTAs and the scroll cue.
+     Measured at 1440×900: it overflowed by 35px and pushed the cue under the fold, so the
+     wordmark ceiling and the vertical rhythm below are tuned to land inside 900. */
+  /* 🩸 This was min-height:100dvh — and dvh tracks the WINDOW, not the frame. Same disease as
+     the 27 vw-clamps: inside a locked canvas a viewport unit is simply the wrong ruler, so the
+     hero grew and shrank with the browser while everything around it stayed put.
+     1440 x 9/16 = 810. The hero is a 16:9 frame now, which is the unit he already thinks in. */
+  /* The frame is 810 and it does not grow, so its contents have to be BUDGETED:
+     80 top + 644 content + 86 bottom (the scroll-cue band) = 810. The CTA used to run
+     straight under the cue because that bottom band was never reserved. */
+  /* ⚡ THE LETTERBOX. 1024 x 512 = a clean 2:1 — wider than 16:9, which is what "a little
+     more letterbox" means: less vertical, more cinema. It is a HARD height, budgeted:
+        36 top + 416 content + 60 cue band = 512.
+     ⚠ THE BUDGET IS REAL AND IT WAS BLOWN ON THE FIRST TRY — the stack measured 456 against
+     416 available. A locked frame does not warn you; it just overflows quietly. Measure the
+     children against the budget after ANY change to hero content.
+     A video lives behind it (see .heroloop) so the frame has to stay a known rectangle —
+     an auto-height hero would crop the loop differently at every content change. */
+  /* ⚡ THE SPLIT (King's call). The lockup goes left, the copy goes right, and the
+     MIDDLE STAYS EMPTY so the monitor in the plate is the thing you look through to.
+     This is a real 12-column grid, not eyeballed percentages — the columns are the
+     same 64px the rest of the site is built on, so the hero and the rack agree:
+        cols 1-5   384px   the lockup
+        cols 6-7   144px   CLEAR — the CRT
+        cols 8-12  384px   the copy
+        384 + 16 + 144 + 16 + 384 = 944 = --content-w exactly. */
+  .hero{position:relative;height:var(--hero-h);display:grid;
+    grid-template-columns:repeat(12,var(--colw));
+    column-gap:var(--gutter);align-items:center;justify-content:center;text-align:left;
+    padding:36px var(--stage-pad) 60px;isolation:isolate;overflow:hidden}
+  .h-left {grid-column:1 / span 5}
+  .h-right{grid-column:8 / span 5}
+
+  /* ══ THE BACKGROUND LOOP ═══════════════════════════════════════
+     Drop a file at assets/hero-loop.mp4 and it plays. Nothing else to wire.
+     If the file is absent the element renders transparent and .glow/.scanl carry the
+     hero exactly as they do today — so this is safe to ship empty.
+     Encode to 2048x1024 (2x the frame) for retina; h.264 + faststart; no audio track.
+     ⚠ It is muted+playsinline because every browser blocks autoplay with sound, and it
+     is KILLED under prefers-reduced-motion — a looping video is motion, and a person who
+     asked the OS for less of it has asked for less of this. */
+  .heroloop{position:absolute;inset:0;z-index:-3;width:100%;height:100%;
+    object-fit:cover;pointer-events:none;opacity:var(--plate-fade)}
+  .heroscrim{position:absolute;inset:0;z-index:-2;pointer-events:none;
+    background:radial-gradient(78% 68% at 50% 46%,
+      rgba(6,6,8,calc(var(--plate-scrim) * .35)),
+      rgba(6,6,8,var(--plate-scrim)) 100%)}
+  @media (prefers-reduced-motion:reduce){.heroloop{display:none}}
+  .hero .glow{position:absolute;inset:0;z-index:-2;
+    background:radial-gradient(58% 44% at 50% 40%,rgba(225,21,36,.20),transparent 62%),
+               radial-gradient(40% 30% at 78% 74%,rgba(255,122,24,.10),transparent 70%)}
+  .hero .scanl{position:absolute;inset:0;z-index:-2;opacity:.34;pointer-events:none;
+    background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(0,0,0,.35) 3px 4px)}
+  .eyebrow{font-family:var(--disp);font-size:11px;letter-spacing:.42em;text-transform:uppercase;
+    color:var(--blood-txt);margin-bottom:11px}
+  /* left-aligned now, so only the TRAILING rule reads — a leading dash against the
+     column edge just looks like a stray hyphen. */
+  .eyebrow::after{content:"—";color:var(--ghost);margin-left:12px}
+  .wordmark{font-family:var(--disp);font-weight:400;text-transform:uppercase;line-height:.80;letter-spacing:.005em;
+    font-size:100px;letter-spacing:-.015em;color:var(--bone);filter:url(#torn) drop-shadow(0 6px 0 rgba(0,0,0,.5))}
+  .wordmark .r{display:block;color:var(--blood);text-shadow:0 0 26px rgba(225,21,36,.45),3px 3px 0 var(--blood-dim)}
+  /* 🩸 62ch, not 47ch. Inside the letterbox the line broke FOUR times and ate 20px of a
+     416px budget. At 62 it breaks three times and reads as a proper standfirst instead of
+     a narrow column. Measured, not eyeballed. */
+  .tagline{margin:0;max-width:none;font-size:12.5px;line-height:1.66;color:var(--dim)}
+  .tagline b{color:var(--bone)}
+  .vowline{margin-top:16px;font-family:var(--disp);font-size:19px;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--bone)}
+  .vowline em{font-style:normal;color:var(--ember);text-shadow:0 0 22px rgba(255,122,24,.4)}
+  .cta{margin-top:22px;display:flex;gap:9px;justify-content:flex-start;flex-wrap:wrap}
+  .btn{font-family:var(--disp);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;padding:9px 19px;
+    border-radius:2px;transition:transform .18s var(--ease),background .18s,border-color .18s}
+  .btn.solid{background:var(--blood);color:#fff;border:1px solid var(--blood-hot);box-shadow:0 4px 0 var(--blood-dim)}
+  .btn.solid:hover{background:var(--blood-hot);transform:translateY(-2px)}
+  .btn.ghost{background:transparent;color:var(--bone);border:1px solid rgba(244,239,227,.30)}
+  .btn.ghost:hover{border-color:var(--bone);transform:translateY(-2px)}
+
+  /* the tally — real counts, filled from the data at boot */
+  /* 2x2, not a row: four stats across 384px would crush "HOURS OF IT" into two lines.
+     As a block it reads as a small data plate instead of a stretched row. */
+  .tally{margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;justify-items:start}
+  .tally div{text-align:left}
+  .tally .n{font-family:var(--disp);font-size:23px;color:var(--ember);line-height:1;
+    font-variant-numeric:tabular-nums;text-shadow:0 0 18px rgba(255,122,24,.35)}
+  .tally .l{margin-top:4px;font-size:8px;letter-spacing:.24em;text-transform:uppercase;color:var(--ghost)}
+
+  /* floating stickers — the King's art, isolated on black.
+     plus-lighter (not screen) is the CODEX-correct ADDITIVE blend for light; the hero carries
+     the required isolation:isolate. Verified against the pixels: the black field still knocks
+     out clean and the neon reads brighter. */
+  .scrap{position:absolute;z-index:-1;width:112px;height:auto;pointer-events:none;mix-blend-mode:plus-lighter;opacity:.9}
+  .scrap.s1{top:12%;left:5%;--rot:-11deg;transform:rotate(-11deg)}
+  .scrap.s2{top:15%;right:5%;--rot:9deg;transform:rotate(9deg)}
+  .scrap.s3{bottom:11%;left:8%;--rot:7deg;transform:rotate(7deg)}
+  .scrap.s4{bottom:13%;right:7%;--rot:-8deg;transform:rotate(-8deg)}
+  .cue{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);font-family:var(--disp);font-size:9px;
+    letter-spacing:.32em;text-transform:uppercase;color:var(--ghost);display:flex;flex-direction:column;align-items:center;gap:5px}
+  .cue .ln{width:1px;height:24px;background:linear-gradient(var(--blood),transparent)}
+
+  @media (prefers-reduced-motion:no-preference){
+    .scrap{animation:float 7s var(--ease) infinite alternate}
+    @keyframes floatY{from{transform:translateY(0)}to{transform:translateY(-11px)}}
+    .scrap.s2{animation-delay:-1.6s;animation-duration:8.2s}
+    .scrap.s3{animation-delay:-3.1s;animation-duration:9s}
+    .scrap.s4{animation-delay:-2.2s;animation-duration:7.6s}
+    .cue .ln{animation:pulse 2.4s ease-in-out infinite}
+    @keyframes float{from{transform:translateY(0) rotate(var(--rot,0))}to{transform:translateY(-11px) rotate(var(--rot,0))}}
+    @keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+  }
+
+  /* ══ THE RACK ═══════════════════════════════════════════════ */
+  .rack{position:relative;padding:var(--sp-3xl) var(--stage-pad) var(--sp-3xl);background:var(--pit);
+    border-top:1px solid rgba(244,239,227,.07)}
+  .slug{display:inline-block;font-family:var(--disp);text-transform:uppercase;letter-spacing:.02em;
+    font-size:50px;color:var(--bone);background:var(--blood);padding:2px 14px;
+    transform:rotate(-1.6deg);filter:url(#torn);box-shadow:5px 5px 0 rgba(0,0,0,.55)}
+  .slug.e{background:var(--ember);color:#140800;transform:rotate(1.3deg)}
+  .sub{margin:17px 0 0;max-width:56ch;color:var(--dim);font-size:12.5px;line-height:1.72}
+  .sub b{color:var(--bone)}
+
+  /* the desk rail + search */
+  .tools{margin-top:24px;display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+  .desks{display:flex;flex-wrap:wrap;gap:6px}
+  .desk{font-family:var(--disp);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);
+    border:1px solid rgba(244,239,227,.16);background:#0d0d11;padding:6px 10px;border-radius:2px;
+    display:inline-flex;align-items:center;gap:8px;transition:color .15s,border-color .15s,background .15s}
+  .desk .g{color:var(--sig,var(--blood));font-size:14px;line-height:1}
+  .desk .c{font-family:var(--mono);font-size:10.5px;color:var(--ghost);font-variant-numeric:tabular-nums}
+  .desk:hover{color:var(--bone);border-color:rgba(244,239,227,.34)}
+  .desk[aria-pressed="true"]{color:#fff;background:var(--sig,var(--blood));border-color:var(--sig,var(--blood))}
+  .desk[aria-pressed="true"] .g,.desk[aria-pressed="true"] .c{color:#fff}
+  .desk[data-hue="bone"][aria-pressed="true"]{color:#111}
+  .desk[data-hue="bone"][aria-pressed="true"] .g,.desk[data-hue="bone"][aria-pressed="true"] .c{color:#111}
+
+  .find{margin-left:auto;display:flex;align-items:center;gap:9px;border:1px solid rgba(244,239,227,.16);
+    background:#0d0d11;border-radius:2px;padding:6px 10px;min-width:213px}
+  .find span{color:var(--ghost);font-size:12px}
+  .find input{flex:1;background:none;border:none;color:var(--bone);font-family:var(--mono);font-size:13px;outline:none;min-width:0}
+  .find input::placeholder{color:var(--ghost)}
+  .find kbd{font-family:var(--mono);font-size:10px;color:var(--ghost);border:1px solid rgba(244,239,227,.18);
+    border-radius:3px;padding:1px 5px}
+
+  .count{margin-top:11px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ghost)}
+  .count b{color:var(--ember);font-variant-numeric:tabular-nums}
+
+  /* the wall of issues */
+  /* 🩸 This was `auto-fill minmax(250px,1fr)` — which means the COLUMN COUNT was being
+     decided by arithmetic nobody could see, and it silently changed the moment the frame
+     width changed. Inside a locked canvas the count is a DESIGN DECISION, so it is now
+     declared: FOUR. Change this number, not the min-width, to change the wall. */
+  .wall{margin-top:24px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:27px 16px}
+  .issue{position:relative;display:flex;flex-direction:column;background:var(--panel);
+    border:1px solid rgba(244,239,227,.12);padding:9px 9px 12px;text-align:left;
+    box-shadow:0 12px 30px rgba(0,0,0,.55);
+    transition:transform .2s var(--ease),border-color .2s var(--ease)}
+  /* 🩸 The hover lift used to TRANSITION box-shadow, which re-rasterizes a 46px blur on every
+     frame of every hover (~15fps on a phone). The lifted shadow is pre-painted on a pseudo and
+     only its OPACITY moves — composite-only, free. */
+  .issue::after{content:"";position:absolute;inset:-1px;pointer-events:none;opacity:0;
+    box-shadow:0 20px 46px rgba(0,0,0,.72),0 0 0 1px var(--sig,var(--blood));
+    transition:opacity .2s var(--ease)}
+  .issue:hover::after,.issue:focus-visible::after{opacity:1}
+  .issue:nth-child(3n+1){transform:rotate(-2deg)}
+  .issue:nth-child(3n+2){transform:rotate(1.4deg)}
+  .issue:nth-child(3n+3){transform:rotate(-.6deg)}
+  .issue:hover,.issue:focus-visible{transform:rotate(0) translateY(-7px);border-color:var(--sig,var(--blood))}
+  /* the tape holding it to the wall */
+  .issue .tape{position:absolute;top:-11px;left:50%;width:76px;height:20px;transform:translateX(-50%) rotate(-3deg);
+    background:color-mix(in oklch,var(--sig,var(--blood)) 62%,transparent);
+    border:1px solid var(--sig,var(--blood));opacity:.9}
+  .issue .cov{position:relative;overflow:hidden;background:#000}
+  .issue .cov img{display:block;width:100%;aspect-ratio:3/2;object-fit:cover;filter:contrast(1.06) saturate(1.02);
+    transition:transform .35s var(--ease)}
+  .issue:hover .cov img{transform:scale(1.045)}
+  .issue .no{position:absolute;top:8px;left:8px;font-family:var(--disp);font-size:11px;letter-spacing:.12em;
+    color:#fff;background:rgba(6,6,8,.82);border:1px solid var(--sig,var(--blood));padding:2px 7px;border-radius:2px;
+    font-variant-numeric:tabular-nums}
+  .issue .dsk{position:absolute;top:8px;right:8px;font-family:var(--disp);font-size:10px;letter-spacing:.14em;
+    text-transform:uppercase;color:#fff;background:rgba(6,6,8,.82);border:1px solid rgba(244,239,227,.2);
+    padding:2px 7px;border-radius:2px}
+  .issue h3{margin-top:10px;font-family:var(--disp);font-weight:400;font-size:15px;letter-spacing:.02em;
+    text-transform:uppercase;color:var(--bone);line-height:1.06;text-wrap:balance}
+  .issue:hover h3{color:var(--sig-txt,var(--blood-txt))}
+  .issue[data-hue="bone"]:hover h3{color:var(--bone)}
+  .issue h3.untitled{color:var(--ghost);font-style:normal;letter-spacing:.08em}
+  .issue:hover h3.untitled{color:var(--dim)}
+  .issue p{margin-top:6px;font-size:10.5px;color:var(--ghost);line-height:1.58;flex:1}
+  .issue .foot{margin-top:9px;padding-top:8px;border-top:1px solid rgba(244,239,227,.09);
+    display:flex;align-items:center;gap:10px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ghost)}
+  .issue .foot .rd{color:var(--sig-txt,var(--blood-txt));font-family:var(--disp);font-size:12px;letter-spacing:.1em}
+  /* THE LEDGER chip — "↗ substack". Wears the card's own signal hue; quiet, same weight as .rd. */
+  .issue .foot .live{color:var(--sig-txt,var(--blood-txt));font-family:var(--disp);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+  .issue .foot .arrow{margin-left:auto;color:var(--dim);transition:transform .2s var(--ease)}
+  .issue:hover .foot .arrow{transform:translateX(4px);color:var(--bone)}
+  mark{background:var(--ember);color:#140800;border-radius:1px;padding:0 1px}
+  .empty{margin-top:52px;padding:44px;border:1px dashed rgba(244,239,227,.18);text-align:center;color:var(--ghost)}
+  .empty b{display:block;font-family:var(--disp);font-size:26px;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+  @media (prefers-reduced-motion:reduce){.issue,.issue .cov img{transition:none}}
+
+  /* ══ THE BIG ONES — the illustrated decks ═══════════════════
+     Structure only for now, per the King: click a deck, it opens full-screen.
+     Card ratio is 4:5 because that is what HIS ART ALREADY IS (1078x1350) — the frame
+     is adopted from the work, never imposed on it. The feature deck runs landscape. */
+  .decks{position:relative;padding:var(--sp-3xl) var(--stage-pad) var(--sp-3xl);background:var(--void);
+    border-top:1px solid rgba(244,239,227,.07)}
+  .deckgrid{margin-top:31px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+  .deck{position:relative;display:flex;flex-direction:column;text-align:left;background:var(--panel);
+    border:1px solid rgba(244,239,227,.12);overflow:hidden;
+    transition:transform .22s var(--ease),border-color .22s var(--ease)}
+  .deck::after{content:"";position:absolute;inset:-1px;pointer-events:none;opacity:0;
+    box-shadow:0 24px 60px rgba(0,0,0,.75),0 0 0 1px var(--sig,var(--blood));
+    transition:opacity .22s var(--ease)}
+  .deck:hover,.deck:focus-visible{transform:translateY(-6px);border-color:var(--sig,var(--blood))}
+  .deck:hover::after,.deck:focus-visible::after{opacity:1}
+  /* 🩸 The feature card first cropped his cover to 21:9 and sliced the title clean off.
+     HIS PAGES ARE 4:5 COMIC PAGES. The frame comes from the art, never the other way round —
+     so the feature runs as a two-up: the page whole at its native ratio, the billing beside it. */
+  .deck.feature{grid-column:1 / -1;display:grid;grid-template-columns:327px 1fr;align-items:stretch}
+  .deck.feature .meat{display:flex;flex-direction:column;justify-content:center;padding:31px 34px}
+  .deck .shot{position:relative;overflow:hidden;background:#000}
+  .deck .shot img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;
+    transition:transform .4s var(--ease)}
+  .deck.feature .shot{height:100%}
+  .deck.feature .shot img{aspect-ratio:4/5;height:100%}
+  .deck:hover .shot img{transform:scale(1.03)}
+  .deck .cnt{position:absolute;top:12px;right:12px;font-family:var(--disp);font-size:11px;
+    letter-spacing:.14em;text-transform:uppercase;color:#fff;background:rgba(6,6,8,.82);
+    border:1px solid var(--sig,var(--blood));padding:3px 9px}
+  .deck .expand{position:absolute;bottom:12px;right:12px;width:36px;height:36px;display:grid;
+    place-items:center;background:rgba(6,6,8,.8);border:1px solid rgba(244,239,227,.28);
+    color:var(--bone);font-size:15px}
+  .deck:hover .expand{background:var(--sig,var(--blood));border-color:var(--sig,var(--blood));color:#fff}
+  .deck .meat{padding:13px 14px 16px}
+  .deck .kick{font-family:var(--disp);font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;
+    color:var(--sig-txt,var(--blood-txt))}
+  .deck h3{margin-top:5px;font-family:var(--disp);font-weight:400;font-size:19px;letter-spacing:.02em;
+    text-transform:uppercase;color:var(--bone);line-height:1.05;text-wrap:balance}
+  .deck.feature h3{font-size:37px}
+  .deck.feature p{font-size:12.5px;margin-top:10px}
+  .deck.feature .kick{font-size:10.5px}
+  .deck p{margin-top:7px;font-size:11px;color:var(--ghost);line-height:1.6;max-width:52ch}
+
+  /* ══ THE LIGHTBOX — a deck, full screen ═════════════════════ */
+  .lb{position:fixed;inset:0;z-index:110;background:rgba(4,4,6,.97);display:none}
+  /* 🩸 This was `1fr`, which is really minmax(AUTO,1fr) — and `auto` floors at min-content,
+     so a 4:5 comic page taller than the window shoved the row open and spilled over the
+     filmstrip instead of being contained. minmax(0,1fr) is the fix, and the dialog needs an
+     explicit height or the grid has nothing to divide. */
+  .lb.open{display:grid;grid-template-rows:auto minmax(0,1fr) auto;height:100dvh}
+  .lbbar{display:flex;align-items:center;gap:14px;padding:14px 26px;border-bottom:1px solid rgba(244,239,227,.12)}
+  .lbbar .lt{font-family:var(--disp);font-size:17px;letter-spacing:.05em;text-transform:uppercase;color:var(--bone)}
+  .lbbar .lc{font-family:var(--mono);font-size:12px;color:var(--ghost);font-variant-numeric:tabular-nums}
+  .lbbar .lx{margin-left:auto;font-family:var(--disp);font-size:13px;letter-spacing:.14em;text-transform:uppercase;
+    color:#fff;background:var(--blood);border:1px solid var(--blood-dim);padding:8px 16px}
+  .lbstage{position:relative;display:grid;place-items:center;padding:22px;min-height:0;min-width:0;overflow:hidden}
+  /* 🩸 SAME `auto`-MINIMUM TRAP, ONE LEVEL DOWN. The row needed minmax(0,1fr); the IMAGE
+     needs min-height:0 — as a grid item it defaults to min-height:auto, which floors at the
+     1400px intrinsic height and silently OVERRIDES max-height:100%. Measured: stage 729px,
+     image still computed 1400px. Both minimums have to be released or the page spills. */
+  .lbstage img{min-width:0;min-height:0;max-width:100%;max-height:100%;
+    width:auto;height:auto;object-fit:contain;display:block}
+  .lbnav{position:absolute;top:50%;transform:translateY(-50%);width:52px;height:52px;display:grid;
+    place-items:center;background:rgba(10,10,14,.8);border:1px solid rgba(244,239,227,.24);
+    color:var(--bone);font-size:20px}
+  .lbnav:hover:not(:disabled){background:var(--blood);border-color:var(--blood)}
+  .lbnav:disabled{opacity:.25}
+  .lbnav.prev{left:20px} .lbnav.next{right:20px}
+  .lbfilm{display:flex;gap:8px;padding:14px 26px 20px;overflow-x:auto;border-top:1px solid rgba(244,239,227,.12)}
+  .lbfilm button{flex:none;width:56px;border:1px solid rgba(244,239,227,.18);background:#000;padding:0;opacity:.5}
+  .lbfilm button img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover}
+  .lbfilm button[aria-current="true"]{opacity:1;border-color:var(--blood)}
+
+  /* ══ THE DESIGN GRID — press G ══════════════════════════════
+     The thing a graphic designer actually needs: see the frame, the columns and the
+     real numbers, so spacing calls can be MEASURED instead of guessed. */
+  .grid-ov{position:absolute;inset:0;z-index:50;pointer-events:none;display:none}
+  body.gridon .grid-ov{display:block}
+  .grid-ov .cols{position:absolute;inset:0 var(--stage-pad);display:grid;
+    grid-template-columns:repeat(var(--col),1fr);gap:var(--gutter)}
+  .grid-ov .cols i{background:rgba(255,49,58,.075);border-left:1px solid rgba(255,49,58,.22);
+    border-right:1px solid rgba(255,49,58,.22)}
+  .grid-ov .edge{position:absolute;inset:0;border-left:1px solid rgba(0,243,255,.35);
+    border-right:1px solid rgba(0,243,255,.35)}
+  .grid-ov .safe{position:absolute;inset:0 var(--stage-pad);border-left:1px dashed rgba(0,243,255,.3);
+    border-right:1px dashed rgba(0,243,255,.3)}
+  /* 🩸 The HUD was ALWAYS ON — every visitor to the site would have seen the dev readout
+     sitting in the corner. It is a design instrument, so it now rides with the design grid:
+     hidden by default, appears WITH the columns when G is pressed. One key, both tools. */
+  .hud{display:none;position:fixed;left:14px;bottom:14px;z-index:120;font-family:var(--mono);font-size:11px;
+    letter-spacing:.06em;color:var(--dim);background:rgba(6,6,8,.92);
+    border:1px solid rgba(244,239,227,.16);padding:8px 12px;line-height:1.7;pointer-events:none}
+  body.gridon .hud{display:block}
+  .hud b{color:var(--ember)} .hud u{color:var(--ghost);text-decoration:none}
+
+  /* ══ SPIN THE BLACK CIRCLE ══════════════════════════════════
+     Frankie's line, three times, in THE DAYLONG BROTHERS (2019). His words, his feature.
+     Here it's the randomiser: the record picks the issue. ══ */
+  .spin{position:relative;padding:var(--sp-3xl) var(--stage-pad) var(--sp-3xl);background:var(--void);
+    border-top:1px solid rgba(244,239,227,.07)}
+  .spindeck{margin-top:33px;display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);
+    gap:40px;align-items:center}
+  .platter{position:relative;aspect-ratio:1;width:100%;max-width:242px;margin-inline:auto;border-radius:50%;
+    background:
+      repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.045) 0 1px,transparent 1px 4px),
+      radial-gradient(circle at 50% 50%,#1b1b21 0 17%,#0c0c10 18% 100%);
+    border:1px solid rgba(244,239,227,.14);box-shadow:0 26px 64px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.05)}
+  .platter .lbl{position:absolute;inset:31%;border-radius:50%;background:var(--blood);
+    display:grid;place-items:center;text-align:center;padding:8px;box-shadow:0 0 0 4px #08080a}
+  .platter .lbl span{font-family:var(--disp);font-size:15px;letter-spacing:.1em;
+    text-transform:uppercase;color:#fff;line-height:1.12}
+  .platter .pin{position:absolute;left:50%;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;
+    background:#08080a;z-index:2}
+  .platter .shine{position:absolute;inset:0;border-radius:50%;pointer-events:none;
+    background:conic-gradient(from 200deg,transparent 0 42%,rgba(255,122,24,.14) 50%,transparent 58% 100%)}
+  .spinout{min-width:0}
+  .spinout .k{font-family:var(--disp);font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ghost)}
+  .spinout h3{margin-top:6px;font-family:var(--disp);font-weight:400;font-size:41px;
+    line-height:.94;text-transform:uppercase;color:var(--bone);filter:url(#torn);text-wrap:balance}
+  .spinout p{margin-top:11px;max-width:48ch;color:var(--dim);font-size:12px;line-height:1.72}
+  .spinout .meta{margin-top:14px;display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ghost)}
+  .spinout .meta b{color:var(--ember)}
+  .spinout .acts{margin-top:18px;display:flex;gap:12px;flex-wrap:wrap}
+  @media (prefers-reduced-motion:no-preference){
+    .platter.turning{animation:spin360 .9s cubic-bezier(.3,.02,.1,1)}
+    @keyframes spin360{from{transform:rotate(0)}to{transform:rotate(1080deg)}}
+  }
+
+  /* ══ THE KING ═══════════════════════════════════════════════ */
+  /* 🩸 THIS WAS `min-height:80vh` — the 28th and last viewport unit inside the stage, and
+     it survived BOTH earlier sweeps. Measured before it was removed: at a 1266px window the
+     section rendered 1013px against 784px of content — 229px of stretch that changed with
+     every window height, inside a frame whose entire promise is that it does not. Now a hard
+     576px: 1024x576 is 16:9, a deliberately different beat to the hero's 2:1 letterbox. */
+  .king{position:relative;min-height:var(--king-h);display:flex;align-items:center;overflow:hidden;
+    border-top:1px solid rgba(244,239,227,.07)}
+  .king .bg{position:absolute;inset:0;z-index:-2}
+  .king .bg img{width:100%;height:100%;object-fit:cover;object-position:74% center;filter:contrast(1.04)}
+  .king .scrim{position:absolute;inset:0;z-index:-1;
+    background:linear-gradient(90deg,rgba(6,6,8,.95) 0%,rgba(6,6,8,.62) 47%,rgba(6,6,8,.06) 80%),
+               linear-gradient(0deg,rgba(6,6,8,.74),transparent 56%)}
+  .king .inner{max-width:476px;padding:var(--sp-3xl) var(--stage-pad)}
+  .king .eyebrow{display:block;margin-bottom:13px}
+  .king h2{font-family:var(--disp);font-weight:400;font-size:78px;line-height:.86;
+    letter-spacing:-.012em;text-transform:uppercase;color:var(--bone);filter:url(#torn);text-wrap:balance}
+  .king h2 em{font-style:normal;color:var(--blood);text-shadow:0 0 26px rgba(225,21,36,.4),3px 3px 0 var(--blood-dim)}
+  .king p{margin-top:18px;max-width:47ch;color:var(--dim);font-size:13px;line-height:1.75}
+  .king p b{color:var(--bone)}
+  .king .vow{margin-top:16px;font-family:var(--disp);font-size:14px;letter-spacing:.04em;
+    text-transform:uppercase;color:var(--bone)}
+  .king .vow::before{content:"🝕 ";color:var(--blood)}
+
+  /* ══ FOOTER ═════════════════════════════════════════════════ */
+  footer.foot{position:relative;background:var(--pit);border-top:2px solid var(--blood);
+    padding:var(--sp-xl) var(--stage-pad) var(--sp-l)}
+  .foot .top{display:flex;flex-wrap:wrap;gap:30px;justify-content:space-between;align-items:flex-start}
+  .foot .idb{max-width:38ch}
+  .foot .idb .bm{display:flex;align-items:center;gap:9px;font-family:var(--disp);font-size:16px;
+    letter-spacing:.06em;text-transform:uppercase}
+  .foot .idb .bm i{width:23px;height:23px;flex:none;display:grid;place-items:center;background:var(--blood);
+    color:#fff;font-style:normal;border-radius:3px;transform:rotate(-4deg);box-shadow:0 2px 0 var(--blood-dim)}
+  .foot .idb p{margin-top:11px;color:var(--ghost);font-size:11px;line-height:1.72}
+  .foot .cols{display:flex;gap:60px;flex-wrap:wrap}
+  .foot .col h4{font-family:var(--disp);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--blood-txt);margin-bottom:12px}
+  .foot .col a,.foot .col button{display:block;color:var(--dim);font-size:12px;padding:3px 0;
+    transition:color .15s;text-align:left}
+  .foot .col a:hover,.foot .col button:hover{color:var(--bone)}
+  .foot .bar{margin-top:48px;padding-top:14px;border-top:1px solid rgba(244,239,227,.1);
+    display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center;font-size:12px;color:var(--ghost)}
+  .foot .bar .vow{font-family:var(--disp);letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+  .foot .bar .vow b{color:var(--blood-txt)}
+
+  /* ══ THE READING ROOM ═══════════════════════════════════════
+     The flip: outside is black metal, inside is NEWSPRINT. Full takeover so the prose
+     gets the whole screen with nothing competing. ══ */
+  .reader{position:fixed;inset:0;z-index:100;background:var(--news);color:var(--news-ink);
+    overflow-y:auto;overscroll-behavior:contain;display:none}
+  .reader.open{display:block}
+  .reader::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:2;opacity:.5;mix-blend-mode:multiply;
+    background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23p)' opacity='0.35'/></svg>")}
+
+  /* progress + close live in their own fixed bar. NOTE: no backdrop-filter anywhere in
+     the reader — a filtered ancestor creates a stacking context and the close button
+     stops being z-index-able over the page. Solid fill instead, on purpose. */
+  .rbar{position:fixed;top:0;left:0;right:0;z-index:6;display:flex;align-items:center;gap:14px;
+    padding:11px 34px;background:var(--news-2);border-bottom:1px solid rgba(22,19,14,.16)}
+  .rbar .rb-desk{font-family:var(--disp);font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--news-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rbar .rb-desk i{font-style:normal;color:var(--blood-ink)}
+  .rbar .sp{margin-left:auto;display:flex;gap:8px;align-items:center}
+  .rnav{font-family:var(--disp);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--news-ink);
+    border:1px solid rgba(22,19,14,.28);border-radius:2px;padding:7px 12px;transition:background .15s,color .15s}
+  .rnav:hover:not(:disabled){background:var(--news-ink);color:var(--news)}
+  .rnav:disabled{opacity:.3;cursor:not-allowed}
+  .rclose{font-family:var(--disp);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#fff;
+    background:var(--blood);border:1px solid var(--blood-dim);border-radius:2px;padding:7px 14px;
+    transition:background .15s}
+  .rclose:hover{background:var(--blood-hot)}
+   /* 🩸 This used to animate `width`, which forces a reflow+paint EVERY frame the reader
+     scrolls — the single worst thing you can tween. scaleX on a full-width bar is the same
+     picture, computed on the compositor. */
+  .rprog{position:fixed;top:0;left:0;height:3px;width:100%;background:var(--blood);z-index:7;
+    transform:scaleX(0);transform-origin:0 50%;will-change:transform}
+
+  .rwrap{max-width:none;padding:96px clamp(16px,5vw,40px) 130px}
+  .rhead{max-width:44rem;margin:0 auto}
+  .rhead .rk{font-family:var(--disp);font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--blood-ink)}
+  .rhead h1{margin-top:12px;font-family:var(--disp);font-weight:400;font-size:clamp(36px,7vw,74px);line-height:.94;
+    letter-spacing:.005em;text-transform:uppercase;color:var(--news-ink);text-wrap:balance}
+  .rhead .rmeta{margin-top:16px;padding-top:14px;border-top:2px solid var(--news-ink);
+    display:flex;flex-wrap:wrap;gap:16px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--news-dim)}
+  .rhead .rmeta b{color:var(--news-ink)}
+  .rhero{max-width:44rem;margin:26px auto 0}
+  .rhero img{display:block;width:100%;aspect-ratio:16/7;object-fit:cover;background:#000;
+    border:1px solid rgba(22,19,14,.2)}
+  .rhero figcaption{margin-top:7px;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--news-dim)}
+
+  .rbody{max-width:38rem;margin:38px auto 0;font-family:var(--serif);font-size:clamp(17px,2.1vw,19.5px);
+    line-height:1.72;color:var(--news-ink)}
+  .rbody p{margin-bottom:1.15em;text-wrap:pretty}
+  /* THE LEDE — a standfirst rule, NOT a drop cap.
+     🩸 Two drop-cap attempts died here. A bare ::first-letter at 3.5em in a condensed face
+     turns an "I" into a vertical bar and the opening reads "t's 2010" like a typo; putting it
+     on a plate just made it a bar with a slot in it. 22 of the 69 posts open on I/J/l — a
+     THIRD of the zine — so the letterform dependency IS the common case. A left rule carries
+     the same "this is the opening" signal, costs nothing, and cannot break on any glyph.
+     If a drop cap ever comes back it needs a real display face loaded, not a system fallback. */
+  .rbody p.lead{font-size:1.14em;line-height:1.6;padding-left:20px;
+    border-left:4px solid var(--blood)}
+  .rbody p.short{font-family:var(--disp);font-size:1.22em;letter-spacing:.02em;line-height:1.34;
+    color:var(--news-ink);text-transform:none}
+  .rsign{max-width:38rem;margin:44px auto 0;padding-top:26px;border-top:2px solid var(--news-ink);
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .rsign .bh{font-family:var(--disp);font-size:clamp(20px,3.4vw,32px);letter-spacing:.03em;text-transform:uppercase;
+    color:var(--news-ink)}
+  .rsign .bh em{font-style:normal;color:var(--blood-ink)}
+  .rsign .src{margin-left:auto;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--news-dim)}
+
+  /* what's next — keeps him reading */
+  .rnext{max-width:44rem;margin:56px auto 0;padding-top:26px;border-top:1px solid rgba(22,19,14,.22)}
+  .rnext .rk{font-family:var(--disp);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--news-dim)}
+  .rnext .grid{margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+  .rnext a{display:block;border:1px solid rgba(22,19,14,.24);background:rgba(255,255,255,.34);padding:13px 15px;
+    transition:background .15s,border-color .15s,transform .15s var(--ease)}
+  .rnext a:hover{background:#fff;border-color:var(--news-ink);transform:translateY(-2px)}
+  .rnext a .t{font-family:var(--disp);font-size:17px;text-transform:uppercase;line-height:1.1;color:var(--news-ink)}
+  .rnext a .m{margin-top:6px;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--news-dim)}
+  @media (prefers-reduced-motion:reduce){.rnext a{transition:none}}
+</style>
+</head>
+<body>
+
+<!-- inline SVG filter: torn/rough edges on display type (offline, zero assets) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="torn"><feTurbulence type="fractalNoise" baseFrequency="0.012 0.016" numOctaves="2" seed="7" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="6" xChannelSelector="R" yChannelSelector="G"/></filter>
+</svg>
+
+<!-- ══ THE STAGE opens. Everything from here to the footer is authored at exactly
+     1440px and never reflows. The reading view deliberately lives OUTSIDE it. ══ -->
+<div id="stagewrap">
+<div class="stage" id="stage">
+  <div class="grid-ov" aria-hidden="true">
+    <div class="cols" id="gridcols"></div>
+    <div class="safe"></div>
+    <div class="edge"></div>
+  </div>
+<header class="mast">
+  <a class="brand" href="#top"><span class="mk">♛</span><span><b>Sinner King</b><i>the zine</i></span></a>
+  <nav class="links" aria-label="Primary">
+    <a href="#rack">The Rack</a><a href="#spin">Spin It</a><a href="#king">The King</a><a href="#about">About</a>
+  </nav>
+  <button class="spinbtn" type="button" data-spin>◉ Spin the Black Circle</button>
+</header>
+
+<!-- ══ HERO ══ -->
+<section class="hero" id="top">
+  <!-- THE BACKGROUND LOOP. Drop a file at assets/hero-loop.mp4 and it plays; until then
+       this element is transparent and the glow below carries the hero unchanged. -->
+  <video class="heroloop" autoplay muted loop playsinline preload="metadata"
+         poster="assets/hero-still.jpg" aria-hidden="true">
+    <source src="assets/hero-loop.mp4" type="video/mp4">
+  </video>
+  <div class="heroscrim"></div>
+  <div class="glow"></div><div class="scanl"></div>
+  <!-- THE FLOATING SCRAPS ARE PARKED (King's call, S384b). They were four pieces of his
+       art drifting in the corners — good against a black hero, noise against a photographic
+       one. The .scrap CSS is DELIBERATELY LEFT IN PLACE below: he is adding "all kinds of
+       whimsical shit" to this hero, so restoring them is pasting four <img> tags back here,
+       not rebuilding the styles. -->
+
+  <div class="h-left">
+    <p class="eyebrow">Dispatches from the Loop</p>
+    <h1 class="wordmark">Sinner<span class="r">King</span></h1>
+  </div>
+
+  <div class="h-right">
+    <p class="tagline">A decade of blogs, manifestos and confessions, dragged out of the drawer and
+      pinned to the wall. <b>Nothing here was written to go viral.</b> It was written because it
+      wouldn't stay down.</p>
+    <p class="vowline">Be human. <em>Make art.</em></p>
+
+    <div class="tally">
+      <div><div class="n" id="t-posts">—</div><div class="l">Issues</div></div>
+      <div><div class="n" id="t-words">—</div><div class="l">Words</div></div>
+      <div><div class="n" id="t-desks">7</div><div class="l">Desks</div></div>
+      <div><div class="n" id="t-hours">—</div><div class="l">Hours of it</div></div>
+    </div>
+
+    <div class="cta">
+      <a class="btn solid" href="#rack">Read the Rack</a>
+      <button class="btn ghost" type="button" data-spin>◉ Spin the Black Circle</button>
+    </div>
+  </div>
+  <div class="cue"><span>Scroll</span><span class="ln"></span></div>
+</section>
+
+<!-- ══ THE BIG ONES ══ -->
+<section class="decks" id="decks">
+  <span class="slug">The Big Ones</span>
+  <p class="sub">The illustrated ones — drawn, lettered and laid out page by page.
+    <b>Tap one and it takes the whole screen.</b></p>
+  <div class="deckgrid" id="deckgrid"></div>
+</section>
+
+<!-- ══ THE RACK ══ -->
+<section class="rack" id="rack">
+  <span class="slug">The Rack</span>
+  <p class="sub">Every issue, pinned and filed by desk. <b>Pinned, not polished.</b> The dates are gone
+    on purpose — none of it aged, and I'd rather you found it by what it's about than by when I was
+    losing my mind that week.</p>
+
+  <div class="tools">
+    <div class="desks" id="desks" role="group" aria-label="Filter by desk"></div>
+    <label class="find">
+      <span aria-hidden="true">⌕</span>
+      <input id="find" type="search" placeholder="Search every word of it…" aria-label="Search the zine">
+      <kbd>/</kbd>
+    </label>
+  </div>
+  <p class="count" id="count"></p>
+  <div class="wall" id="wall"></div>
+</section>
+
+<!-- ══ SPIN THE BLACK CIRCLE ══ -->
+<section class="spin" id="spin">
+  <span class="slug e">Spin the Black Circle</span>
+  <p class="sub">Frankie says it three times in <b>The Daylong Brothers</b> and never once explains it.
+    Here it means: stop scrolling, let the record pick. <b>Drop the needle.</b></p>
+
+  <div class="spindeck">
+    <div class="platter" id="platter" aria-hidden="true">
+      <div class="shine"></div>
+      <div class="lbl"><span>Spin the<br>Black Circle</span></div>
+      <div class="pin"></div>
+    </div>
+    <div class="spinout" id="spinout" aria-live="polite">
+      <div class="k">The needle landed on</div>
+      <h3 id="spin-title">—</h3>
+      <p id="spin-dek"></p>
+      <div class="meta" id="spin-meta"></div>
+      <div class="acts">
+        <button class="btn solid" type="button" id="spin-read">Read It</button>
+        <button class="btn ghost" type="button" data-spin>◉ Spin Again</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ THE KING ══ -->
+<section class="king" id="king">
+  <div class="bg"><img src="assets/king-reels.png" decoding="async" alt="Illustrated figure in a red cloak crouched over a film reel in a heap of dead televisions"></div>
+  <div class="scrim"></div>
+  <div class="inner">
+    <span class="eyebrow">The Sinner King</span>
+    <h2>I kept the<br><em>receipts.</em></h2>
+    <p>Twenty-odd years of making things, most of it in the dark, a lot of it while the industry I
+      loved was busy collapsing. This is the written half — the blogs nobody asked for, the manifestos
+      I wrote standing up, the bad-brain days I published anyway.
+      <b>None of it was polished. All of it was real.</b></p>
+    <div class="vow">Forever means fucking forever.</div>
+  </div>
+</section>
+
+<footer class="foot" id="about">
+  <div class="top">
+    <div class="idb">
+      <div class="bm"><i>♛</i>Sinner King</div>
+      <p>The zine. Dispatches from the loop — filmmaking, artificial intelligence, bad brain days,
+        and whatever else wouldn't stay down. Written by hand, kept on purpose, published without
+        asking anyone.</p>
+    </div>
+    <div class="cols">
+      <div class="col"><h4>The Zine</h4>
+        <a href="#rack">The Rack</a><a href="#spin">Spin It</a><a href="#king">The King</a></div>
+      <div class="col"><h4>The Desks</h4><div id="foot-desks"></div></div>
+    </div>
+  </div>
+  <div class="bar">
+    <span class="vow">🝕 Be human. <b>Make art.</b></span>
+    <span id="foot-stat">© The Sinner King</span>
+  </div>
+</footer>
+</div><!-- /.stage -->
+</div><!-- /#stagewrap -->
+
+<!-- the frame readout. A designer cannot make spacing calls he cannot measure. -->
+<div class="hud" id="hud" aria-hidden="true"></div>
+
+<!-- ══ THE READING ROOM — outside the stage on purpose: it is a viewport takeover ══ -->
+<div class="reader" id="reader" role="dialog" aria-modal="true" aria-labelledby="r-title" tabindex="-1">
+  <div class="rprog" id="rprog"></div>
+  <div class="rbar">
+    <span class="rb-desk" id="rb-desk"></span>
+    <span class="sp">
+      <button class="rnav" type="button" id="r-prev" aria-label="Previous issue">← Prev</button>
+      <button class="rnav" type="button" id="r-next" aria-label="Next issue">Next →</button>
+      <button class="rclose" type="button" id="r-close">Close ✕</button>
+    </span>
+  </div>
+  <article class="rwrap">
+    <header class="rhead">
+      <div class="rk" id="r-kicker"></div>
+      <h1 id="r-title"></h1>
+      <div class="rmeta" id="r-meta"></div>
+    </header>
+    <figure class="rhero"><img id="r-cover" src="" alt="" decoding="async"><figcaption id="r-cap"></figcaption></figure>
+    <div class="rbody" id="r-body"></div>
+    <div class="rsign">
+      <span class="bh">Be human. <em>Make art.</em></span>
+      <span class="src" id="r-src"></span>
+    </div>
+    <nav class="rnext" aria-label="Keep reading">
+      <div class="rk">Keep Reading</div>
+      <div class="grid" id="r-more"></div>
+    </nav>
+  </article>
+</div>
+
+<!-- ══ THE LIGHTBOX — body-level, outside the stage (a fixed child inside a
+     transformed ancestor positions against the ANCESTOR, not the viewport) ══ -->
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-labelledby="lb-title" tabindex="-1">
+  <div class="lbbar">
+    <span class="lt" id="lb-title"></span>
+    <span class="lc" id="lb-count"></span>
+    <button class="lx" type="button" id="lb-close">Close ✕</button>
+  </div>
+  <div class="lbstage">
+    <button class="lbnav prev" type="button" id="lb-prev" aria-label="Previous page">←</button>
+    <img id="lb-img" src="" alt="" decoding="async">
+    <button class="lbnav next" type="button" id="lb-next" aria-label="Next page">→</button>
+  </div>
+  <div class="lbfilm" id="lb-film" aria-label="Pages"></div>
+</div>
+
+<script src="data/slides.js?v=1"></script>
+<script src="data/posts.js?v=1"></script>
+<script>
+(function(){
+  "use strict";
+  var POSTS = window.POSTS || [], DESKS = window.DESKS || [];
+  var DESK = {}; DESKS.forEach(function(d){ DESK[d.key] = d; });
+
+  /* ── escaping ────────────────────────────────────────────────
+     esc() is the ONLY way user-facing text reaches innerHTML. mark() highlights on the
+     RAW string and escapes each slice AS IT EMITS — escaping first and then injecting
+     <mark> lets a query like "amp" land inside an &amp; entity and shred the DOM.
+     (Scar carried over from the Cathedral's Notes Desk.) */
+  function esc(s){
+    return String(s == null ? "" : s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  }
+  function mark(text, q){
+    text = String(text == null ? "" : text);
+    if(!q) return esc(text);
+    var lo = text.toLowerCase(), ql = q.toLowerCase(), out = "", i = 0, hit;
+    while((hit = lo.indexOf(ql, i)) !== -1){
+      out += esc(text.slice(i, hit)) + "<mark>" + esc(text.slice(hit, hit + ql.length)) + "</mark>";
+      i = hit + ql.length;
+    }
+    return out + esc(text.slice(i));
+  }
+
+  /* Five posts came out of the archive with no heading — the splitter fell back to their
+     opening line and cut it at 58 chars. Showing a mangled fragment as a headline looks
+     broken and, worse, puts words in his mouth he didn't choose as a title. So they read
+     as "Untitled" and the real opening line carries the card instead. (build.py flags
+     them; they're waiting on a name from him.) */
+  function shownTitle(p){ return p.untitled ? "Untitled" : p.title; }
+
+  /* ── boot the tallies ── */
+  var totalWords = POSTS.reduce(function(a,p){ return a + p.words; }, 0);
+  var totalMin   = POSTS.reduce(function(a,p){ return a + p.read;  }, 0);
+  function setTxt(id,v){ var el = document.getElementById(id); if(el) el.textContent = v; }
+  setTxt("t-posts", POSTS.length);
+  setTxt("t-words", totalWords.toLocaleString());
+  setTxt("t-desks", DESKS.length);
+  setTxt("t-hours", Math.max(1, Math.round(totalMin/60)));
+  setTxt("foot-stat", "© The Sinner King · " + POSTS.length + " issues · " +
+                       totalWords.toLocaleString() + " words");
+
+  /* ── the desk rail ── */
+  var activeDesk = "all", query = "";
+  var deskWrap = document.getElementById("desks");
+  var counts = {}; POSTS.forEach(function(p){ counts[p.desk] = (counts[p.desk]||0)+1; });
+
+  function deskBtn(key, name, sig, hue, n){
+    return '<button class="desk" type="button" data-desk="' + esc(key) + '" data-hue="' + esc(hue) +
+           '" aria-pressed="' + (activeDesk===key) + '">' +
+           (sig ? '<span class="g" aria-hidden="true">' + esc(sig) + '</span>' : '') +
+           '<span>' + esc(name) + '</span><span class="c">' + n + '</span></button>';
+  }
+  deskWrap.innerHTML = deskBtn("all","Everything","✱","blood",POSTS.length) +
+    DESKS.map(function(d){ return deskBtn(d.key, d.name, d.sig, d.hue, counts[d.key]||0); }).join("");
+
+  document.getElementById("foot-desks").innerHTML = DESKS.map(function(d){
+    return '<button type="button" data-desk="' + esc(d.key) + '">' + esc(d.sig) + " " + esc(d.name) + "</button>";
+  }).join("");
+
+  /* ── filter + render the wall ── */
+  function matches(p){
+    if(activeDesk !== "all" && p.desk !== activeDesk) return false;
+    if(!query) return true;
+    var q = query.toLowerCase();
+    if(p.title.toLowerCase().indexOf(q) !== -1) return true;   // the raw title stays searchable
+    if(shownTitle(p).toLowerCase().indexOf(q) !== -1) return true;
+    if(p.dek.toLowerCase().indexOf(q) !== -1) return true;
+    if((DESK[p.desk]||{}).name && DESK[p.desk].name.toLowerCase().indexOf(q) !== -1) return true;
+    if(p.tags.join(" ").toLowerCase().indexOf(q) !== -1) return true;
+    // full-text: the whole point of an archive is that you can find the line you remember
+    return p.body.join("\n").toLowerCase().indexOf(q) !== -1;
+  }
+
+  var wall = document.getElementById("wall"), countEl = document.getElementById("count");
+  var shown = [];
+
+  function render(){
+    shown = POSTS.filter(matches);
+    var deskName = activeDesk === "all" ? "every desk" : (DESK[activeDesk]||{}).name;
+    countEl.innerHTML = "Showing <b>" + shown.length + "</b> of " + POSTS.length +
+                        " · " + esc(deskName) + (query ? ' · "' + esc(query) + '"' : "");
+    if(!shown.length){
+      wall.innerHTML = '<div class="empty"><b>Nothing on that shelf</b>' +
+        'Nothing matches “' + esc(query) + '”. Try a shorter word — or spin the record and take what you get.</div>';
+      return;
+    }
+    wall.innerHTML = shown.map(function(p){
+      var d = DESK[p.desk] || {name:"", sig:"", hue:"blood"};
+      return '<button class="issue" type="button" data-slug="' + esc(p.slug) + '" data-hue="' + esc(d.hue) + '">' +
+        '<span class="tape" aria-hidden="true"></span>' +
+        '<span class="cov"><img src="assets/' + esc(p.cover) + '" alt="" loading="lazy" decoding="async">' +
+          '<span class="no">Nº ' + esc(p.issue) + '</span>' +
+          '<span class="dsk">' + esc(d.sig) + " " + esc(d.name) + '</span></span>' +
+        '<h3' + (p.untitled ? ' class="untitled"' : '') + '>' + mark(shownTitle(p), query) + '</h3>' +
+        '<p>' + mark(p.dek, query) + '</p>' +
+        '<span class="foot"><span class="rd">' + p.read + ' min</span><span>' +
+          p.words.toLocaleString() + ' words</span>' +
+          /* THE LEDGER (V3): where it lives — joined by build.py from the Cathedral's ledger.js.
+             p.live is null for anything the ledger doesn't hold: no chip, never a guess. */
+          (p.live && p.live.state === "posted"
+            ? '<span class="live" title="Posted — open for the link">↗ ' + esc(p.live.channels.map(function(c){ return c.channel; }).join(" · ")) + '</span>'
+            : '') +
+          '<span class="arrow" aria-hidden="true">→</span></span>' +
+      '</button>';
+    }).join("");
+  }
+
+  document.addEventListener("click", function(e){
+    var d = e.target.closest("[data-desk]");
+    if(d){
+      activeDesk = d.dataset.desk;
+      deskWrap.querySelectorAll(".desk").forEach(function(b){
+        b.setAttribute("aria-pressed", String(b.dataset.desk === activeDesk));
+      });
+      render();
+      document.getElementById("rack").scrollIntoView({block:"start"});
+      return;
+    }
+    var i = e.target.closest(".issue");
+    if(i){ open(i.dataset.slug); return; }
+    if(e.target.closest("[data-spin]")){ spin(true); return; }
+  });
+
+  var find = document.getElementById("find"), t = null;
+  find.addEventListener("input", function(){
+    clearTimeout(t);
+    t = setTimeout(function(){ query = find.value.trim(); render(); }, 110);
+  });
+  document.addEventListener("keydown", function(e){
+    if(document.body.classList.contains("reading")) return;
+    if(e.key === "/" && document.activeElement !== find){ e.preventDefault(); find.focus(); find.select(); }
+    if(e.key === "Escape" && document.activeElement === find){ find.value=""; query=""; render(); find.blur(); }
+  });
+
+  /* ── SPIN THE BLACK CIRCLE ──
+     Never lands on the issue it's already showing (a randomiser that repeats feels broken). */
+  var platter = document.getElementById("platter"), spinPick = null;
+  /* `jump` is false ONLY for the silent boot-load spin — the deck has to arrive already
+     showing something, but a page that scrolls itself on load is a page that feels broken. */
+  function spin(jump){
+    /* GU-lite T2: with exactly ONE post, filtering out the current pick empties the pool and
+       pool[0] is undefined -> TypeError on the next property read. Dormant at 69 posts; a real
+       crash the moment the build ever yields one. */
+    var pool = POSTS.length > 1
+      ? POSTS.filter(function(p){ return !spinPick || p.slug !== spinPick.slug; })
+      : POSTS;
+    if(!pool.length) return;
+    spinPick = pool[Math.floor(Math.random() * pool.length)];
+    var d = DESK[spinPick.desk] || {};
+    document.getElementById("spin-title").textContent = shownTitle(spinPick);
+    document.getElementById("spin-dek").textContent  = spinPick.dek;
+    document.getElementById("spin-meta").innerHTML =
+      "<span>" + esc(d.sig || "") + " " + esc(d.name || "") + "</span>" +
+      "<span><b>" + spinPick.read + "</b> min</span>" +
+      "<span>Nº " + esc(spinPick.issue) + "</span>";
+    if(jump){
+      platter.classList.remove("turning");
+      void platter.offsetWidth;               // reflow so the animation can retrigger
+      platter.classList.add("turning");
+      document.getElementById("spin").scrollIntoView({block:"center"});
+    }
+  }
+  document.getElementById("spin-read").addEventListener("click", function(){
+    if(spinPick) open(spinPick.slug);
+  });
+
+  /* ── THE READING ROOM ── */
+  /* GU-lite T1: the reader carried role="dialog" aria-modal="true" and NO focus trap.
+     aria-modal only hides the background from ASSISTIVE TECH. A sighted keyboard user could
+     Shift+Tab straight out of the reader into the footer links sitting invisibly underneath
+     the z-index:100 overlay, and press Enter on something they cannot see. Two layers now:
+       1. `inert` on every body-level sibling - drops them from the tab order, the a11y tree
+          AND hit-testing, in one attribute. This is the real fix.
+       2. a Tab cycle inside the reader, as the floor for any engine without inert. */
+  /* F2 (GU2 S385): SCAR-04 was paid on the reader and re-committed on the lightbox. Both traps are
+     now THIS function with a `host` — the one body-level child that stays live. Default = reader,
+     so the reading room behaves exactly as before; the lightbox passes itself. One mechanism. */
+  function backgroundInert(on, host){
+    host = host || reader;
+    var kids = document.body.children;
+    for(var i = 0; i < kids.length; i++){
+      var el = kids[i];
+      if(el === host || el.tagName === "SCRIPT") continue;
+      if(on) el.setAttribute("inert",""); else el.removeAttribute("inert");
+    }
+  }
+  var FOCUSABLE = 'a[href],button:not([disabled]),input,[tabindex]:not([tabindex="-1"])';
+  function cycleTab(ev, host){
+    host = host || reader;
+    var f = [].filter.call(host.querySelectorAll(FOCUSABLE), function(el){
+      return el.offsetParent !== null || el === document.activeElement;
+    });
+    if(!f.length) return;
+    var first = f[0], last = f[f.length - 1];
+    if(ev.shiftKey && (document.activeElement === first || document.activeElement === host)){
+      ev.preventDefault(); last.focus();
+    } else if(!ev.shiftKey && document.activeElement === last){
+      ev.preventDefault(); first.focus();
+    }
+  }
+
+  var reader   = document.getElementById("reader"),
+      rBody    = document.getElementById("r-body"),
+      rProg    = document.getElementById("rprog"),
+      current  = -1, lastFocus = null,
+      pushed   = false;   // F5: did open() add a history entry? Back must return to the rack, never leave the site.
+
+  function open(slug){
+    var idx = POSTS.findIndex(function(p){ return p.slug === slug; });
+    if(idx < 0) return;
+    current = idx;
+    var wasOpen = reader.classList.contains("open");
+    var p = POSTS[idx], d = DESK[p.desk] || {name:"", sig:"", hue:"blood"};
+
+    document.getElementById("rb-desk").innerHTML = '<i>' + esc(d.sig) + '</i> ' + esc(d.name) + ' · Nº ' + esc(p.issue);
+    document.getElementById("r-kicker").textContent = d.sig + " " + d.name;
+    document.getElementById("r-title").textContent = shownTitle(p);
+    document.getElementById("r-meta").innerHTML =
+      "<span>Issue <b>Nº " + esc(p.issue) + "</b></span>" +
+      "<span><b>" + p.read + "</b> min read</span>" +
+      "<span><b>" + p.words.toLocaleString() + "</b> words</span>" +
+      (p.tags.length ? "<span>" + p.tags.map(esc).join(" · ") + "</span>" : "");
+    var cov = document.getElementById("r-cover");
+    cov.src = "assets/" + p.cover;
+    cov.alt = "Cover art for " + shownTitle(p);
+    document.getElementById("r-cap").textContent = "Art by the King · " + p.cover.replace(/\.png$/,"");
+    document.getElementById("r-src").innerHTML = (p.src ? "Archive " + esc(p.src) : "") +
+      /* THE LEDGER (V3): the "quick click to see it live" — first syndicated copy, if any. */
+      (p.live && p.live.channels.length
+        ? ' · <a href="' + esc(p.live.channels[0].url) + '" target="_blank" rel="noopener">open live on ' + esc(p.live.channels[0].channel) + ' ↗</a>'
+        : "");
+
+    // Body. A short opening line is a BEAT, not a paragraph — he writes those constantly
+    // ("Psst—", "Hey.", "Beat—") so they get display treatment instead of a silly drop cap.
+    var leadDone = false;
+    rBody.innerHTML = p.body.map(function(para){
+      var cls = "";
+      if(para.length < 46){ cls = " class=\"short\""; }
+      else if(!leadDone){ cls = " class=\"lead\""; leadDone = true; }
+      return "<p" + cls + ">" + esc(para) + "</p>";
+    }).join("");
+
+    // three more from the same desk, then anywhere — always something to fall into next
+    var same = POSTS.filter(function(x){ return x.desk === p.desk && x.slug !== p.slug; });
+    var rest = POSTS.filter(function(x){ return x.desk !== p.desk; });
+    var more = same.concat(rest).slice(0, 3);
+    document.getElementById("r-more").innerHTML = more.map(function(m){
+      var md = DESK[m.desk] || {};
+      return '<a href="#/read/' + esc(m.slug) + '" data-jump="' + esc(m.slug) + '">' +
+             '<span class="t">' + esc(shownTitle(m)) + '</span>' +
+             '<span class="m">' + esc(md.sig || "") + " " + esc(md.name || "") + " · " + m.read + ' min</span></a>';
+    }).join("");
+
+    document.getElementById("r-prev").disabled = (idx === 0);
+    document.getElementById("r-next").disabled = (idx === POSTS.length - 1);
+
+    if(!reader.classList.contains("open")) lastFocus = document.activeElement;
+    reader.classList.add("open");
+    document.body.classList.add("reading");
+    backgroundInert(true);
+    reader.scrollTop = 0;
+    rProg.style.transform = "scaleX(0)";
+    reader.focus();
+    /* F5 (GU2 S385): the reader used to replaceState ONLY, so it never owned a history
+       entry and Back left the site. Now: PUSH once when the reader opens from the rack,
+       REPLACE while stepping post-to-post (one entry per visit, not per post). A deep-link
+       boot (#/read/x already in the bar) pushes nothing — there is no rack behind it. */
+    if(location.hash !== "#/read/" + p.slug){
+      if(wasOpen) history.replaceState(null, "", "#/read/" + p.slug);
+      else { history.pushState(null, "", "#/read/" + p.slug); pushed = true; }
+    }
+  }
+
+  function close(opts){
+    reader.classList.remove("open");
+    document.body.classList.remove("reading");
+    backgroundInert(false);
+    /* Pop the entry open() pushed so ✕/Esc and the Back button land in the same place.
+       When the browser ALREADY went back (hashchange → close), popping again would be a
+       double Back — straight off the site. That path passes {fromHistory:true}. */
+    if(pushed && !(opts && opts.fromHistory)){ pushed = false; history.back(); }
+    else { pushed = false; history.replaceState(null, "", location.pathname + location.search + "#rack"); }
+    if(lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  function step(n){
+    var i = current + n;
+    if(i >= 0 && i < POSTS.length) open(POSTS[i].slug);
+  }
+
+  document.getElementById("r-close").addEventListener("click", close);
+  document.getElementById("r-prev").addEventListener("click", function(){ step(-1); });
+  document.getElementById("r-next").addEventListener("click", function(){ step(1); });
+  document.getElementById("r-more").addEventListener("click", function(e){
+    var a = e.target.closest("[data-jump]");
+    if(a){ e.preventDefault(); open(a.dataset.jump); }
+  });
+  reader.addEventListener("scroll", function(){
+    var max = reader.scrollHeight - reader.clientHeight;
+    rProg.style.transform = "scaleX(" + (max > 0 ? reader.scrollTop / max : 0) + ")";
+  }, {passive:true});
+  document.addEventListener("keydown", function(e){
+    if(!document.body.classList.contains("reading")) return;
+    if(e.key === "Escape"){ close(); }
+    else if(e.key === "Tab"){ cycleTab(e); }
+    else if(e.key === "ArrowLeft"){ step(-1); }
+    else if(e.key === "ArrowRight"){ step(1); }
+  });
+
+  /* ── deep links: #/read/<slug> survives a reload and is shareable ── */
+  function fromHash(){
+    var m = /^#\/read\/(.+)$/.exec(location.hash || "");
+    if(!m) return;
+    /* F1 (GU2 S385): a malformed escape in the hash (#/read/%zz) made decodeURIComponent throw
+       URIError inside the BOOT script and abort it — the frame rendered silently clipped 12px.
+       A bad deep link is a no-op (open() ignores an unknown slug), never a crash. */
+    var slug; try { slug = decodeURIComponent(m[1]); } catch(e){ slug = m[1]; }
+    open(slug);
+  }
+  window.addEventListener("hashchange", function(){
+    if(/^#\/read\//.test(location.hash)) fromHash();
+    else if(document.body.classList.contains("reading")) close({fromHistory:true});
+  });
+
+  /* ══ THE STAGE ════════════════════════════════════════════════════════
+     Windows wider than the frame get void around it. Windows NARROWER scale the whole
+     frame down uniformly — the layout never rearranges, it just gets smaller, like a
+     projected print. `#stagewrap` is given the SCALED height because a transformed
+     element still reserves its unscaled box, which would otherwise leave a dead gap
+     the length of the page underneath. */
+  var STAGE_W = 1024;
+  var stage = document.getElementById("stage"),
+      wrap  = document.getElementById("stagewrap"),
+      hud   = document.getElementById("hud"),
+      fit   = true;
+
+  var BASE_DPR = window.devicePixelRatio || 1;
+  function layoutStage(){
+    /* 🩸 WCAG 1.4.4 (Resize Text). Browser page-zoom SHRINKS clientWidth — at 200% zoom a
+       1440px window reports ~720. Fitting off clientWidth alone would compute scale 0.5 and
+       shrink the stage by exactly the amount the reader just zoomed IN, silently cancelling
+       it: press Cmd+ and nothing gets bigger. devicePixelRatio moves the opposite way under
+       page-zoom, so clientWidth * (dpr / baseline) is zoom-invariant — a genuinely narrow
+       WINDOW still fits, while a zoom is left alone to do its job. */
+    var dpr = window.devicePixelRatio || 1;
+    var vw = document.documentElement.clientWidth * (dpr / BASE_DPR);
+    var scale = fit ? Math.min(1, vw / STAGE_W) : 1;
+    /* zoom reflows the box model, so no manual height correction is needed. It also never
+       zooms ABOVE 1 — a bigger monitor gets more void, never a blown-up frame. */
+    stage.style.zoom = scale === 1 ? "" : scale;
+    hud.innerHTML =
+      "STAGE <b>" + STAGE_W + " × " + stage.offsetHeight + "</b>" +
+      "<br>zoom <b>" + Math.round(scale * 100) + "%</b> · window " + Math.round(vw) +
+      "<br><u>G</u> grid · <u>F</u> " + (fit ? "actual size" : "fit");
+  }
+  // 12 column bars for the overlay
+  (function(){
+    var c = document.getElementById("gridcols"), h = "";
+    for(var i = 0; i < 12; i++) h += "<i></i>";
+    c.innerHTML = h;
+  })();
+  addEventListener("resize", layoutStage);
+  document.addEventListener("keydown", function(e){
+    if(document.body.classList.contains("reading") || lbOpen) return;
+    if(document.activeElement === find) return;
+    if(e.key === "g" || e.key === "G"){ document.body.classList.toggle("gridon"); }
+    if(e.key === "f" || e.key === "F"){ fit = !fit; layoutStage(); }
+  });
+
+  /* ══ THE BIG ONES + THE LIGHTBOX ═════════════════════════════════════ */
+  var SLIDES = window.SLIDES || [];
+  var lb = document.getElementById("lb"), lbOpen = false, lbDeck = null, lbIdx = 0, lbLast = null;
+
+  document.getElementById("deckgrid").innerHTML = SLIDES.map(function(d, i){
+    return '<button class="deck' + (d.feature ? " feature" : "") + '" type="button" data-deck="' + i +
+      '" data-hue="' + esc(d.hue) + '">' +
+      '<span class="shot"><img src="' + esc(d.cover) + '" alt="Cover of ' + esc(d.title) +
+        '" loading="lazy" decoding="async">' +
+        '<span class="cnt">' + d.count + ' pages</span>' +
+        '<span class="expand" aria-hidden="true">⤢</span></span>' +
+      '<span class="meat"><span class="kick">' + esc(d.kicker) + '</span>' +
+      '<h3>' + esc(d.title) + '</h3><p>' + esc(d.dek) + '</p></span></button>';
+  }).join("");
+
+  function lbRender(){
+    var d = lbDeck;
+    document.getElementById("lb-img").src = d.pages[lbIdx];
+    document.getElementById("lb-img").alt = d.title + " — page " + (lbIdx + 1) + " of " + d.count;
+    document.getElementById("lb-count").textContent = (lbIdx + 1) + " / " + d.count;
+    document.getElementById("lb-prev").disabled = lbIdx === 0;
+    document.getElementById("lb-next").disabled = lbIdx === d.count - 1;
+    var film = document.getElementById("lb-film");
+    [].forEach.call(film.children, function(b, i){
+      b.setAttribute("aria-current", String(i === lbIdx));
+    });
+    var on = film.children[lbIdx];
+    if(on && on.scrollIntoView) on.scrollIntoView({block:"nearest", inline:"center"});
+  }
+  function lbShow(i){
+    lbDeck = SLIDES[i]; lbIdx = 0; lbOpen = true; lbLast = document.activeElement;
+    document.getElementById("lb-title").textContent = lbDeck.title;
+    document.getElementById("lb-film").innerHTML = lbDeck.pages.map(function(p, k){
+      return '<button type="button" data-page="' + k + '"><img src="' + esc(p) +
+             '" alt="Page ' + (k + 1) + '" loading="lazy" decoding="async"></button>';
+    }).join("");
+    lb.classList.add("open"); document.body.style.overflow = "hidden";
+    backgroundInert(true, lb);   /* F2: the decks get the reader's trap — SCAR-04, paid here too */
+    lbRender(); lb.focus();
+  }
+  function lbHide(){
+    lb.classList.remove("open"); lbOpen = false; document.body.style.overflow = "";
+    backgroundInert(false, lb);
+    if(lbLast && lbLast.focus) lbLast.focus();
+  }
+  function lbStep(k){
+    var i = lbIdx + k;
+    if(i >= 0 && i < lbDeck.count){ lbIdx = i; lbRender(); }
+  }
+  document.getElementById("deckgrid").addEventListener("click", function(e){
+    var b = e.target.closest("[data-deck]"); if(b) lbShow(+b.dataset.deck);
+  });
+  document.getElementById("lb-film").addEventListener("click", function(e){
+    var b = e.target.closest("[data-page]"); if(b){ lbIdx = +b.dataset.page; lbRender(); }
+  });
+  document.getElementById("lb-close").addEventListener("click", lbHide);
+  document.getElementById("lb-prev").addEventListener("click", function(){ lbStep(-1); });
+  document.getElementById("lb-next").addEventListener("click", function(){ lbStep(1); });
+  document.addEventListener("keydown", function(e){
+    if(!lbOpen) return;
+    if(e.key === "Escape") lbHide();
+    else if(e.key === "Tab") cycleTab(e, lb);   /* F2: the Tab-cycle floor, for any engine without inert */
+    else if(e.key === "ArrowLeft") lbStep(-1);
+    else if(e.key === "ArrowRight") lbStep(1);
+  });
+
+  render();
+  spin(false);
+  fromHash();
+  layoutStage();
+  // covers land after first paint and change the stage height — re-measure once settled.
+  addEventListener("load", layoutStage);
+})();
+</script>
+</body>
+</html>
